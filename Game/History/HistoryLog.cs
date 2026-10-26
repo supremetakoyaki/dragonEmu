@@ -145,13 +145,48 @@ public sealed class HistoryLog : IHostedService, IDisposable
                         return;
                     }
 
-                    await _write(_batch, CancellationToken.None);
-                    _batch.Clear();
+                    try
+                    {
+                        await _write(_batch, CancellationToken.None);
+                        _batch.Clear();
+                    }
+                    catch (MissingReferenceException)
+                    {
+                        await WriteOneByOneAsync(logger);
+                    }
                 }
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "{Count} {Name} history record(s) failed to be written, will retry on next iteration.", _batch.Count, _name);
+            }
+        }
+
+        private async Task WriteOneByOneAsync(ILogger logger)
+        {
+            int dropped = 0;
+            try
+            {
+                while (_batch.Count > 0)
+                {
+                    try
+                    {
+                        await _write([_batch[0]], CancellationToken.None);
+                    }
+                    catch (MissingReferenceException)
+                    {
+                        dropped++;
+                    }
+
+                    _batch.RemoveAt(0);
+                }
+            }
+            finally
+            {
+                if (dropped > 0)
+                {
+                    logger.LogWarning("{Count} {Name} history record(s) were dropped as their references are now invalid.", dropped, _name);
+                }
             }
         }
     }

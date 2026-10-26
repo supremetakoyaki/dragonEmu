@@ -108,6 +108,13 @@ public sealed class HistoryRepository : IHistoryRepository
         }
 
         command.CommandText = sql.Append(';').ToString();
-        await command.ExecuteNonQueryAsync(cancellationToken);
+        try
+        {
+            await command.ExecuteNonQueryAsync(cancellationToken);
+        }
+        catch (MySqlException ex) when (ex.ErrorCode == MySqlErrorCode.NoReferencedRow2)
+        {
+            throw new MissingReferenceException($"In the table {table} a record had refered to a row that no longer exists.", ex);
+        }
     }
 }

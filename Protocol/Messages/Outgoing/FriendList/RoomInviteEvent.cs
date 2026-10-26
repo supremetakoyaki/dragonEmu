@@ -1,0 +1,21 @@
+namespace DragonEmu.Protocol.Messages.Outgoing.FriendList;
+
+public sealed class RoomInviteEvent : IMessageEvent
+{
+    private readonly int _senderId;
+    private readonly string _message;
+
+    public RoomInviteEvent(int senderId, string message)
+    {
+        _senderId = senderId;
+        _message = message;
+    }
+
+    public ServerPacket Compose()
+    {
+        var packet = new ServerPacket(OutgoingOpcodes.FriendList.RoomInviteEvent);
+        packet.AppendInt32(_senderId);
+        packet.AppendString(_message);
+        return packet;
+    }
+}

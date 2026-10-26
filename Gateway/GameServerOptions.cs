@@ -6,6 +6,11 @@ public sealed class GameServerOptions
 
     public string BindAddress { get; set; } = "0.0.0.0";
     public int Port { get; set; } = 30000;
+
+    public int WebSocketPort { get; set; } = 30001;
+
+    public string[] WebSocketAllowedOrigins { get; set; } = [];
+
     public int MaxConnections { get; set; } = 500;
     public int ReceiveBufferSize { get; set; } = 4096;
     public int MaxFrameSize { get; set; } = 64 * 1024;

@@ -1,5 +1,3 @@
-using System.Net;
-using System.Net.Sockets;
 using System.Threading.Channels;
 using DragonEmu.Domain;
 using DragonEmu.Protocol;
@@ -10,7 +8,7 @@ namespace DragonEmu.Gateway;
 
 public sealed class ClientSession : IAsyncDisposable, IGameSession
 {
-    private readonly Socket _socket;
+    private readonly IClientConnection _connection;
     private readonly ClientPacketReader _reader;
     private readonly Channel<byte[]> _outgoing;
     private readonly CancellationTokenSource _cts = new();
@@ -72,14 +70,14 @@ public sealed class ClientSession : IAsyncDisposable, IGameSession
 
     public ClientSession(
         long id,
-        Socket socket,
+        IClientConnection connection,
         GameServerOptions options,
         IPacketDispatcher dispatcher,
         ILogger<ClientSession> logger)
     {
         Id = id;
-        _socket = socket;
-        RemoteAddress = (socket.RemoteEndPoint as IPEndPoint)?.Address.ToString() ?? "unknown";
+        _connection = connection;
+        RemoteAddress = connection.RemoteAddress;
         _dispatcher = dispatcher;
         _logger = logger;
         _reader = new ClientPacketReader(options.MaxFrameSize);
@@ -179,7 +177,7 @@ public sealed class ClientSession : IAsyncDisposable, IGameSession
             int received;
             try
             {
-                received = await _socket.ReceiveAsync(_receiveBuffer, SocketFlags.None, token)
+                received = await _connection.ReceiveAsync(_receiveBuffer, token)
                     .AsTask()
                     .WaitAsync(_idleTimeout, token);
             }
@@ -214,7 +212,7 @@ public sealed class ClientSession : IAsyncDisposable, IGameSession
         {
             await foreach (byte[] frame in _outgoing.Reader.ReadAllAsync(token))
             {
-                await _socket.SendAsync(frame, SocketFlags.None, token);
+                await _connection.SendAsync(frame, token);
             }
         }
         catch (OperationCanceledException)
@@ -230,16 +228,6 @@ public sealed class ClientSession : IAsyncDisposable, IGameSession
     {
         _cts.Cancel();
         _cts.Dispose();
-
-        try
-        {
-            _socket.Shutdown(SocketShutdown.Both);
-        }
-        catch (SocketException)
-        {
-        }
-
-        _socket.Close();
-        await Task.CompletedTask;
+        await _connection.DisposeAsync();
     }
 }

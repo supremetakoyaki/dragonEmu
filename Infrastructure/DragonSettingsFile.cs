@@ -23,6 +23,8 @@ public static class DragonSettingsFile
           "GameServer": {
             "BindAddress": "0.0.0.0",
             "Port": 30000,
+            "WebSocketPort": 30001,
+            "WebSocketAllowedOrigins": [],
             "MaxConnections": 500,
             "IdleTimeoutSeconds": 300,
             "ReceiveBufferSize": 4096,

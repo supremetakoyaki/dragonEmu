@@ -9,6 +9,8 @@
 
     <ServerVersion>1.0.261026</ServerVersion>
     <InformationalVersion>$(ServerVersion)</InformationalVersion>
+    <ApplicationIcon>dragon48.ico</ApplicationIcon>
+    <PackageIcon>dragon48.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,6 +21,17 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Persistence\Migrations\*.sql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="dragon48.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="dragon48.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
 
 </Project>

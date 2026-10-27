@@ -165,6 +165,7 @@ public static class ServiceRegistration
         services.AddSingleton<ClientSessionManager>();
         services.AddSingleton<IPacketDispatcher, GameMessageDispatcher>();
         services.AddSingleton<IChatCommandDispatcher, ChatCommandDispatcher>();
+        services.AddHostedService<ServerStatsService>();
         services.AddHostedService<GameGatewayService>();
         return services;
     }

@@ -469,6 +469,96 @@ public sealed partial class Room
         }
     }
 
+    public const double RotateOntoWalkableTolerance = 0.1;
+
+    public double? TryRotateFloorItemInPlace(int itemId, int rotation)
+    {
+        lock (_movementLock)
+        {
+            lock (_furnitureLock)
+            {
+                if (!_floorItems.TryGetValue(itemId, out RoomFloorItem? item))
+                {
+                    return null;
+                }
+
+                List<(int X, int Y)> newTiles = item.OccupiedTilesAt(item.X, item.Y, rotation).ToList();
+                if (newTiles.Any(tile => !Grid.CanHoldFurniture(tile.X, tile.Y)))
+                {
+                    return null;
+                }
+
+                double z = item.Z;
+                if (!item.IsWalkable)
+                {
+                    HashSet<(int X, int Y)> addedTiles = newTiles.Except(item.OccupiedTiles()).ToHashSet();
+                    if (IsAnyoneOn(addedTiles))
+                    {
+                        return null;
+                    }
+
+                    foreach ((int x, int y) in addedTiles)
+                    {
+                        foreach (RoomFloorItem other in ItemsAtUnlocked(x, y))
+                        {
+                            if (other.Id == itemId || other.SurfaceZ <= item.Z + 0.001)
+                            {
+                                continue;
+                            }
+
+                            if (!other.IsWalkable || Math.Abs(other.Z - item.Z) > RotateOntoWalkableTolerance)
+                            {
+                                return null;
+                            }
+
+                            z = Math.Max(z, other.SurfaceZ);
+                        }
+                    }
+                }
+
+                z = Math.Round(z, 4);
+                item.MoveTo(item.X, item.Y, z, rotation);
+                item.IsPositionPending = true;
+                MarkPositionUnsavedIfRolled(itemId);
+                RebuildTileIndex();
+                return z;
+            }
+        }
+    }
+
+    private bool IsAnyoneOn(IReadOnlySet<(int X, int Y)> tiles)
+    {
+        foreach (RoomActor actor in _actors.Values)
+        {
+            lock (actor.Lock)
+            {
+                if (tiles.Contains((actor.X, actor.Y)) || (actor.PendingStep is { } step && tiles.Contains((step.X, step.Y))))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    public IReadOnlyList<long> ActorsOn(IReadOnlySet<(int X, int Y)> tiles)
+    {
+        var on = new List<long>();
+        foreach (RoomActor actor in _actors.Values)
+        {
+            lock (actor.Lock)
+            {
+                if (tiles.Contains((actor.X, actor.Y)))
+                {
+                    on.Add(actor.SessionId);
+                }
+            }
+        }
+
+        return on;
+    }
+
     private bool IsFootprintTaken(IEnumerable<(int X, int Y)> footprint, IReadOnlySet<long>? exempt)
     {
         HashSet<(int X, int Y)> tiles = footprint.ToHashSet();

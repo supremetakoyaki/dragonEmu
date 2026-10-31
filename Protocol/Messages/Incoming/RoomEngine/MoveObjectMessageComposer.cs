@@ -79,6 +79,21 @@ public sealed class MoveObjectMessageComposer : IMessageComposer
             return;
         }
 
+        (int fromX, int fromY, double fromZ, int fromRotation) = (current.X, current.Y, current.Z, current.Rotation);
+
+        if (_x == fromX && _y == fromY && rotation != fromRotation)
+        {
+            HashSet<(int X, int Y)> before = current.OccupiedTiles().ToHashSet();
+            if (room.TryRotateFloorItemInPlace(_itemId, rotation) is not { } rotatedZ)
+            {
+                return;
+            }
+
+            before.UnionWith(current.OccupiedTiles());
+            await CommitAsync(room, roomId, fromX, fromY, rotatedZ, rotation, (fromX, fromY, fromZ, fromRotation), room.ActorsOn(before), session, cancellationToken);
+            return;
+        }
+
         var exempt = new HashSet<long>(room.RestingActorsOn(current));
 
         var prospective = new RoomFloorItem(
@@ -128,17 +143,24 @@ public sealed class MoveObjectMessageComposer : IMessageComposer
             return;
         }
 
-        (int fromX, int fromY, double fromZ, int fromRotation) = (current.X, current.Y, current.Z, current.Rotation);
         if (room.TryMoveFloorItemOnStack(_itemId, x, y, rotation, exempt) is not { } z)
         {
             session.Send(new PlaceObjectErrorMessageEvent(PlaceObjectErrorReason.NotEnoughSpace).Compose());
             return;
         }
 
+        await CommitAsync(room, roomId, x, y, z, rotation, (fromX, fromY, fromZ, fromRotation), exempt.ToList(), session, cancellationToken);
+    }
+
+    private async Task CommitAsync(
+        Room room, int roomId, int x, int y, double z, int rotation,
+        (int X, int Y, double Z, int Rotation) from, IReadOnlyList<long> resettle,
+        IGameSession session, CancellationToken cancellationToken)
+    {
         bool moved = await _userItemRepository.MoveOnFloorAsync(_itemId, roomId, x, y, (decimal)z, rotation, cancellationToken);
         if (!moved)
         {
-            room.MoveFloorItem(_itemId, fromX, fromY, fromZ, fromRotation);
+            room.MoveFloorItem(_itemId, from.X, from.Y, from.Z, from.Rotation);
             room.ConfirmFloorItem(_itemId);
             session.Send(new PlaceObjectErrorMessageEvent(PlaceObjectErrorReason.ItemNotFound).Compose());
             return;
@@ -159,7 +181,7 @@ public sealed class MoveObjectMessageComposer : IMessageComposer
         }
 
         var reOriented = new List<RoomActor>();
-        foreach (long sessionId in exempt)
+        foreach (long sessionId in resettle)
         {
             if (room.TryGetActor(sessionId, out RoomActor? seated))
             {

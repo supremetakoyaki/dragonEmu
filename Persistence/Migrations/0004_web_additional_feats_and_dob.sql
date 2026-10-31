@@ -19,6 +19,12 @@ ALTER TABLE `web_settings`
 ALTER TABLE `web_settings`
   ADD COLUMN `hotel_icon_ico` varchar(512) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'dragon48.ico' AFTER `icon_url`;
 
+ALTER TABLE `web_settings`
+  ADD COLUMN `discord_embed` varchar(1000) COLLATE utf8mb4_unicode_ci DEFAULT NULL AFTER `web_slogan`;
+
+ALTER TABLE `web_settings`
+  ADD COLUMN `flash_client_enabled` enum('0','1') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' AFTER `register_enabled`;
+
 CREATE TABLE `web_contact_form` (
   `id` int unsigned NOT NULL AUTO_INCREMENT,
   `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),

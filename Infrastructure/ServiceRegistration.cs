@@ -148,6 +148,7 @@ public static class ServiceRegistration
         services.AddSingleton<PublicRoomTransfers>();
         services.AddSingleton<PetNameRules>();
         services.AddHostedSingleton<PetService>();
+        services.AddHostedSingleton<IdolService>();
         services.AddHostedSingleton<PollService>();
         services.AddSingleton<RoomVoteService>();
         services.AddHostedSingleton<GuideBotService>();

@@ -128,6 +128,25 @@ public sealed class RoomManager : IRoomManager, IHostedService, IDisposable
         PetDefinitions petDefinitions = _petDefinitions.Current;
 
         IReadOnlyList<UserItem> items = await _userItemRepository.GetFloorItemsInRoomAsync(roomId, cancellationToken);
+
+        foreach (UserItem item in items)
+        {
+            string? reset = item.LogicClass switch
+            {
+                FurnitureLogicClass.Hotspot => Room.HotspotOff,
+                FurnitureLogicClass.VotingChair => Room.ChairUnlit,
+                _ => null,
+            };
+            if (reset is not null && item.ExtraData != reset)
+            {
+                await _userItemRepository.UpdateExtraDataAsync(item.Id, reset, cancellationToken);
+            }
+        }
+
+        if (items.Any(item => item.LogicClass is FurnitureLogicClass.Hotspot or FurnitureLogicClass.VotingChair))
+        {
+            items = await _userItemRepository.GetFloorItemsInRoomAsync(roomId, cancellationToken);
+        }
         var floorItems = new List<RoomFloorItem>(items.Count);
         foreach (UserItem item in items)
         {

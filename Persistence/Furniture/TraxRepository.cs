@@ -36,4 +36,21 @@ public sealed class TraxRepository : ITraxRepository
 
         return songs;
     }
+
+    public async Task<IReadOnlyList<TraxSong>> GetUserSongsAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        await using MySqlConnection connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+        await using var command = new MySqlCommand(
+            "SELECT id, song_name, song_author, song_data FROM users_songs WHERE user_ref = @user ORDER BY song_name, id;", connection);
+        command.Parameters.AddWithValue("@user", userId);
+
+        var songs = new List<TraxSong>();
+        await using MySqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            songs.Add(new TraxSong(reader.GetInt32(0), reader.GetString(1), reader.GetString(2), reader.GetString(3)));
+        }
+
+        return songs;
+    }
 }

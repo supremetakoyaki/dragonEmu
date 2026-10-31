@@ -29,6 +29,7 @@ using DragonEmu.Protocol.Messages.Incoming.RoomPublicRoom;
 using DragonEmu.Protocol.Messages.Incoming.RoomSession;
 using DragonEmu.Protocol.Messages.Incoming.RoomSettings;
 using DragonEmu.Protocol.Messages.Incoming.Sound;
+using DragonEmu.Protocol.Messages.Incoming.Idol;
 using DragonEmu.Protocol.Messages.Incoming.Users;
 using Microsoft.Extensions.DependencyInjection;
 using DragonEmu.Domain;
@@ -133,6 +134,8 @@ public sealed class GameMessageDispatcher : IPacketDispatcher
         [IncomingOpcodes.Marketplace.GetMarketplaceItemStatsComposer] = sp => ActivatorUtilities.CreateInstance<GetMarketplaceItemStatsComposer>(sp),
         [IncomingOpcodes.Sound.GetSoundMachinePlayListMessageComposer] = sp => ActivatorUtilities.CreateInstance<GetSoundMachinePlayListMessageComposer>(sp),
         [IncomingOpcodes.Sound.GetSongInfoMessageComposer] = sp => ActivatorUtilities.CreateInstance<GetSongInfoMessageComposer>(sp),
+        [IncomingOpcodes.Idol.StartPerformanceMessageComposer] = sp => ActivatorUtilities.CreateInstance<StartPerformanceMessageComposer>(sp),
+        [IncomingOpcodes.Idol.VotePerformanceMessageComposer] = sp => ActivatorUtilities.CreateInstance<VotePerformanceMessageComposer>(sp),
         [IncomingOpcodes.RoomPublicRoom.ExitLockerRoomMessageComposer] = sp => ActivatorUtilities.CreateInstance<ExitLockerRoomMessageComposer>(sp),
         [IncomingOpcodes.Users.ApproveNameMessageComposer] = sp => ActivatorUtilities.CreateInstance<ApproveNameMessageComposer>(sp),
         [IncomingOpcodes.InventoryPets.GetPetInventoryComposer] = sp => ActivatorUtilities.CreateInstance<GetPetInventoryComposer>(sp),

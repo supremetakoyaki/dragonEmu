@@ -693,7 +693,7 @@ public sealed partial class Room
         {
             foreach ((var tile, RoomFloorItem top) in _topItemByTile)
             {
-                if (IsRestingSpot(top, tile.X, tile.Y))
+                if (IsRestingSpot(top, tile.X, tile.Y) || IsStage(top))
                 {
                     goalOnly.Add(tile);
                 }
@@ -726,6 +726,11 @@ public sealed partial class Room
             return IsWithinReach(top.Z, x, y, fromZ) ? TilePassability.GoalOnly : TilePassability.Blocked;
         }
 
+        if (IsStage(top))
+        {
+            return IsWithinReach(top.SurfaceZ, x, y, fromZ) ? TilePassability.GoalOnly : TilePassability.Blocked;
+        }
+
         if (top.IsWalkable && !top.IsBed)
         {
             return IsWithinReach(top.SurfaceZ, x, y, fromZ) ? TilePassability.Open : TilePassability.Blocked;
@@ -735,6 +740,8 @@ public sealed partial class Room
     }
 
     private static bool IsRestingSpot(RoomFloorItem top, int x, int y) => top.IsSittable || (top.IsBed && IsBedLayTile(top, x, y));
+
+    private static bool IsStage(RoomFloorItem top) => top.LogicClass == FurnitureLogicClass.Hotspot;
 
     private bool IsWithinReach(double footingZ, int x, int y, double fromZ) =>
         footingZ - fromZ <= MaxClimbHeight || footingZ - Grid.HeightAt(x, y) <= MaxClimbHeight;

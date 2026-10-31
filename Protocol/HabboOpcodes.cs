@@ -320,6 +320,12 @@ public static class IncomingOpcodes
     {
         public const int UpdateFigureDataMessageComposer = 44;
     }
+
+    public static class Idol
+    {
+        public const int StartPerformanceMessageComposer = 410;
+        public const int VotePerformanceMessageComposer = 411;
+    }
 }
 
 public static class OutgoingOpcodes
@@ -677,6 +683,13 @@ public static class OutgoingOpcodes
         public const int WardrobeMessageEvent = 267;
         public const int ChangeUserNameResultMessageEvent = 570;
         public const int CheckUserNameResultMessageEvent = 571;
+    }
+
+    public static class Idol
+    {
+        public const int JudgeGuiStatusMessageEvent = 490;
+        public const int OpenPerformerGuiMessageEvent = 491;
+        public const int ClosePerformerGuiMessageEvent = 492;
     }
 }
 

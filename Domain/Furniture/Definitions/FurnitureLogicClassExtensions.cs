@@ -21,6 +21,8 @@ public static class FurnitureLogicClassExtensions
         FurnitureLogicClass.HockeyScore => "hockey_score",
         FurnitureLogicClass.PlanetSystem => "planet_system",
         FurnitureLogicClass.EcotronBox => "ecotron_box",
+        FurnitureLogicClass.VotingChair => "voting_chair",
+        FurnitureLogicClass.Hotspot => "hotspot",
         _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown furniture logic class."),
     };
 
@@ -43,6 +45,8 @@ public static class FurnitureLogicClassExtensions
         "hockey_score" => FurnitureLogicClass.HockeyScore,
         "planet_system" => FurnitureLogicClass.PlanetSystem,
         "ecotron_box" => FurnitureLogicClass.EcotronBox,
+        "voting_chair" => FurnitureLogicClass.VotingChair,
+        "hotspot" => FurnitureLogicClass.Hotspot,
         _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown furniture logic_class value from the database."),
     };
 }

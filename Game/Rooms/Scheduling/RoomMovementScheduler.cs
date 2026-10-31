@@ -30,6 +30,7 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
     private readonly FurniturePositionWriter _positionWriter;
     private readonly TotemService _totems;
     private readonly PetService _pets;
+    private readonly IdolService _idol;
     private readonly PublicRoomTransfers _transfers;
     private readonly ILogger<RoomMovementScheduler> _logger;
     private readonly PeriodicTimer _timer = new(TickInterval);
@@ -39,8 +40,9 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
     public RoomMovementScheduler(
         RoomBroadcaster broadcaster, IRoomManager roomManager, ClientSessionManager sessionManager,
         GameSettingsCache gameSettings, FurniturePositionWriter positionWriter, TotemService totems, PetService pets,
-        PublicRoomTransfers transfers, ILogger<RoomMovementScheduler> logger)
+        PublicRoomTransfers transfers, IdolService idol, ILogger<RoomMovementScheduler> logger)
     {
+        _idol = idol;
         _transfers = transfers;
         _pets = pets;
         _broadcaster = broadcaster;
@@ -97,6 +99,7 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
                     List<RoomActor> handItemsPutDown = room.AdvanceHandItems(out bool someoneHoldsAHandItem);
                     BotTickResult bots = AdvanceBots(room, changed);
                     PetTickResult pets = AdvancePets(room, changed);
+                    IdolTickResult idol = room.AdvanceIdol(DateTime.UtcNow, changed);
 
                     foreach (FurnitureStateChange change in vending.StateChanges)
                     {
@@ -161,6 +164,7 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
 
                     AnnounceBots(room, bots);
                     _pets.HandleTick(room, pets);
+                    _idol.HandleTick(room, idol);
 
                     foreach (TeleporterDeparture departure in teleporters.Departures)
                     {
@@ -207,7 +211,7 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
 
                     if (!stillNeedsMovementTicks && !teleporters.NeedsFurtherTicks && !stillNeedsRollTicks && !rollers.NeedsFurtherTicks
                         && !someoneHoldsAHandItem && !vending.NeedsFurtherTicks && !hockeyLightsLit
-                        && !oneWayDoorsBusy && !kicksUnderWay && !room.BotsAwake && !room.PetsAwake)
+                        && !oneWayDoorsBusy && !kicksUnderWay && !room.BotsAwake && !room.PetsAwake && !room.IdolBusy)
                     {
                         _activeRooms.TryRemove(roomId, out _);
                     }

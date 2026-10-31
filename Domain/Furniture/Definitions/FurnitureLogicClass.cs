@@ -19,4 +19,7 @@ public enum FurnitureLogicClass
     HockeyScore,
     PlanetSystem,
     EcotronBox,
+
+    VotingChair,
+    Hotspot,
 }

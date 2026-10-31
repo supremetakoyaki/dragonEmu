@@ -110,7 +110,7 @@ public sealed class PlaceObjectMessageComposer : IMessageComposer
         FurnitureDefinition? definition = _furnitureDefinitions.GetById(item.FurniDefId);
         FurnitureRollKind rollKind = RollKindOf(definition);
 
-        if (definition is not null && Room.IsSoundFurni(definition.LogicClass) && room.SoundFurni is not null)
+        if (definition is not null && Room.IsMusicFurni(definition.LogicClass) && room.MusicFurni is not null)
         {
             session.Send(new PlaceObjectErrorMessageEvent(PlaceObjectErrorReason.MaxSoundFurni).Compose());
             return;
@@ -188,7 +188,13 @@ public sealed class PlaceObjectMessageComposer : IMessageComposer
         bool placedAtZero = definition?.InteractionLogic is FurnitureInteractionLogic.Vending or FurnitureInteractionLogic.Gate
             or FurnitureInteractionLogic.HockeyLight || definition?.LogicClass == FurnitureLogicClass.OneWayDoor
             || (definition is not null && Room.IsSoundFurni(definition.LogicClass));
-        string? basalExtraData = placedAtZero ? "0" : _pets.BasalExtraData(definition) ?? FurnitureRolls.BasalExtraData(rollKind);
+        string? basalExtraData = definition?.LogicClass switch
+        {
+            FurnitureLogicClass.Hotspot => Room.HotspotOff,
+            FurnitureLogicClass.VotingChair => Room.ChairUnlit,
+            _ => placedAtZero ? "0" : _pets.BasalExtraData(definition) ?? FurnitureRolls.BasalExtraData(rollKind),
+        };
+        placedAtZero |= definition?.LogicClass is FurnitureLogicClass.Hotspot or FurnitureLogicClass.VotingChair;
         bool placed = await _userItemRepository.PlaceOnFloorAsync(itemId, account.Id, roomId, x, y, (decimal)z, rotation,
             basalExtraData, placedAtZero || FurnitureRolls.ResetsWhenPlaced(rollKind), cancellationToken);
         if (!placed)

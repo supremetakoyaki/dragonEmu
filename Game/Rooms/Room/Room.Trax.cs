@@ -19,6 +19,10 @@ public sealed partial class Room
 
     public RoomFloorItem? SoundFurni => FloorItemsWhere(item => IsSoundFurni(item.LogicClass)).FirstOrDefault();
 
+    public static bool IsMusicFurni(FurnitureLogicClass logicClass) => IsSoundFurni(logicClass) || logicClass == FurnitureLogicClass.Hotspot;
+
+    public RoomFloorItem? MusicFurni => FloorItemsWhere(item => IsMusicFurni(item.LogicClass)).FirstOrDefault();
+
     public void StartPlayback(int machineItemId, IReadOnlyList<TraxSong> songs, DateTime utcNow) =>
         Volatile.Write(ref _playback, new TraxPlayback(machineItemId, songs, utcNow));
 

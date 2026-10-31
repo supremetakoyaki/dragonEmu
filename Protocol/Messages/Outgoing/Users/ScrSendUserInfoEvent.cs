@@ -36,7 +36,9 @@ public sealed class ScrSendUserInfoEvent : IMessageEvent
     private static (int Days, int Months) DecomposeRemaining(DateTime clubExpiresAt)
     {
         int totalDaysRemaining = Math.Max(0, (int)Math.Ceiling((clubExpiresAt - DateTime.UtcNow).TotalDays));
-        return (totalDaysRemaining % DaysPerMonth, totalDaysRemaining / DaysPerMonth);
+        return totalDaysRemaining == 0
+            ? (0, 0)
+            : ((totalDaysRemaining - 1) % DaysPerMonth + 1, (totalDaysRemaining - 1) / DaysPerMonth);
     }
 
     public ServerPacket Compose()

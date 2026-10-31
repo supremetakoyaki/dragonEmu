@@ -8,6 +8,8 @@ public sealed class HotelStatus
 
     public bool IsShuttingDown => _shuttingDown;
 
+    public event Action? ShutdownBegan;
+
     public (int Hour, int Minute) ReopensAt => (_reopensAtMinuteOfDay / 60, _reopensAtMinuteOfDay % 60);
 
     public bool TryBegin(TimeOnly reopensAt)
@@ -21,7 +23,9 @@ public sealed class HotelStatus
 
             _reopensAtMinuteOfDay = reopensAt.Hour * 60 + reopensAt.Minute;
             _shuttingDown = true;
-            return true;
         }
+
+        ShutdownBegan?.Invoke();
+        return true;
     }
 }

@@ -99,7 +99,7 @@ public sealed class RoomActor
 
     public const double PetSeatDrop = 0.5;
 
-    public double ShownZ => Type == ActorType.Pet && Posture == ActorPosture.Sit && PetPosture is null && PendingStep is null
+    public double ShownZ => Type == ActorType.Pet && Posture == ActorPosture.Sit && PetPosture is (null or "sit") && PendingStep is null
         ? Z - PetSeatDrop
         : Z;
 

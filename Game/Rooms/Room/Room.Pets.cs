@@ -712,7 +712,7 @@ public sealed partial class Room
 
         (int x, int y) = PositionOf(pet);
         RoomFloorItem? item = NearestItem(x, y, candidate => candidate.InteractionLogic == kind && HasPortionLeft(candidate, brain.Definitions));
-        if (item is null || !TryGoNextTo(pet, item))
+        if (item is null || !TryGoOnto(pet, item))
         {
             return false;
         }
@@ -748,16 +748,10 @@ public sealed partial class Room
             return;
         }
 
-        (int x, int y) = PositionOf(pet);
-        if (!item.IsNextTo(x, y))
+        if (PositionOf(pet) != (item.X, item.Y))
         {
             BeFree(pet, brain, changed, result);
             return;
-        }
-
-        if (TryFace(pet, (item.X, item.Y)))
-        {
-            MarkChanged(changed, pet);
         }
 
         SetPosture(pet, PostureEat, changed);
@@ -1055,6 +1049,9 @@ public sealed partial class Room
 
         return false;
     }
+
+    private bool TryGoOnto(RoomActor pet, RoomFloorItem item) =>
+        PositionOf(pet) == (item.X, item.Y) || TryWalkPet(pet, item.X, item.Y);
 
     private void WalkToOwner(RoomActor pet, RoomActor owner)
     {

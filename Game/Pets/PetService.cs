@@ -229,7 +229,9 @@ public sealed class PetService : IHostedService, IDisposable
         }
 
         int accountAge = DaysSince(account.CreatedAt);
-        if (accountAge < settings.Pets.RespectMinimumAccountDays)
+        if (accountAge < settings.Pets.RespectMinimumAccountDays
+            && brain.OwnerId != account.Id
+            && !await _fuses.HoldsAsync(account, RoomRightsService.AdministratorAccessFuse, cancellationToken: cancellationToken))
         {
             session.Send(new PetRespectFailedEvent(settings.Pets.RespectMinimumAccountDays, accountAge).Compose());
             return;

@@ -97,6 +97,12 @@ public sealed class RoomActor
 
     public string? PetGesture { get; set; }
 
+    public const double PetSeatDrop = 0.5;
+
+    public double ShownZ => Type == ActorType.Pet && Posture == ActorPosture.Sit && PetPosture is null && PendingStep is null
+        ? Z - PetSeatDrop
+        : Z;
+
     public bool IsHeldByFurniture => ActiveTeleport is not null || ActiveOneWayDoor is not null;
 
     public int? KickTicksLeft { get; set; }

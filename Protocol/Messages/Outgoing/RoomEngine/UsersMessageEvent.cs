@@ -32,7 +32,7 @@ public sealed class UsersMessageEvent : IMessageEvent
             packet.AppendInt32(actor.VirtualId);
             packet.AppendInt32(actor.X);
             packet.AppendInt32(actor.Y);
-            packet.AppendString(actor.Z.ToString(CultureInfo.InvariantCulture));
+            packet.AppendString(actor.ShownZ.ToString(CultureInfo.InvariantCulture));
             packet.AppendInt32(actor.RotBody * DegreesPerRotation);
             if (actor.Type == ActorType.Bot)
             {

@@ -24,7 +24,7 @@ public sealed class UserUpdateMessageEvent : IMessageEvent
                 packet.AppendInt32(actor.VirtualId);
                 packet.AppendInt32(actor.X);
                 packet.AppendInt32(actor.Y);
-                packet.AppendString(actor.Z.ToString(CultureInfo.InvariantCulture));
+                packet.AppendString(actor.ShownZ.ToString(CultureInfo.InvariantCulture));
                 packet.AppendInt32(actor.RotHead);
                 packet.AppendInt32(actor.RotBody);
 

@@ -7,7 +7,7 @@
     <UserSecretsId>dotnet-Dragon48-21ef382d-14fe-4784-9480-8ce704fb2f16</UserSecretsId>
     <RootNamespace>DragonEmu</RootNamespace>
 
-    <ServerVersion>1.0.261026</ServerVersion>
+    <ServerVersion>1.0.261031</ServerVersion>
     <InformationalVersion>$(ServerVersion)</InformationalVersion>
     <ApplicationIcon>dragon48.ico</ApplicationIcon>
     <PackageIcon>dragon48.png</PackageIcon>

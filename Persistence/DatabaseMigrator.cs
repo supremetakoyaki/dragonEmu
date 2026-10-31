@@ -30,9 +30,27 @@ public sealed class DatabaseMigrator
 
     public bool Migrate(IUpgradeLog log)
     {
-        EnsureDatabase.For.MySqlDatabase(_connectionString, log);
+        if (!DatabaseExists())
+        {
+            EnsureDatabase.For.MySqlDatabase(_connectionString, log);
+        }
+
         DatabaseUpgradeResult result = Upgrader(log).PerformUpgrade();
         return result.Successful;
+    }
+
+    private bool DatabaseExists()
+    {
+        try
+        {
+            using var connection = new MySqlConnection(_connectionString);
+            connection.Open();
+            return true;
+        }
+        catch (MySqlException ex) when (ex.ErrorCode == MySqlErrorCode.UnknownDatabase)
+        {
+            return false;
+        }
     }
 
     public void MarkApplied(IUpgradeLog log) => Upgrader(log).MarkAsExecuted();

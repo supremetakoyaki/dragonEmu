@@ -25,6 +25,8 @@ public sealed class RoomMusicMessageEvent : IMessageEvent
             packet.AppendInt32(song.Id);
             packet.AppendInt32(song.LengthSeconds);
             packet.AppendString(song.Data);
+            packet.AppendString(song.Name);
+            packet.AppendString(song.Author);
         }
 
         return packet;

@@ -151,6 +151,10 @@ public sealed partial class Room
             lock (actor.Lock)
             {
                 tiles.Add((actor.X, actor.Y));
+                if (actor.PendingStep is { } step)
+                {
+                    tiles.Add((step.X, step.Y));
+                }
             }
         }
 
@@ -170,6 +174,10 @@ public sealed partial class Room
             lock (actor.Lock)
             {
                 tiles.Add((actor.X, actor.Y));
+                if (actor.PendingStep is { } step)
+                {
+                    tiles.Add((step.X, step.Y));
+                }
             }
         }
 
@@ -1353,7 +1361,7 @@ public sealed partial class Room
 
             lock (other.Lock)
             {
-                if (other.X == x && other.Y == y)
+                if ((other.X == x && other.Y == y) || (other.PendingStep is { } step && step.X == x && step.Y == y))
                 {
                     return false;
                 }

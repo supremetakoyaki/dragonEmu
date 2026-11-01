@@ -50,7 +50,9 @@ public sealed class RoomRightsService
 
     public async Task<bool> CanUseFurnitureAsync(
         UserAccount account, PrivateRoomSummary room, CancellationToken cancellationToken = default) =>
-        await CanEditAsync(account, room, cancellationToken) || await HasGrantedRightsAsync(account.Id, room.Id, cancellationToken);
+        IsOwner(account, room)
+        || await HasGrantedRightsAsync(account.Id, room.Id, cancellationToken)
+        || await HoldsAnyRoomControllerFuseAsync(account, cancellationToken);
 
     public async Task<bool> CanToggleFurnitureAsync(
         UserAccount account, PrivateRoomSummary room, CancellationToken cancellationToken = default) =>

@@ -541,7 +541,7 @@ public sealed partial class Room
         {
             Say(pet, brain, PetSpeechType.Playful, result, random);
         }
-        else if (roll < 90)
+        else if (roll < 82)
         {
             Say(pet, brain, PetSpeechType.RandomSpeech, result, random);
         }

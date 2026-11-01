@@ -65,6 +65,7 @@ public static class ServiceRegistration
 
         services.AddSingleton<FurnitureDefinitionCache>();
         services.AddSingleton<TotemConfigCache>();
+        services.AddSingleton<TraxDefinitionCache>();
         services.AddSingleton<FurnitureAliasCache>();
         services.AddHostedService<FurnitureCachesLoader>();
 
@@ -126,6 +127,8 @@ public static class ServiceRegistration
         services.AddSingleton<VendingService>();
         services.AddSingleton<HockeyLightService>();
         services.AddSingleton<TraxService>();
+        services.AddSingleton<TraxEditorService>();
+        services.AddSingleton<JukeboxService>();
         services.AddSingleton<OneWayDoorService>();
         services.AddSingleton<StickieService>();
         services.AddHostedService<RentalExpiryService>();

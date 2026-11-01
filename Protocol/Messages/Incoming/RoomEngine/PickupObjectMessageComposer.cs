@@ -18,14 +18,16 @@ public sealed class PickupObjectMessageComposer : IMessageComposer
     private readonly RoomBroadcaster _roomBroadcaster;
     private readonly RoomRightsService _roomRights;
     private readonly TotemService _totems;
+    private readonly TraxEditorService _traxEditor;
 
     private int _categoryCode;
     private int _itemId;
 
     public PickupObjectMessageComposer(
         IRoomManager roomManager, IUserItemRepository userItemRepository, RoomBroadcaster roomBroadcaster, RoomRightsService roomRights,
-        TotemService totems)
+        TotemService totems, TraxEditorService traxEditor)
     {
+        _traxEditor = traxEditor;
         _roomManager = roomManager;
         _userItemRepository = userItemRepository;
         _roomBroadcaster = roomBroadcaster;
@@ -122,6 +124,7 @@ public sealed class PickupObjectMessageComposer : IMessageComposer
         if (await _userItemRepository.GetByIdAsync(_itemId, cancellationToken) is { } pickedUp)
         {
             session.Send(new FurniListInsertEvent(pickedUp).Compose());
+            await _traxEditor.InventoryChangedAsync(session, pickedUp.FurniDefId, cancellationToken);
         }
     }
 }

@@ -30,6 +30,7 @@ using DragonEmu.Protocol.Messages.Incoming.RoomSession;
 using DragonEmu.Protocol.Messages.Incoming.RoomSettings;
 using DragonEmu.Protocol.Messages.Incoming.Sound;
 using DragonEmu.Protocol.Messages.Incoming.Idol;
+using DragonEmu.Protocol.Messages.Incoming.Trax;
 using DragonEmu.Protocol.Messages.Incoming.Users;
 using Microsoft.Extensions.DependencyInjection;
 using DragonEmu.Domain;
@@ -136,6 +137,25 @@ public sealed class GameMessageDispatcher : IPacketDispatcher
         [IncomingOpcodes.Sound.GetSongInfoMessageComposer] = sp => ActivatorUtilities.CreateInstance<GetSongInfoMessageComposer>(sp),
         [IncomingOpcodes.Idol.StartPerformanceMessageComposer] = sp => ActivatorUtilities.CreateInstance<StartPerformanceMessageComposer>(sp),
         [IncomingOpcodes.Idol.VotePerformanceMessageComposer] = sp => ActivatorUtilities.CreateInstance<VotePerformanceMessageComposer>(sp),
+        [IncomingOpcodes.Trax.InsertSoundPackageMessageComposer] = sp => ActivatorUtilities.CreateInstance<InsertSoundPackageMessageComposer>(sp),
+        [IncomingOpcodes.Trax.EjectSoundPackageMessageComposer] = sp => ActivatorUtilities.CreateInstance<EjectSoundPackageMessageComposer>(sp),
+        [IncomingOpcodes.Trax.NewSongMessageComposer] = sp => ActivatorUtilities.CreateInstance<NewSongMessageComposer>(sp),
+        [IncomingOpcodes.Trax.SaveSongNewMessageComposer] = sp => ActivatorUtilities.CreateInstance<SaveSongNewMessageComposer>(sp),
+        [IncomingOpcodes.Trax.EditSongMessageComposer] = sp => ActivatorUtilities.CreateInstance<EditSongMessageComposer>(sp),
+        [IncomingOpcodes.Trax.SaveSongEditMessageComposer] = sp => ActivatorUtilities.CreateInstance<SaveSongEditMessageComposer>(sp),
+        [IncomingOpcodes.Trax.UpdatePlayListMessageComposer] = sp => ActivatorUtilities.CreateInstance<UpdatePlayListMessageComposer>(sp),
+        [IncomingOpcodes.Trax.GetSongListMessageComposer] = sp => ActivatorUtilities.CreateInstance<GetSongListMessageComposer>(sp),
+        [IncomingOpcodes.Trax.SongEditCloseMessageComposer] = sp => ActivatorUtilities.CreateInstance<SongEditCloseMessageComposer>(sp),
+        [IncomingOpcodes.Trax.DeleteSongMessageComposer] = sp => ActivatorUtilities.CreateInstance<DeleteSongMessageComposer>(sp),
+        [IncomingOpcodes.Trax.SetSoundMachineStateMessageComposer] = sp => ActivatorUtilities.CreateInstance<SetSoundMachineStateMessageComposer>(sp),
+        [IncomingOpcodes.Trax.BurnSongMessageComposer] = sp => ActivatorUtilities.CreateInstance<BurnSongMessageComposer>(sp),
+        [IncomingOpcodes.Trax.AddJukeboxDiscMessageComposer] = sp => ActivatorUtilities.CreateInstance<AddJukeboxDiscMessageComposer>(sp),
+        [IncomingOpcodes.Trax.RemoveJukeboxDiscMessageComposer] = sp => ActivatorUtilities.CreateInstance<RemoveJukeboxDiscMessageComposer>(sp),
+        [IncomingOpcodes.Trax.JukeboxPlaylistAddMessageComposer] = sp => ActivatorUtilities.CreateInstance<JukeboxPlaylistAddMessageComposer>(sp),
+        [IncomingOpcodes.Trax.GetJukeboxDiscsMessageComposer] = sp => ActivatorUtilities.CreateInstance<GetJukeboxDiscsMessageComposer>(sp),
+        [IncomingOpcodes.Trax.GetUserSongDiscsMessageComposer] = sp => ActivatorUtilities.CreateInstance<GetUserSongDiscsMessageComposer>(sp),
+        [IncomingOpcodes.Trax.ResetJukeboxMessageComposer] = sp => ActivatorUtilities.CreateInstance<ResetJukeboxMessageComposer>(sp),
+        [IncomingOpcodes.Trax.TraxClientMessageComposer] = sp => ActivatorUtilities.CreateInstance<TraxClientMessageComposer>(sp),
         [IncomingOpcodes.RoomPublicRoom.ExitLockerRoomMessageComposer] = sp => ActivatorUtilities.CreateInstance<ExitLockerRoomMessageComposer>(sp),
         [IncomingOpcodes.Users.ApproveNameMessageComposer] = sp => ActivatorUtilities.CreateInstance<ApproveNameMessageComposer>(sp),
         [IncomingOpcodes.InventoryPets.GetPetInventoryComposer] = sp => ActivatorUtilities.CreateInstance<GetPetInventoryComposer>(sp),

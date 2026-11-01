@@ -1,6 +1,8 @@
 using DragonEmu.Domain;
 using DragonEmu.Game.Catalog;
 using DragonEmu.Game.Furniture;
+using DragonEmu.Game.Fuses;
+using DragonEmu.Game.Rooms;
 using DragonEmu.Persistence;
 using DragonEmu.Protocol.Messages.Outgoing.Catalog;
 using DragonEmu.Protocol.Messages.Outgoing.Notifications;
@@ -13,9 +15,11 @@ public sealed class GetCatalogIndexMessageComposer : IMessageComposer
     private readonly CatalogCache _catalogCache;
     private readonly FurnitureAliasCache _furnitureAliasCache;
     private readonly IUserRepository _userRepository;
+    private readonly FuseService _fuses;
 
-    public GetCatalogIndexMessageComposer(CatalogCache catalogCache, FurnitureAliasCache furnitureAliasCache, IUserRepository userRepository)
+    public GetCatalogIndexMessageComposer(CatalogCache catalogCache, FurnitureAliasCache furnitureAliasCache, IUserRepository userRepository, FuseService fuses)
     {
+        _fuses = fuses;
         _catalogCache = catalogCache;
         _furnitureAliasCache = furnitureAliasCache;
         _userRepository = userRepository;
@@ -33,7 +37,8 @@ public sealed class GetCatalogIndexMessageComposer : IMessageComposer
         }
 
         IReadOnlyList<CatalogPageSummary> pages = _catalogCache.Pages;
-        session.Send(new CatalogIndexMessageEvent(pages, account.Rank).Compose());
+        bool seesComingSoon = await _fuses.HoldsAsync(account, RoomRightsService.AdministratorAccessFuse, cancellationToken: cancellationToken);
+        session.Send(new CatalogIndexMessageEvent(pages, account.Rank, seesComingSoon).Compose());
         session.Send(new FurnitureAliasesMessageEvent(_furnitureAliasCache.Aliases).Compose());
 
         (_, int clubMonthsAccumulated, int clubGiftsClaimed) = await _userRepository.GetClubStatusAsync(account.Id, cancellationToken);

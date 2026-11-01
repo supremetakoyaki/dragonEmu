@@ -29,6 +29,7 @@ public sealed class PresentOpenMessageComposer : IMessageComposer
     private readonly AchievementService _achievementService;
     private readonly TeleportPairGrantService _teleportPairGrantService;
     private readonly HotelClock _clock;
+    private readonly TraxEditorService _traxEditor;
 
     private int _objectId;
 
@@ -44,8 +45,10 @@ public sealed class PresentOpenMessageComposer : IMessageComposer
         RoomRightsService roomRights,
         AchievementService achievementService,
         TeleportPairGrantService teleportPairGrantService,
-        HotelClock clock)
+        HotelClock clock,
+        TraxEditorService traxEditor)
     {
+        _traxEditor = traxEditor;
         _clock = clock;
         _roomManager = roomManager;
         _userItemRepository = userItemRepository;
@@ -182,6 +185,7 @@ public sealed class PresentOpenMessageComposer : IMessageComposer
         foreach (UserItem newItem in await _userItemRepository.GetByIdsAsync([.. newItemIds], cancellationToken))
         {
             session.Send(new FurniListInsertEvent(newItem).Compose());
+            await _traxEditor.InventoryChangedAsync(session, newItem.FurniDefId, cancellationToken);
         }
     }
 

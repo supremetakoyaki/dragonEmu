@@ -328,6 +328,7 @@ public sealed class PrivateRoomRepository : IPrivateRoomRepository
             INNER JOIN definition_furniture fd ON fd.id = i.ref_furni_def
             WHERE i.room_ref = @roomId AND fd.logic_class = 'stickie';
             """);
+        await RunAsync(ItemHolds.ReleaseRoom);
         await RunAsync(
             """
             UPDATE users_items SET room_ref = NULL, x = NULL, y = NULL, z = NULL, rotation = NULL, wall_position = NULL

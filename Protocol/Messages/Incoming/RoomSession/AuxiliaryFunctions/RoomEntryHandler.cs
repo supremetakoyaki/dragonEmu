@@ -193,7 +193,7 @@ internal static class RoomEntryHandler
 
         if (!isPublic)
         {
-            if (isOwner || hasGrantedRights)
+            if (isOwner || hasGrantedRights || await roomRights.HoldsAnyRoomControllerFuseAsync(account, cancellationToken))
             {
                 session.Send(new YouAreControllerMessageEvent().Compose());
             }

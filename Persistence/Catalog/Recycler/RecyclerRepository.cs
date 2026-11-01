@@ -47,7 +47,7 @@ public sealed class RecyclerRepository : IRecyclerRepository
             DELETE i FROM users_items i
             JOIN definition_furniture d ON d.id = i.ref_furni_def
             WHERE i.user_ref = @userId AND i.room_ref IS NULL AND d.allow_recycle = 1 AND i.expires_at IS NULL
-              AND NOT EXISTS (SELECT 1 FROM marketplace_offers m WHERE m.item_ref = i.id)
+              AND {ItemHolds.NotHeld("i.id")}
               AND i.id IN ({string.Join(", ", request.ItemIds.Select((_, index) => $"@item{index}"))});
             """, connection, transaction))
         {

@@ -326,6 +326,29 @@ public static class IncomingOpcodes
         public const int StartPerformanceMessageComposer = 410;
         public const int VotePerformanceMessageComposer = 411;
     }
+
+    public static class Trax
+    {
+        public const int InsertSoundPackageMessageComposer = 219;
+        public const int EjectSoundPackageMessageComposer = 220;
+        public const int NewSongMessageComposer = 239;
+        public const int SaveSongNewMessageComposer = 240;
+        public const int EditSongMessageComposer = 241;
+        public const int SaveSongEditMessageComposer = 242;
+        public const int UpdatePlayListMessageComposer = 243;
+        public const int GetSongListMessageComposer = 244;
+        public const int SongEditCloseMessageComposer = 246;
+        public const int DeleteSongMessageComposer = 248;
+        public const int SetSoundMachineStateMessageComposer = 249;
+        public const int TraxClientMessageComposer = 250;
+        public const int BurnSongMessageComposer = 254;
+        public const int AddJukeboxDiscMessageComposer = 255;
+        public const int RemoveJukeboxDiscMessageComposer = 256;
+        public const int JukeboxPlaylistAddMessageComposer = 257;
+        public const int GetJukeboxDiscsMessageComposer = 258;
+        public const int GetUserSongDiscsMessageComposer = 259;
+        public const int ResetJukeboxMessageComposer = 260;
+    }
 }
 
 public static class OutgoingOpcodes
@@ -690,6 +713,29 @@ public static class OutgoingOpcodes
         public const int JudgeGuiStatusMessageEvent = 490;
         public const int OpenPerformerGuiMessageEvent = 491;
         public const int ClosePerformerGuiMessageEvent = 492;
+    }
+
+    public static class Trax
+    {
+        public const int SoundPackagesMessageEvent = 301;
+        public const int UserSoundPackagesMessageEvent = 302;
+        public const int SongListMessageEvent = 322;
+        public const int SongMissingPackagesMessageEvent = 324;
+        public const int PlayListInvalidMessageEvent = 325;
+        public const int SongListFullMessageEvent = 326;
+        public const int NewSongMessageEvent = 331;
+        public const int InvalidSongNameMessageEvent = 332;
+        public const int UserSongDisksMessageEvent = 333;
+        public const int JukeboxDisksMessageEvent = 334;
+        public const int SongLockedMessageEvent = 336;
+        public const int JukeboxPlaylistFullMessageEvent = 337;
+        public const int InvalidSongLengthMessageEvent = 338;
+        public const int SongSavedMessageEvent = 339;
+        public const int SoundMachineSelectedMessageEvent = 340;
+        public const int JukeboxSelectedMessageEvent = 341;
+        public const int EditorSongMessageEvent = 342;
+        public const int SoundMachineClosedMessageEvent = 343;
+        public const int RoomMusicMessageEvent = 344;
     }
 }
 

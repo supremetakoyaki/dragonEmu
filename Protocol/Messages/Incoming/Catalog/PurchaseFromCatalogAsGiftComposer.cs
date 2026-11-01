@@ -1,3 +1,5 @@
+using DragonEmu.Game.Fuses;
+using DragonEmu.Game.Rooms;
 using DragonEmu.Protocol.Messages.Outgoing.Moderation;
 using DragonEmu.Game.Settings;
 using DragonEmu.Domain;
@@ -44,6 +46,7 @@ public sealed class PurchaseFromCatalogAsGiftComposer : IMessageComposer
 
     private readonly HotelStatus _hotel;
     private readonly MessageTexts _texts;
+    private readonly FuseService _fuses;
 
     public PurchaseFromCatalogAsGiftComposer(
         CatalogCache catalogCache,
@@ -56,8 +59,9 @@ public sealed class PurchaseFromCatalogAsGiftComposer : IMessageComposer
         ClientSessionManager sessionManager,
         AchievementService achievementService,
         HistoryLog history,
-        HotelStatus hotel, MessageTexts texts)
+        HotelStatus hotel, MessageTexts texts, FuseService fuses)
     {
+        _fuses = fuses;
         _texts = texts;
         _hotel = hotel;
         _catalogCache = catalogCache;
@@ -98,7 +102,14 @@ public sealed class PurchaseFromCatalogAsGiftComposer : IMessageComposer
         }
 
         CatalogPageSummary? page = _catalogCache.Pages.FirstOrDefault(p => p.Id == _pageId);
-        if (page is null || !page.Enabled || page.ComingSoon)
+        if (page is null || !page.Enabled)
+        {
+            session.Send(new PurchaseErrorMessageEvent(PurchaseErrorReason.OfferNotFound).Compose());
+            return;
+        }
+
+        if (CatalogPageSummary.IsComingSoon(_catalogCache.Pages, _pageId)
+            && !await _fuses.HoldsAsync(account, RoomRightsService.AdministratorAccessFuse, cancellationToken: cancellationToken))
         {
             session.Send(new PurchaseErrorMessageEvent(PurchaseErrorReason.OfferNotFound).Compose());
             return;

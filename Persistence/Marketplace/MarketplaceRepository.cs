@@ -89,12 +89,12 @@ public sealed class MarketplaceRepository : IMarketplaceRepository
 
         int? furniDefId;
         await using (var item = new MySqlCommand(
-            """
+            $"""
             SELECT i.ref_furni_def
             FROM users_items i
             INNER JOIN definition_furniture fd ON fd.id = i.ref_furni_def
             WHERE i.id = @itemId AND i.user_ref = @userId AND i.room_ref IS NULL AND i.expires_at IS NULL AND fd.allow_trade = 1
-              AND NOT EXISTS (SELECT 1 FROM marketplace_offers m WHERE m.item_ref = i.id)
+              AND {ItemHolds.NotHeld("i.id")}
             FOR UPDATE;
             """, connection, transaction))
         {

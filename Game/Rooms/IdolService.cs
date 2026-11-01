@@ -8,6 +8,7 @@ using DragonEmu.Protocol.Messages;
 using DragonEmu.Protocol.Messages.Outgoing.RoomEngine;
 using DragonEmu.Protocol.Messages.Outgoing.Sound;
 using DragonEmu.Protocol.Messages.Outgoing.Idol;
+using DragonEmu.Protocol.Messages.Outgoing.Trax;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -109,6 +110,7 @@ public sealed class IdolService : IHostedService
         {
             room.StartPlayback(hotspot.Id, [song], now);
             _broadcaster.Broadcast(room, new PlayListMessageEvent(0, [song]).Compose());
+            _broadcaster.Broadcast(room, new RoomMusicMessageEvent(0, [song]).Compose());
         }
 
         SetState(room, hotspot.Id, "0");
@@ -148,6 +150,7 @@ public sealed class IdolService : IHostedService
         if (room.Playback?.MachineItemId == hotspot.Id)
         {
             room.StopPlayback();
+            _broadcaster.Broadcast(room, RoomMusicMessageEvent.Silence.Compose());
         }
 
         SetState(room, hotspot.Id, Room.HotspotOff);

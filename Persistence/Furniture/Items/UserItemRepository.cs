@@ -126,7 +126,7 @@ public sealed class UserItemRepository : IUserItemRepository
     public async Task<IReadOnlyList<UserItem>> GetInventoryAsync(int userId, CancellationToken cancellationToken = default)
     {
         await using MySqlConnection connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
-        await using var command = new MySqlCommand($"{BaseSelect} WHERE i.user_ref = @userId AND i.room_ref IS NULL AND NOT EXISTS (SELECT 1 FROM marketplace_offers m WHERE m.item_ref = i.id);", connection);
+        await using var command = new MySqlCommand($"{BaseSelect} WHERE i.user_ref = @userId AND i.room_ref IS NULL AND {ItemHolds.NotHeld("i.id")};", connection);
         command.Parameters.AddWithValue("@userId", userId);
 
         return await ReadAllAsync(command, cancellationToken);
@@ -158,11 +158,11 @@ public sealed class UserItemRepository : IUserItemRepository
     {
         await using MySqlConnection connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
         await using var command = new MySqlCommand(
-            """
+            $"""
             UPDATE users_items
             SET room_ref = @roomId, x = @x, y = @y, z = @z, rotation = @rotation, seen = TRUE,
                 extra_data = IF(@basalExtraData IS NOT NULL AND (@resetExtraData OR extra_data IS NULL OR extra_data = ''), @basalExtraData, extra_data)
-            WHERE id = @itemId AND user_ref = @userId AND room_ref IS NULL AND NOT EXISTS (SELECT 1 FROM marketplace_offers m WHERE m.item_ref = users_items.id);
+            WHERE id = @itemId AND user_ref = @userId AND room_ref IS NULL AND {ItemHolds.NotHeld("users_items.id")};
             """,
             connection);
         command.Parameters.AddWithValue("@itemId", itemId);
@@ -184,11 +184,11 @@ public sealed class UserItemRepository : IUserItemRepository
     {
         await using MySqlConnection connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
         await using var command = new MySqlCommand(
-            """
+            $"""
             UPDATE users_items
             SET room_ref = @roomId, wall_position = @wallPosition, seen = TRUE,
                 extra_data = IF(@basalExtraData IS NOT NULL AND (@resetExtraData OR extra_data IS NULL OR extra_data = ''), @basalExtraData, extra_data)
-            WHERE id = @itemId AND user_ref = @userId AND room_ref IS NULL AND NOT EXISTS (SELECT 1 FROM marketplace_offers m WHERE m.item_ref = users_items.id);
+            WHERE id = @itemId AND user_ref = @userId AND room_ref IS NULL AND {ItemHolds.NotHeld("users_items.id")};
             """,
             connection);
         command.Parameters.AddWithValue("@itemId", itemId);
@@ -291,6 +291,12 @@ public sealed class UserItemRepository : IUserItemRepository
             }
         }
 
+        await using (var release = new MySqlCommand(ItemHolds.ReleaseRoom, connection, transaction))
+        {
+            release.Parameters.AddWithValue("@roomId", roomId);
+            await release.ExecuteNonQueryAsync(cancellationToken);
+        }
+
         await using (var pick = new MySqlCommand(
             """
             UPDATE users_items i
@@ -311,18 +317,32 @@ public sealed class UserItemRepository : IUserItemRepository
     public async Task<bool> PickupFromFloorAsync(int itemId, int roomId, int pickerUserId, CancellationToken cancellationToken = default)
     {
         await using MySqlConnection connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
-        await using var command = new MySqlCommand(
+        await using MySqlTransaction transaction = await connection.BeginTransactionAsync(cancellationToken);
+        await using (var command = new MySqlCommand(
             """
             UPDATE users_items
             SET user_ref = @pickerUserId, room_ref = NULL, x = NULL, y = NULL, z = NULL, rotation = NULL
             WHERE id = @itemId AND room_ref = @roomId;
             """,
-            connection);
-        command.Parameters.AddWithValue("@itemId", itemId);
-        command.Parameters.AddWithValue("@roomId", roomId);
-        command.Parameters.AddWithValue("@pickerUserId", pickerUserId);
+            connection, transaction))
+        {
+            command.Parameters.AddWithValue("@itemId", itemId);
+            command.Parameters.AddWithValue("@roomId", roomId);
+            command.Parameters.AddWithValue("@pickerUserId", pickerUserId);
+            if (await command.ExecuteNonQueryAsync(cancellationToken) == 0)
+            {
+                return false;
+            }
+        }
 
-        return await command.ExecuteNonQueryAsync(cancellationToken) > 0;
+        await using (var release = new MySqlCommand(ItemHolds.ReleaseMachine, connection, transaction))
+        {
+            release.Parameters.AddWithValue("@itemId", itemId);
+            await release.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        await transaction.CommitAsync(cancellationToken);
+        return true;
     }
 
     public async Task<bool> PickupFromWallAsync(int itemId, int roomId, int pickerUserId, CancellationToken cancellationToken = default)
@@ -346,7 +366,7 @@ public sealed class UserItemRepository : IUserItemRepository
     {
         await using MySqlConnection connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
         await using var command = new MySqlCommand(
-            "DELETE FROM users_items WHERE id = @itemId AND user_ref = @userId AND room_ref IS NULL AND NOT EXISTS (SELECT 1 FROM marketplace_offers m WHERE m.item_ref = users_items.id);",
+            $"DELETE FROM users_items WHERE id = @itemId AND user_ref = @userId AND room_ref IS NULL AND {ItemHolds.NotHeld("users_items.id")};",
             connection);
         command.Parameters.AddWithValue("@itemId", itemId);
         command.Parameters.AddWithValue("@userId", userId);
@@ -363,7 +383,7 @@ public sealed class UserItemRepository : IUserItemRepository
         int furniDefId;
         int notes;
         await using (var select = new MySqlCommand(
-            "SELECT ref_furni_def, extra_data FROM users_items WHERE id = @padId AND user_ref = @userId AND room_ref IS NULL AND NOT EXISTS (SELECT 1 FROM marketplace_offers m WHERE m.item_ref = users_items.id) FOR UPDATE;",
+            $"SELECT ref_furni_def, extra_data FROM users_items WHERE id = @padId AND user_ref = @userId AND room_ref IS NULL AND {ItemHolds.NotHeld("users_items.id")} FOR UPDATE;",
             connection, transaction))
         {
             select.Parameters.AddWithValue("@padId", padId);

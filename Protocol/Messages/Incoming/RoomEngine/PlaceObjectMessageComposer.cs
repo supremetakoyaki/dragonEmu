@@ -28,6 +28,7 @@ public sealed class PlaceObjectMessageComposer : IMessageComposer
     private readonly TradingService _trading;
     private readonly PetService _pets;
     private readonly MessageTexts _texts;
+    private readonly TraxEditorService _traxEditor;
 
     private string _body = string.Empty;
 
@@ -42,8 +43,9 @@ public sealed class PlaceObjectMessageComposer : IMessageComposer
         RoomMovementScheduler scheduler,
         TotemService totems,
         TradingService trading,
-        PetService pets, MessageTexts texts)
+        PetService pets, MessageTexts texts, TraxEditorService traxEditor)
     {
+        _traxEditor = traxEditor;
         _texts = texts;
         _pets = pets;
         _roomManager = roomManager;
@@ -215,6 +217,7 @@ public sealed class PlaceObjectMessageComposer : IMessageComposer
             _roomBroadcaster.Broadcast(room, new ObjectAddMessageEvent(placedItem).Compose());
 
             _pets.TrackItem(room, placing, placedItem.ExtraData);
+            await _traxEditor.InventoryChangedAsync(session, placedItem.FurniDefId, cancellationToken);
         }
 
         if (placing.IsTotemPiece)

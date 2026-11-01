@@ -1,5 +1,7 @@
 using DragonEmu.Domain;
 using DragonEmu.Game.Catalog;
+using DragonEmu.Game.Fuses;
+using DragonEmu.Game.Rooms;
 using DragonEmu.Protocol.Messages.Outgoing.Catalog;
 
 namespace DragonEmu.Protocol.Messages.Incoming.Catalog;
@@ -7,12 +9,14 @@ namespace DragonEmu.Protocol.Messages.Incoming.Catalog;
 public sealed class GetCatalogPageMessageComposer : IMessageComposer
 {
     private readonly CatalogCache _catalogCache;
+    private readonly FuseService _fuses;
 
     private int _pageId;
 
-    public GetCatalogPageMessageComposer(CatalogCache catalogCache)
+    public GetCatalogPageMessageComposer(CatalogCache catalogCache, FuseService fuses)
     {
         _catalogCache = catalogCache;
+        _fuses = fuses;
     }
 
     public void Parse(ClientPacket packet)
@@ -20,29 +24,33 @@ public sealed class GetCatalogPageMessageComposer : IMessageComposer
         _pageId = packet.PopInt32();
     }
 
-    public ValueTask HandleAsync(IGameSession session, CancellationToken cancellationToken)
+    public async ValueTask HandleAsync(IGameSession session, CancellationToken cancellationToken)
     {
         if (session.AuthenticatedUser is not { } account)
         {
-            return ValueTask.CompletedTask;
+            return;
         }
 
         CatalogPageSummary? page = _catalogCache.Pages.FirstOrDefault(p => p.Id == _pageId);
 
-        if (page is null || !page.Enabled || page.ComingSoon || page.MinRank > account.Rank)
+        if (page is null || !page.Enabled || page.MinRank > account.Rank)
         {
-            return ValueTask.CompletedTask;
+            return;
+        }
+
+        if (page.ComingSoon && !await _fuses.HoldsAsync(account, RoomRightsService.AdministratorAccessFuse, cancellationToken: cancellationToken))
+        {
+            return;
         }
 
         CatalogPageBody? body = _catalogCache.GetBody(_pageId);
         if (body is null)
         {
-            return ValueTask.CompletedTask;
+            return;
         }
 
         IReadOnlyList<CatalogOffer> offers = _catalogCache.GetOffers(_pageId);
 
         session.Send(new CatalogPageMessageEvent(body, offers).Compose());
-        return ValueTask.CompletedTask;
     }
 }

@@ -35,6 +35,7 @@ public sealed class PurchaseFromCatalogComposer : IMessageComposer
     private readonly PetService _pets;
     private readonly HotelStatus _hotel;
     private readonly MessageTexts _texts;
+    private readonly TraxEditorService _traxEditor;
 
     private int _pageId;
     private int _offerId;
@@ -53,8 +54,9 @@ public sealed class PurchaseFromCatalogComposer : IMessageComposer
         HistoryLog history,
         HotelClock clock,
         PetService pets,
-        HotelStatus hotel, MessageTexts texts)
+        HotelStatus hotel, MessageTexts texts, TraxEditorService traxEditor)
     {
+        _traxEditor = traxEditor;
         _texts = texts;
         _hotel = hotel;
         _pets = pets;
@@ -92,7 +94,14 @@ public sealed class PurchaseFromCatalogComposer : IMessageComposer
         }
 
         CatalogPageSummary? page = _catalogCache.Pages.FirstOrDefault(p => p.Id == _pageId);
-        if (page is null || !page.Enabled || page.ComingSoon)
+        if (page is null || !page.Enabled)
+        {
+            session.Send(new PurchaseErrorMessageEvent(PurchaseErrorReason.OfferNotFound).Compose());
+            return;
+        }
+
+        if (CatalogPageSummary.IsComingSoon(_catalogCache.Pages, _pageId)
+            && !await _fuses.HoldsAsync(account, RoomRightsService.AdministratorAccessFuse, cancellationToken: cancellationToken))
         {
             session.Send(new PurchaseErrorMessageEvent(PurchaseErrorReason.OfferNotFound).Compose());
             return;
@@ -250,6 +259,7 @@ public sealed class PurchaseFromCatalogComposer : IMessageComposer
         foreach (UserItem item in await _userItemRepository.GetByIdsAsync([.. createdItemIds], cancellationToken))
         {
             session.Send(new FurniListInsertEvent(item).Compose());
+            await _traxEditor.InventoryChangedAsync(session, item.FurniDefId, cancellationToken);
         }
 
         if (offer.PriceCredits > 0)

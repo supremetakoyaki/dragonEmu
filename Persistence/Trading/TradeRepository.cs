@@ -60,7 +60,7 @@ public sealed class TradeRepository : ITradeRepository
             UPDATE users_items
             SET user_ref = @receiverId
             WHERE id IN ({IdPlaceholders(giver.ItemIds.Count)})
-              AND user_ref = @giverId AND room_ref IS NULL AND expires_at IS NULL AND NOT EXISTS (SELECT 1 FROM marketplace_offers m WHERE m.item_ref = users_items.id)
+              AND user_ref = @giverId AND room_ref IS NULL AND expires_at IS NULL AND {ItemHolds.NotHeld("users_items.id")}
               AND ref_furni_def IN (SELECT id FROM definition_furniture WHERE allow_trade = 1);
             """, connection, transaction);
         give.Parameters.AddWithValue("@receiverId", receiverId);

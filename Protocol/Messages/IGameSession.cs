@@ -26,6 +26,8 @@ public interface IGameSession
 
     bool NameChangeDialogOpen { get; set; }
 
+    bool TraxClient { get; set; }
+
     Game.Polls.PollProgress? ActivePoll { get; set; }
 
     string? Swimsuit { get; set; }

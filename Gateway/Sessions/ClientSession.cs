@@ -2,6 +2,7 @@ using System.Threading.Channels;
 using DragonEmu.Domain;
 using DragonEmu.Protocol;
 using DragonEmu.Protocol.Messages;
+using DragonEmu.Protocol.Messages.Outgoing.Trax;
 using Microsoft.Extensions.Logging;
 
 namespace DragonEmu.Gateway;
@@ -41,6 +42,8 @@ public sealed class ClientSession : IAsyncDisposable, IGameSession
 
     public bool NameChangeDialogOpen { get; set; }
 
+    public bool TraxClient { get; set; }
+
     public Game.Polls.PollProgress? ActivePoll { get; set; }
 
     public string? Swimsuit { get; set; }
@@ -66,7 +69,15 @@ public sealed class ClientSession : IAsyncDisposable, IGameSession
 
     public void SetLoadingRoom(int? roomId) => LoadingRoomId = roomId;
 
-    public void SetCurrentRoom(int? roomId) => CurrentRoomId = roomId;
+    public void SetCurrentRoom(int? roomId)
+    {
+        if (TraxClient && CurrentRoomId is not null && CurrentRoomId != roomId)
+        {
+            EnqueueSend(SoundMachineClosedMessageEvent.All.Compose());
+        }
+
+        CurrentRoomId = roomId;
+    }
 
     public ClientSession(
         long id,

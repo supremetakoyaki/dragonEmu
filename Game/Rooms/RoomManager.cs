@@ -172,7 +172,7 @@ public sealed class RoomManager : IRoomManager, IHostedService, IDisposable
 
         if (room.SoundFurni is { } machine && items.FirstOrDefault(item => item.Id == machine.Id)?.ExtraData == TraxService.On)
         {
-            room.StartPlayback(machine.Id, await _trax.GetPlaylistAsync(machine.Id, cancellationToken), DateTime.UtcNow);
+            room.StartPlayback(machine.Id, await _trax.GetPlaylistOfAsync(machine.Id, machine.LogicClass, cancellationToken), DateTime.UtcNow);
         }
         room.LoadWallItems(await _userItemRepository.GetWallItemsInRoomAsync(roomId, cancellationToken));
         room.LoadStaticFurniture(await _publicRoomFurnitureRepository.GetForModelAsync(data.HeightmapLabel, cancellationToken));

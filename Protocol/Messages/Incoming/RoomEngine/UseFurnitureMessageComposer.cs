@@ -17,14 +17,19 @@ public sealed class UseFurnitureMessageComposer : IMessageComposer
     private readonly HockeyLightService _hockeyLights;
     private readonly PetService _pets;
     private readonly TraxService _trax;
+    private readonly TraxEditorService _traxEditor;
+    private readonly JukeboxService _jukebox;
 
     private int _itemId;
 
     public UseFurnitureMessageComposer(
         IRoomManager roomManager, RoomTeleportService teleports, FurnitureStateService furnitureState, RoomRightsService roomRights,
-        VendingService vending, TotemService totems, GateService gates, HockeyLightService hockeyLights, PetService pets, TraxService trax)
+        VendingService vending, TotemService totems, GateService gates, HockeyLightService hockeyLights, PetService pets, TraxService trax,
+        TraxEditorService traxEditor, JukeboxService jukebox)
     {
         _trax = trax;
+        _traxEditor = traxEditor;
+        _jukebox = jukebox;
         _pets = pets;
         _hockeyLights = hockeyLights;
         _vending = vending;
@@ -71,7 +76,15 @@ public sealed class UseFurnitureMessageComposer : IMessageComposer
                 break;
 
             case FurnitureInteractionLogic.Toggle when Room.IsSoundFurni(item.LogicClass):
-                if (await _roomRights.CanToggleFurnitureAsync(account, room.Data, cancellationToken))
+                if (session.TraxClient && item.LogicClass == FurnitureLogicClass.Jukebox)
+                {
+                    await _jukebox.SelectAsync(session, account, room, item, cancellationToken);
+                }
+                else if (session.TraxClient && await _traxEditor.MayEditAsync(account, room, cancellationToken))
+                {
+                    await _traxEditor.SelectAsync(session, item, cancellationToken);
+                }
+                else if (await _roomRights.CanToggleFurnitureAsync(account, room.Data, cancellationToken))
                 {
                     await _trax.ToggleAsync(room, item, cancellationToken);
                 }

@@ -161,6 +161,7 @@ public static class ServiceRegistration
         services.AddHostedSingleton<RoomMovementScheduler>();
         services.AddHostedSingleton<RoomIdleService>();
         services.AddHostedSingleton<HotelViewIdleService>();
+        services.AddHostedSingleton<WebCommandService>();
         return services;
     }
 

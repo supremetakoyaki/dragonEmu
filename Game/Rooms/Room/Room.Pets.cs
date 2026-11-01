@@ -291,11 +291,15 @@ public sealed partial class Room
             SetGesture(pet, brain, null, changed);
         }
 
-        if (brain.WelcomesHome && brain.Ticks >= WelcomeHomeTicks)
+        if (brain.WelcomesHome)
         {
-            brain.WelcomesHome = false;
-            SetGesture(pet, brain, GestureJoy, changed);
-            Say(pet, brain, PetSpeechType.WelcomeHome, result, random);
+            brain.OwnerHomeTicks = OwnerOf(brain) is null ? 0 : brain.OwnerHomeTicks + 1;
+            if (brain.OwnerHomeTicks >= WelcomeHomeTicks)
+            {
+                brain.WelcomesHome = false;
+                SetGesture(pet, brain, GestureJoy, changed);
+                Say(pet, brain, PetSpeechType.WelcomeHome, result, random);
+            }
         }
 
         if (brain.TryTakeCommand(out (int CommandId, long SessionId) heard))

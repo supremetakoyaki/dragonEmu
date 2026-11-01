@@ -129,6 +129,8 @@ public sealed class PetBrain
 
     internal bool WelcomesHome { get; set; }
 
+    internal int OwnerHomeTicks { get; set; }
+
     internal int Ticks { get; set; }
 
     internal int NextIdleTick { get; set; }

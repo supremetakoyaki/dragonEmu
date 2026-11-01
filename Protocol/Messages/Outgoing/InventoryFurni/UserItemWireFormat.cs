@@ -1,9 +1,10 @@
 using DragonEmu.Domain;
+using DragonEmu.Game.Furniture;
 using DragonEmu.Game.Rooms;
 
 namespace DragonEmu.Protocol.Messages.Outgoing.InventoryFurni;
 
-internal static class UserItemWireFormat
+public static class UserItemWireFormat
 {
     public const int PosterCategory = 6;
 
@@ -21,7 +22,7 @@ internal static class UserItemWireFormat
     };
 
     public static bool IsGroupable(UserItem item, int category) =>
-        category is not (2 or 3 or 4) && !NonStackableLogicClasses.Contains(item.LogicClass);
+        category is not (2 or 3 or 4) && !NonStackableLogicClasses.Contains(item.LogicClass) && item.Classname != TraxEditorService.SongDiskClassname;
 
     public static void AppendItem(ServerPacket packet, UserItem item)
     {

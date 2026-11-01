@@ -1,9 +1,10 @@
+using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 
 namespace DragonEmu.Gateway;
 
-public sealed record WebSocketUpgrade(string Key, string? Origin);
+public sealed record WebSocketUpgrade(string Key, string? Origin, string? ForwardedFor = null);
 
 public static class WebSocketHandshake
 {
@@ -41,7 +42,20 @@ public static class WebSocketHandshake
             return null;
         }
 
-        return new WebSocketUpgrade(key, headers.GetValueOrDefault("Origin"));
+        return new WebSocketUpgrade(key, headers.GetValueOrDefault("Origin"), headers.GetValueOrDefault("X-Forwarded-For"));
+    }
+
+    public static string VisitorAddress(IPAddress? peer, string? forwardedFor)
+    {
+        if (peer is null)
+        {
+            return "unknown";
+        }
+
+        bool fromProxy = IPAddress.IsLoopback(peer.IsIPv4MappedToIPv6 ? peer.MapToIPv4() : peer);
+        return fromProxy && IPAddress.TryParse(forwardedFor?.Split(',')[^1].Trim(), out IPAddress? visitor)
+            ? visitor.ToString()
+            : peer.ToString();
     }
 
     public static string AcceptKey(string key) => Convert.ToBase64String(SHA1.HashData(Encoding.ASCII.GetBytes(key + KeyGuid)));

@@ -152,7 +152,8 @@ public sealed class GameGatewayService : BackgroundService
 
     private async Task HandleWebSocketAsync(Socket socket, CancellationToken stoppingToken)
     {
-        string remoteAddress = (socket.RemoteEndPoint as IPEndPoint)?.Address.ToString() ?? "unknown";
+        IPAddress? peer = (socket.RemoteEndPoint as IPEndPoint)?.Address;
+        string remoteAddress = WebSocketHandshake.VisitorAddress(peer, null);
         var stream = new NetworkStream(socket, ownsSocket: true);
         WebSocketUpgrade? upgrade;
         try
@@ -160,6 +161,7 @@ public sealed class GameGatewayService : BackgroundService
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
             timeout.CancelAfter(HandshakeTimeout);
             upgrade = await ReadUpgradeAsync(stream, timeout.Token);
+            remoteAddress = WebSocketHandshake.VisitorAddress(peer, upgrade?.ForwardedFor);
             if (upgrade is null)
             {
                 await stream.WriteAsync(WebSocketHandshake.Refusal(400, "Bad Request"), timeout.Token);

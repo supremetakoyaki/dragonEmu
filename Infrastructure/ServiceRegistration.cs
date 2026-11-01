@@ -160,6 +160,7 @@ public static class ServiceRegistration
         services.AddHostedSingleton<FurniturePositionWriter>();
         services.AddHostedSingleton<RoomMovementScheduler>();
         services.AddHostedSingleton<RoomIdleService>();
+        services.AddHostedSingleton<HotelViewIdleService>();
         return services;
     }
 

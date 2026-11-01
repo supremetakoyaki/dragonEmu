@@ -60,9 +60,16 @@ public sealed class ClientSession : IAsyncDisposable, IGameSession
 
     public DateTime? LoggedInAt { get; private set; }
 
+    private long _lastActiveTicks;
+
+    public DateTime LastActiveAt => new(Volatile.Read(ref _lastActiveTicks), DateTimeKind.Utc);
+
+    public void MarkActive(DateTime now) => Volatile.Write(ref _lastActiveTicks, now.Ticks);
+
     public void Authenticate(UserAccount user)
     {
         LoggedInAt ??= DateTime.UtcNow;
+        MarkActive(DateTime.UtcNow);
         AuthenticatedUser = user;
         OnlineTime.Start(DateTime.UtcNow);
     }
@@ -77,6 +84,7 @@ public sealed class ClientSession : IAsyncDisposable, IGameSession
         }
 
         CurrentRoomId = roomId;
+        MarkActive(DateTime.UtcNow);
     }
 
     public ClientSession(

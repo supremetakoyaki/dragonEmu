@@ -36,7 +36,8 @@ public sealed record GameSettings(
     PetSettings Pets,
     GroupSettings Groups,
     UsernameSettings Username,
-    int MaxGuideBotsInHotelAtOnce)
+    int MaxGuideBotsInHotelAtOnce,
+    int IdleDisconnectTime)
 {
     public static GameSettings Default { get; } = new(
         PrivateRoomsLimit: 100,
@@ -70,5 +71,6 @@ public sealed record GameSettings(
         PetSettings.Default,
         GroupSettings.Default,
         UsernameSettings.Default,
-        MaxGuideBotsInHotelAtOnce: 10);
+        MaxGuideBotsInHotelAtOnce: 10,
+        IdleDisconnectTime: 30);
 }

@@ -277,6 +277,16 @@ public sealed class GameMessageDispatcher : IPacketDispatcher
         IncomingOpcodes.RoomChat.WhisperMessageComposer,
     ];
 
+    private static readonly HashSet<int> Unattended =
+    [
+        IncomingOpcodes.Handshake.PongMessageComposer,
+        IncomingOpcodes.Tracking.LatencyPingRequestMessageComposer,
+        IncomingOpcodes.Tracking.LatencyPingReportMessageComposer,
+        IncomingOpcodes.FriendList.FriendListUpdateMessageComposer,
+    ];
+
+    public static bool IsUserActivity(int packetId) => !Unattended.Contains(packetId);
+
     private readonly IServiceProvider _serviceProvider;
     private readonly RoomIdleService _idle;
     private readonly ILogger<GameMessageDispatcher> _logger;
@@ -323,6 +333,11 @@ public sealed class GameMessageDispatcher : IPacketDispatcher
             _logger.LogDebug("Session {SessionId}: message {Id} repeated within {Window} ms. Thus it was not handled.",
                 session.Id, packet.Id, RepeatFilter.Window.TotalMilliseconds);
             return;
+        }
+
+        if (IsUserActivity(packet.Id))
+        {
+            session.MarkActive(DateTime.UtcNow);
         }
 
         if (RoomActivity.Contains(packet.Id))

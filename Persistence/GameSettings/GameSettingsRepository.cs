@@ -30,7 +30,7 @@ public sealed class GameSettingsRepository : IGameSettingsRepository
                    pets_enabled, pet_name_max_length, pet_name_allowed_chars, pet_respect_min_account_days,
                    groups_limit, groups_limit_club, username_change_allowed, username_change_cooldown,
                    username_min_length, username_max_length, username_allowed_chars, max_guide_bots_in_hotel_at_once,
-                   username_change_limit
+                   username_change_limit, idle_disconnect_time
             FROM global_game_settings
             LIMIT 1;
             """, connection);
@@ -77,7 +77,8 @@ public sealed class GameSettingsRepository : IGameSettingsRepository
             new PetSettings(reader.GetString(34) == "1", reader.GetInt32(35), reader.GetString(36), reader.GetInt32(37)),
             new GroupSettings(reader.GetInt32(38), reader.GetInt32(39)),
             new UsernameSettings(reader.GetString(40) == "1", reader.GetInt32(41), reader.GetInt32(46), reader.GetInt32(42), reader.GetInt32(43), reader.GetString(44)),
-            MaxGuideBotsInHotelAtOnce: reader.GetInt32(45));
+            MaxGuideBotsInHotelAtOnce: reader.GetInt32(45),
+            IdleDisconnectTime: reader.GetInt32(47));
     }
 
     public async Task SetInfobusOpenAsync(bool open, CancellationToken cancellationToken = default)

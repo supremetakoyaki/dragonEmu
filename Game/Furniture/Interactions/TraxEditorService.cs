@@ -55,6 +55,24 @@ public sealed class TraxEditorService
         }
     }
 
+    public async Task<IReadOnlySet<int>> HoldersAsync(int machineItemId, CancellationToken cancellationToken)
+    {
+        IReadOnlyList<TraxMachineSoundSet> sets = await _trax.GetMachineSoundSetsAsync(machineItemId, cancellationToken);
+        IReadOnlyList<JukeboxDisk> disks = await _trax.GetJukeboxDisksAsync(machineItemId, cancellationToken);
+        return sets.Select(set => set.OwnerId).Concat(disks.Select(disk => disk.OwnerId)).ToHashSet();
+    }
+
+    public void TellReturned(IReadOnlySet<int> holders)
+    {
+        foreach (int holder in holders)
+        {
+            if (_sessions.TryGetByUserId(holder, out ClientSession? owner))
+            {
+                owner!.EnqueueSend(new FurniListUpdateEvent().Compose());
+            }
+        }
+    }
+
     public Task<int> BurnPrebuiltAsync(int userId, int songDiskDefinitionId, PrebuiltSong song, CancellationToken cancellationToken) =>
         _trax.BurnPrebuiltAsync(userId, songDiskDefinitionId, $"{song.Name}\t{song.Author}", song, cancellationToken);
 

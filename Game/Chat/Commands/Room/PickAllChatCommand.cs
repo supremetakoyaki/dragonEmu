@@ -18,11 +18,13 @@ public sealed class PickAllChatCommand : IChatCommand
     private readonly RoomBroadcaster _roomBroadcaster;
     private readonly TotemService _totems;
     private readonly MessageTexts _texts;
+    private readonly TraxEditorService _traxEditor;
 
     public PickAllChatCommand(
         IRoomManager roomManager, IUserItemRepository userItemRepository, RoomRightsService roomRights, RoomBroadcaster roomBroadcaster,
-        TotemService totems, MessageTexts texts)
+        TotemService totems, MessageTexts texts, TraxEditorService traxEditor)
     {
+        _traxEditor = traxEditor;
         _texts = texts;
         _roomManager = roomManager;
         _userItemRepository = userItemRepository;
@@ -51,6 +53,8 @@ public sealed class PickAllChatCommand : IChatCommand
             return;
         }
 
+        IReadOnlySet<int> holders = room.MusicFurni is { } machine ? await _traxEditor.HoldersAsync(machine.Id, cancellationToken) : new HashSet<int>();
+
         IReadOnlyList<int> picked = await _userItemRepository.PickAllAsync(roomId, account.Id, cancellationToken);
         foreach (int itemId in picked)
         {
@@ -72,6 +76,7 @@ public sealed class PickAllChatCommand : IChatCommand
         if (picked.Count > 0)
         {
             session.Send(new FurniListUpdateEvent().Compose());
+            _traxEditor.TellReturned(holders);
         }
     }
 }

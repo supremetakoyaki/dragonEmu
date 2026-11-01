@@ -74,6 +74,8 @@ public sealed class PickupObjectMessageComposer : IMessageComposer
             return;
         }
 
+        IReadOnlySet<int> holders = Room.IsMusicFurni(item.LogicClass) ? await _traxEditor.HoldersAsync(_itemId, cancellationToken) : new HashSet<int>();
+
         bool pickedUp = await _userItemRepository.PickupFromFloorAsync(_itemId, roomId, account.Id, cancellationToken);
         if (!pickedUp)
         {
@@ -90,6 +92,7 @@ public sealed class PickupObjectMessageComposer : IMessageComposer
         }
 
         await SendToInventoryAsync(session, cancellationToken);
+        _traxEditor.TellReturned(holders);
     }
 
     private async ValueTask HandleWallPickupAsync(IGameSession session, UserAccount account, Room room, int roomId, CancellationToken cancellationToken)

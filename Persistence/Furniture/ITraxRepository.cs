@@ -43,6 +43,8 @@ public interface ITraxRepository
 
     Task<int> BurnAsync(int userId, int songDiskDefinitionId, string extraData, int songId, CancellationToken cancellationToken = default);
 
+    Task<int> BurnPrebuiltAsync(int userId, int songDiskDefinitionId, string extraData, PrebuiltSong song, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<TraxDiskItem>> GetInventoryDisksAsync(int userId, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<JukeboxDisk>> GetJukeboxDisksAsync(int jukeboxItemId, CancellationToken cancellationToken = default);

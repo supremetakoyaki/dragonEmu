@@ -55,6 +55,9 @@ public sealed class TraxEditorService
         }
     }
 
+    public Task<int> BurnPrebuiltAsync(int userId, int songDiskDefinitionId, PrebuiltSong song, CancellationToken cancellationToken) =>
+        _trax.BurnPrebuiltAsync(userId, songDiskDefinitionId, $"{song.Name}\t{song.Author}", song, cancellationToken);
+
     public async Task SelectAsync(IGameSession session, RoomFloorItem machine, CancellationToken cancellationToken) =>
         session.Send(new SoundMachineSelectedMessageEvent(machine.Id, await _playback.IsOnAsync(machine, cancellationToken)).Compose());
 

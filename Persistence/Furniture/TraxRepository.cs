@@ -267,7 +267,39 @@ public sealed class TraxRepository : ITraxRepository
     {
         await using MySqlConnection connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
         await using MySqlTransaction transaction = await connection.BeginTransactionAsync(cancellationToken);
+        int diskId = await InsertDiskAsync(connection, transaction, userId, songDiskDefinitionId, extraData, songId, cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return diskId;
+    }
 
+    public async Task<int> BurnPrebuiltAsync(int userId, int songDiskDefinitionId, string extraData, PrebuiltSong song, CancellationToken cancellationToken = default)
+    {
+        await using MySqlConnection connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+        await using MySqlTransaction transaction = await connection.BeginTransactionAsync(cancellationToken);
+
+        int songId;
+        await using (var insert = new MySqlCommand(
+            """
+            INSERT INTO users_songs (user_ref, song_name, song_author, song_data, deleted_at)
+            VALUES (@user, @name, @author, @data, UTC_TIMESTAMP());
+            """, connection, transaction))
+        {
+            insert.Parameters.AddWithValue("@user", userId);
+            insert.Parameters.AddWithValue("@name", song.Name);
+            insert.Parameters.AddWithValue("@author", song.Author);
+            insert.Parameters.AddWithValue("@data", song.Data);
+            await insert.ExecuteNonQueryAsync(cancellationToken);
+            songId = (int)insert.LastInsertedId;
+        }
+
+        int diskId = await InsertDiskAsync(connection, transaction, userId, songDiskDefinitionId, extraData, songId, cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return diskId;
+    }
+
+    private static async Task<int> InsertDiskAsync(
+        MySqlConnection connection, MySqlTransaction transaction, int userId, int songDiskDefinitionId, string extraData, int songId, CancellationToken cancellationToken)
+    {
         int diskId;
         await using (var item = new MySqlCommand(
             "INSERT INTO users_items (user_ref, ref_furni_def, extra_data, seen) VALUES (@user, @definition, @extraData, FALSE);", connection, transaction))
@@ -287,7 +319,6 @@ public sealed class TraxRepository : ITraxRepository
             await disk.ExecuteNonQueryAsync(cancellationToken);
         }
 
-        await transaction.CommitAsync(cancellationToken);
         return diskId;
     }
 

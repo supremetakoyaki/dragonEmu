@@ -129,6 +129,7 @@ public sealed class PurchaseFromCatalogComposer : IMessageComposer
         var subscriptionMonths = new List<int>();
         var furnitureToCreate = new List<(FurnitureDefinition Definition, string? ExtraData, int Count, int RentalMinutes)>();
         var effectsToGrant = new List<(int EffectId, int Duration, int Count)>();
+        var songDisks = new List<int>();
 
         PetPurchase? pet = null;
         if (PetOffer.TypeOf(offer) is { } petType)
@@ -168,6 +169,12 @@ public sealed class PurchaseFromCatalogComposer : IMessageComposer
                     {
                         session.Send(new PurchaseErrorMessageEvent(PurchaseErrorReason.OfferNotPurchasable).Compose());
                         return;
+                    }
+
+                    if (offer.PrebuiltSong is not null && productDef.Classname == TraxEditorService.SongDiskClassname)
+                    {
+                        songDisks.AddRange(Enumerable.Repeat(productDef.Id, product.Quantity));
+                        break;
                     }
 
                     bool isRoomPaint = RoomPaintService.PaintTypeFor(productDef.Classname) is not null;
@@ -240,6 +247,11 @@ public sealed class PurchaseFromCatalogComposer : IMessageComposer
             {
                 await _userItemRepository.SetRentalExpiryAsync(created, DateTime.UtcNow.ToWholeSecond().AddMinutes(rentalMinutes), cancellationToken);
             }
+        }
+
+        foreach (int songDiskDefinitionId in songDisks)
+        {
+            createdItemIds.Add(await _traxEditor.BurnPrebuiltAsync(account.Id, songDiskDefinitionId, offer.PrebuiltSong!, cancellationToken));
         }
 
         foreach ((int effectId, int duration, int count) in effectsToGrant)

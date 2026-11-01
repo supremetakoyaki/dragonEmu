@@ -58,12 +58,16 @@ public sealed partial class Room
         }
     }
 
+    private bool WarpsAt(RoomActor actor, (int X, int Y) tile) => actor.Type == ActorType.Player && WarpTiles.ContainsKey(tile);
+
     private bool TryWarp(RoomActor actor)
     {
-        if (actor.Type != ActorType.Player || !WarpTiles.TryGetValue((actor.X, actor.Y), out PublicRoomWarpTile? warp))
+        if (actor.Goal != (actor.X, actor.Y) || !WarpsAt(actor, (actor.X, actor.Y)))
         {
             return false;
         }
+
+        PublicRoomWarpTile warp = WarpTiles[(actor.X, actor.Y)];
 
         actor.IsWalking = false;
         actor.Path = null;

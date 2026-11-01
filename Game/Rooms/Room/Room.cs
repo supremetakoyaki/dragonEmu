@@ -124,9 +124,14 @@ public sealed partial class Room
         return actor is not null;
     }
 
-    private (HashSet<(int X, int Y)> Blocked, HashSet<(int X, int Y)>? BlockedAsGoal) ObstaclesFor(RoomActor actor)
+    private (HashSet<(int X, int Y)> Blocked, HashSet<(int X, int Y)>? BlockedAsGoal) ObstaclesFor(RoomActor actor, (int X, int Y)? goal)
     {
         HashSet<(int X, int Y)> others = OccupiedTiles(actor.SessionId);
+        if (goal is { } tile && WarpsAt(actor, tile))
+        {
+            others.Remove(tile);
+        }
+
         HashSet<(int X, int Y)> blocked = Data.AllowWalkthrough ? [] : others;
         HashSet<(int X, int Y)>? blockedAsGoal = Data.AllowWalkthrough ? others : null;
 
@@ -1044,7 +1049,7 @@ public sealed partial class Room
 
     private bool TryStartWalk(RoomActor actor, int goalX, int goalY, bool kick)
     {
-        (HashSet<(int X, int Y)> occupied, HashSet<(int X, int Y)>? others) = ObstaclesFor(actor);
+        (HashSet<(int X, int Y)> occupied, HashSet<(int X, int Y)>? others) = ObstaclesFor(actor, (goalX, goalY));
 
         lock (actor.Lock)
         {
@@ -1301,7 +1306,7 @@ public sealed partial class Room
 
         if (!IsStepStillOpen(actor, nextX, nextY))
         {
-            (HashSet<(int X, int Y)> blocked, HashSet<(int X, int Y)>? others) = ObstaclesFor(actor);
+            (HashSet<(int X, int Y)> blocked, HashSet<(int X, int Y)>? others) = ObstaclesFor(actor, actor.Goal);
             blocked.UnionWith(FurnitureBlockedTiles(actor.Z));
 
             IReadOnlyList<(int X, int Y)>? replan = actor.Goal is { } goal
@@ -1348,6 +1353,11 @@ public sealed partial class Room
         }
 
         if (Data.AllowWalkthrough && !isGoal)
+        {
+            return true;
+        }
+
+        if (isGoal && WarpsAt(actor, (x, y)))
         {
             return true;
         }

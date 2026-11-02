@@ -75,7 +75,7 @@ public sealed class IdolService : IHostedService
         {
             Enqueue(async cancellationToken =>
             {
-                IReadOnlyList<TraxSong> songs = await _trax.GetUserSongsAsync(account.Id, cancellationToken);
+                IReadOnlyList<TraxSong> songs = await GetSongsToPerformAsync(account.Id, cancellationToken);
                 if (room.Performer == performer && !room.IsPerforming)
                 {
                     session.EnqueueSend(new OpenPerformerGuiMessageEvent(songs).Compose());
@@ -89,6 +89,15 @@ public sealed class IdolService : IHostedService
         }
     }
 
+    public static IReadOnlyList<TraxSong> SongsToPerform(IReadOnlyList<TraxSong> songs, IReadOnlyList<TraxDiskItem> disks) =>
+        [.. songs.Concat(disks.Select(disk => disk.Song))
+            .DistinctBy(song => (song.Name, song.Author, song.Data))
+            .OrderBy(song => song.Name, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(song => song.Id)];
+
+    private async Task<IReadOnlyList<TraxSong>> GetSongsToPerformAsync(int userId, CancellationToken cancellationToken) =>
+        SongsToPerform(await _trax.GetUserSongsAsync(userId, cancellationToken), await _trax.GetInventoryDisksAsync(userId, cancellationToken));
+
     public async Task StartPerformanceAsync(IGameSession session, UserAccount account, int songId, CancellationToken cancellationToken)
     {
         if (session.CurrentRoomId is not { } roomId || !_roomManager.TryGetLoadedRoom(roomId, out Room? room)
@@ -98,7 +107,7 @@ public sealed class IdolService : IHostedService
         }
 
         TraxSong? song = songId == 0 ? null
-            : (await _trax.GetUserSongsAsync(account.Id, cancellationToken)).FirstOrDefault(own => own.Id == songId);
+            : (await GetSongsToPerformAsync(account.Id, cancellationToken)).FirstOrDefault(own => own.Id == songId);
         DateTime now = DateTime.UtcNow;
         if (!room.TryStartPerformance(performer, song is null ? null : TimeSpan.FromSeconds(song.LengthSeconds), now))
         {

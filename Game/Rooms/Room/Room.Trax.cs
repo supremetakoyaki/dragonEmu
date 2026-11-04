@@ -16,7 +16,7 @@ public sealed record TraxPlayback(int MachineItemId, IReadOnlyList<TraxSong> Son
             return this with { Songs = songs, StartedAtUtc = utcNow };
         }
 
-        int position = PositionSeconds(utcNow) % total;
+        double position = Math.Max(0, (utcNow - StartedAtUtc).TotalSeconds) % total;
         int index = 0;
         while (position >= Songs[index].LengthSeconds)
         {

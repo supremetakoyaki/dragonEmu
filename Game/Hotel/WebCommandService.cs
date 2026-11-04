@@ -1,4 +1,7 @@
 using DragonEmu.Game.Achievements;
+using DragonEmu.Game.Chat;
+using DragonEmu.Game.Moderation;
+using DragonEmu.Game.Settings;
 using DragonEmu.Gateway;
 using DragonEmu.Persistence;
 using Microsoft.Extensions.Hosting;
@@ -15,6 +18,9 @@ public sealed class WebCommandService : IHostedService, IDisposable
     private readonly IWebCommandRepository _commands;
     private readonly ClientSessionManager _sessions;
     private readonly AchievementService _achievements;
+    private readonly IModerationRepository _moderation;
+    private readonly GameSettingsCache _gameSettings;
+    private readonly ProfanityFilterCache _profanity;
     private readonly ILogger<WebCommandService> _logger;
     private readonly PeriodicTimer _timer = new(CheckInterval);
     private CancellationTokenSource? _stoppingCts;
@@ -24,11 +30,17 @@ public sealed class WebCommandService : IHostedService, IDisposable
         IWebCommandRepository commands,
         ClientSessionManager sessions,
         AchievementService achievements,
+        IModerationRepository moderation,
+        GameSettingsCache gameSettings,
+        ProfanityFilterCache profanity,
         ILogger<WebCommandService> logger)
     {
         _commands = commands;
         _sessions = sessions;
         _achievements = achievements;
+        _moderation = moderation;
+        _gameSettings = gameSettings;
+        _profanity = profanity;
         _logger = logger;
     }
 
@@ -62,6 +74,19 @@ public sealed class WebCommandService : IHostedService, IDisposable
                 break;
             case "email_verified":
                 await _achievements.SetAsync(command.UserId, EmailAchievement, 1, cancellationToken);
+                break;
+            case "ban":
+                if (_sessions.TryGetByUserId(command.UserId, out ClientSession? banned) && banned is not null
+                    && await _moderation.GetActiveBanAsync(command.UserId, cancellationToken) is { } ban)
+                {
+                    _logger.LogInformation("Session {SessionId} banned from the website. Disconnecting...", banned.Id);
+                    ModerationService.ShowBanAndDisconnect(banned, ban.Reason);
+                }
+
+                break;
+            case "word_filter":
+                await _gameSettings.ReloadProfanityFilterAsync(cancellationToken);
+                await _profanity.ReloadAsync(cancellationToken);
                 break;
             default:
                 _logger.LogWarning("Web command {Id}: unknown command {Command}, dropped.", command.Id, command.Command);

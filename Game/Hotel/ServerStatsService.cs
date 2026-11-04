@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace DragonEmu.Game.Hotel;
 
-public sealed class ServerStatsService : IHostedService
+public sealed class ServerStatsService : IHostedLifecycleService
 {
     private readonly IServerStatsRepository _repository;
     private readonly ClientSessionManager _sessions;
@@ -16,6 +16,7 @@ public sealed class ServerStatsService : IHostedService
     private long _startedAt;
     private CancellationTokenSource? _stoppingCts;
     private Task? _loop;
+    private int _stopped;
 
     public ServerStatsService(
         IServerStatsRepository repository, ClientSessionManager sessions, HotelStatus status, ILogger<ServerStatsService> logger,
@@ -44,8 +45,23 @@ public sealed class ServerStatsService : IHostedService
         _loop = RunAsync(online, _stoppingCts.Token);
     }
 
-    public async Task StopAsync(CancellationToken cancellationToken)
+    public Task StartingAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+    public Task StartedAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+    public Task StoppingAsync(CancellationToken cancellationToken) => StopOnceAsync(cancellationToken);
+
+    public Task StopAsync(CancellationToken cancellationToken) => StopOnceAsync(cancellationToken);
+
+    public Task StoppedAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+    private async Task StopOnceAsync(CancellationToken cancellationToken)
     {
+        if (Interlocked.Exchange(ref _stopped, 1) == 1)
+        {
+            return;
+        }
+
         _status.ShutdownBegan -= OnShutdownBegan;
         _stoppingCts?.Cancel();
         if (_loop is not null)

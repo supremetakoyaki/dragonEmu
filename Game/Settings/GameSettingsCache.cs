@@ -25,6 +25,16 @@ public sealed class GameSettingsCache : IHostedService
 
     public async Task ReloadAsync(CancellationToken cancellationToken = default) => _current = await _repository.GetAsync(cancellationToken);
 
+    public async Task ReloadProfanityFilterAsync(CancellationToken cancellationToken = default)
+    {
+        GameSettings stored = await _repository.GetAsync(cancellationToken);
+        _current = _current with
+        {
+            ProfanityFilterEnabled = stored.ProfanityFilterEnabled,
+            ProfanityFilterReplacementWord = stored.ProfanityFilterReplacementWord,
+        };
+    }
+
     public Task StartAsync(CancellationToken cancellationToken) => ReloadAsync(cancellationToken);
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;

@@ -1,6 +1,7 @@
 using DragonEmu.Game.Fuses;
 using DragonEmu.Domain;
 using DragonEmu.Game.Achievements;
+using DragonEmu.Game.Camera;
 using DragonEmu.Game.Furniture;
 using DragonEmu.Game.Rooms;
 using DragonEmu.Game.Subscriptions;
@@ -30,6 +31,8 @@ public sealed class PresentOpenMessageComposer : IMessageComposer
     private readonly TeleportPairGrantService _teleportPairGrantService;
     private readonly HotelClock _clock;
     private readonly TraxEditorService _traxEditor;
+    private readonly ICurrencyRepository _currency;
+    private readonly CameraService _camera;
 
     private int _objectId;
 
@@ -46,9 +49,13 @@ public sealed class PresentOpenMessageComposer : IMessageComposer
         AchievementService achievementService,
         TeleportPairGrantService teleportPairGrantService,
         HotelClock clock,
-        TraxEditorService traxEditor)
+        TraxEditorService traxEditor,
+        ICurrencyRepository currency,
+        CameraService camera)
     {
         _traxEditor = traxEditor;
+        _currency = currency;
+        _camera = camera;
         _clock = clock;
         _roomManager = roomManager;
         _userItemRepository = userItemRepository;
@@ -127,6 +134,18 @@ public sealed class PresentOpenMessageComposer : IMessageComposer
                     await GrantSubscriptionAsync(session, account, content, cancellationToken);
                     break;
 
+                case GiftContentType.Film:
+                    if (int.TryParse(content.ExtraData, out int photos) && photos > 0)
+                    {
+                        long film = await _currency.AddBalanceAsync(item.UserId, CurrencyType.Film, photos, cancellationToken);
+                        if (item.UserId == account.Id)
+                        {
+                            _camera.FilmChanged(session, film);
+                        }
+                    }
+
+                    break;
+
                 case GiftContentType.Effect:
                     break;
             }
@@ -140,10 +159,15 @@ public sealed class PresentOpenMessageComposer : IMessageComposer
 
     private PresentOpenedMessageEvent BuildPresentOpenedEvent(UserGift? gift)
     {
-        GiftContent? content = gift?.Contents.FirstOrDefault(c => c.Type is GiftContentType.Furni or GiftContentType.Subscription);
+        GiftContent? content = gift?.Contents.FirstOrDefault(c => c.Type is GiftContentType.Furni or GiftContentType.Subscription or GiftContentType.Film);
         if (content is null)
         {
             return new PresentOpenedMessageEvent(refFurnidata: 0, isWallItem: false);
+        }
+
+        if (content.Type == GiftContentType.Film)
+        {
+            return PresentOpenedMessageEvent.Film(_furnitureDefinitions.WithLogicClass(FurnitureLogicClass.Camera).FirstOrDefault()?.RefFurnidata ?? 0);
         }
 
         if (content.Type == GiftContentType.Subscription)

@@ -26,6 +26,9 @@ public interface IUserItemRepository
 
     Task<IReadOnlyList<UserItem>> GetInventoryAsync(int userId, CancellationToken cancellationToken = default);
 
+    async Task<bool> HasInInventoryAsync(int userId, IReadOnlyCollection<int> furniDefIds, CancellationToken cancellationToken = default) =>
+        (await GetInventoryAsync(userId, cancellationToken)).Any(item => furniDefIds.Contains(item.FurniDefId));
+
     Task<IReadOnlyList<UserItem>> GetFloorItemsInRoomAsync(int roomId, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<UserItem>> GetWallItemsInRoomAsync(int roomId, CancellationToken cancellationToken = default);

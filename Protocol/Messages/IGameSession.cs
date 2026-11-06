@@ -28,6 +28,8 @@ public interface IGameSession
 
     bool TraxClient { get; set; }
 
+    Game.Camera.CameraState Camera { get; }
+
     Game.Polls.PollProgress? ActivePoll { get; set; }
 
     string? Swimsuit { get; set; }

@@ -9,7 +9,8 @@ public static class UserItemWireFormat
     public const int PosterCategory = 6;
 
     private static readonly HashSet<FurnitureLogicClass> NonStackableLogicClasses =
-        [FurnitureLogicClass.Trophy, FurnitureLogicClass.SoundMachine, FurnitureLogicClass.Jukebox, FurnitureLogicClass.EcotronBox, FurnitureLogicClass.Present];
+        [FurnitureLogicClass.Trophy, FurnitureLogicClass.SoundMachine, FurnitureLogicClass.Jukebox, FurnitureLogicClass.EcotronBox, FurnitureLogicClass.Present,
+         FurnitureLogicClass.Photo];
 
     public static int CategoryOf(UserItem item) => RoomPaintService.PaintTypeFor(item.Classname) switch
     {

@@ -4,4 +4,6 @@ public static class CurrencyType
 {
     public const int Credits = 1;
     public const int ActivityPoints = 5; // pixels
+
+    public const int Film = 99;
 }

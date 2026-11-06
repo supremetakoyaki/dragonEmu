@@ -20,6 +20,9 @@ public sealed class FurnitureDefinitionCache
 
     public FurnitureDefinition? GetByClassname(string classname) => _snapshot.ByClassname.GetValueOrDefault(classname);
 
+    public IReadOnlyList<FurnitureDefinition> WithLogicClass(FurnitureLogicClass logicClass) =>
+        [.. _snapshot.ById.Values.Where(definition => definition.LogicClass == logicClass).OrderBy(definition => definition.Id)];
+
     public async Task ReloadAsync(CancellationToken cancellationToken = default)
     {
         IReadOnlyList<FurnitureDefinition> definitions = await _repository.GetAllAsync(cancellationToken);

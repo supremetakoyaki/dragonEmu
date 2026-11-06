@@ -22,4 +22,7 @@ public enum FurnitureLogicClass
 
     VotingChair,
     Hotspot,
+
+    Camera,
+    Photo,
 }

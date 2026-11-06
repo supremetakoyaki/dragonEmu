@@ -72,6 +72,30 @@ public sealed class CurrencyRepository : ICurrencyRepository
         return Convert.ToInt64(await select.ExecuteScalarAsync(cancellationToken));
     }
 
+    public async Task<long?> TrySpendAsync(int userId, int currency, long amount, CancellationToken cancellationToken = default)
+    {
+        await using MySqlConnection connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+
+        await using (var spend = new MySqlCommand(
+            "UPDATE users_currency SET value = value - @amount WHERE user_ref = @userId AND currency = @currency AND value >= @amount;",
+            connection))
+        {
+            spend.Parameters.AddWithValue("@userId", userId);
+            spend.Parameters.AddWithValue("@currency", currency);
+            spend.Parameters.AddWithValue("@amount", amount);
+            if (await spend.ExecuteNonQueryAsync(cancellationToken) == 0)
+            {
+                return null;
+            }
+        }
+
+        await using var select = new MySqlCommand(
+            "SELECT value FROM users_currency WHERE user_ref = @userId AND currency = @currency;", connection);
+        select.Parameters.AddWithValue("@userId", userId);
+        select.Parameters.AddWithValue("@currency", currency);
+        return Convert.ToInt64(await select.ExecuteScalarAsync(cancellationToken));
+    }
+
     public async Task<IReadOnlyDictionary<int, long>> AddBalanceToManyAsync(
         IReadOnlyCollection<int> userIds, int currency, long delta, CancellationToken cancellationToken = default)
     {

@@ -7,6 +7,7 @@ using DragonEmu.Game.Furniture;
 using DragonEmu.Game.History;
 using DragonEmu.Game.Pets;
 using DragonEmu.Game.Rooms;
+using DragonEmu.Game.Camera;
 using DragonEmu.Game.Subscriptions;
 using DragonEmu.Persistence;
 using DragonEmu.Protocol.Messages.Outgoing.Catalog;
@@ -36,6 +37,7 @@ public sealed class PurchaseFromCatalogComposer : IMessageComposer
     private readonly HotelStatus _hotel;
     private readonly MessageTexts _texts;
     private readonly TraxEditorService _traxEditor;
+    private readonly CameraService _camera;
 
     private int _pageId;
     private int _offerId;
@@ -54,9 +56,10 @@ public sealed class PurchaseFromCatalogComposer : IMessageComposer
         HistoryLog history,
         HotelClock clock,
         PetService pets,
-        HotelStatus hotel, MessageTexts texts, TraxEditorService traxEditor)
+        HotelStatus hotel, MessageTexts texts, TraxEditorService traxEditor, CameraService camera)
     {
         _traxEditor = traxEditor;
+        _camera = camera;
         _texts = texts;
         _hotel = hotel;
         _pets = pets;
@@ -130,6 +133,7 @@ public sealed class PurchaseFromCatalogComposer : IMessageComposer
         var furnitureToCreate = new List<(FurnitureDefinition Definition, string? ExtraData, int Count, int RentalMinutes)>();
         var effectsToGrant = new List<(int EffectId, int Duration, int Count)>();
         var songDisks = new List<int>();
+        long film = 0;
 
         PetPurchase? pet = null;
         if (PetOffer.TypeOf(offer) is { } petType)
@@ -207,6 +211,16 @@ public sealed class PurchaseFromCatalogComposer : IMessageComposer
                     effectsToGrant.Add((effectId, product.RentalDuration, product.Quantity));
                     break;
 
+                case CatalogProductType.Film:
+                    if (!int.TryParse(product.ExtraData, out int photos) || photos <= 0)
+                    {
+                        session.Send(new PurchaseErrorMessageEvent(PurchaseErrorReason.OfferNotPurchasable).Compose());
+                        return;
+                    }
+
+                    film += (long)photos * product.Quantity;
+                    break;
+
                 default:
                     session.Send(new PurchaseErrorMessageEvent(PurchaseErrorReason.OfferNotPurchasable).Compose());
                     return;
@@ -259,6 +273,8 @@ public sealed class PurchaseFromCatalogComposer : IMessageComposer
             await _avatarEffectService.GrantAsync(session, account.Id, effectId, duration, count, cancellationToken);
         }
 
+        long? filmNow = film > 0 ? await _currencyRepository.AddBalanceAsync(account.Id, CurrencyType.Film, film, cancellationToken) : null;
+
         _history.Record(new CatalogPurchaseRecord(
             DateTime.UtcNow, account.Id, _pageId, offer.Id, offer.PriceCredits, offer.PriceActivityPoints, GiftReceiverId: null, session.RemoteAddress));
         session.Send(new PurchaseOKMessageEvent(offer).Compose());
@@ -282,6 +298,11 @@ public sealed class PurchaseFromCatalogComposer : IMessageComposer
         if (offer.PriceActivityPoints > 0)
         {
             session.Send(new HabboActivityPointNotificationMessageEvent(activityPoints - offer.PriceActivityPoints).Compose());
+        }
+
+        if (filmNow is { } filmLeft)
+        {
+            _camera.FilmChanged(session, filmLeft);
         }
 
         if (lastGrant is { } grant)

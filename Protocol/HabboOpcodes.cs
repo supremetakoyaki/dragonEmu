@@ -349,6 +349,14 @@ public static class IncomingOpcodes
         public const int GetUserSongDiscsMessageComposer = 259;
         public const int ResetJukeboxMessageComposer = 260;
     }
+
+    public static class Camera
+    {
+        public const int CarryItemMessageComposer = 87;
+        public const int UseItemMessageComposer = 89;
+        public const int SavePhotoMessageComposer = 423;
+        public const int CameraClientMessageComposer = 424;
+    }
 }
 
 public static class OutgoingOpcodes
@@ -736,6 +744,14 @@ public static class OutgoingOpcodes
         public const int EditorSongMessageEvent = 342;
         public const int SoundMachineClosedMessageEvent = 343;
         public const int RoomMusicMessageEvent = 344;
+    }
+
+    public static class Camera
+    {
+        public const int FilmMessageEvent = 4;
+        public const int PhotoSavedMessageEvent = 493;
+        public const int PhotoViewMessageEvent = 494;
+        public const int CameraFurniMessageEvent = 495;
     }
 }
 

@@ -44,6 +44,8 @@ public sealed class ClientSession : IAsyncDisposable, IGameSession
 
     public bool TraxClient { get; set; }
 
+    public Game.Camera.CameraState Camera { get; } = new();
+
     public Game.Polls.PollProgress? ActivePoll { get; set; }
 
     public string? Swimsuit { get; set; }
@@ -81,6 +83,11 @@ public sealed class ClientSession : IAsyncDisposable, IGameSession
         if (TraxClient && CurrentRoomId is not null && CurrentRoomId != roomId)
         {
             EnqueueSend(SoundMachineClosedMessageEvent.All.Compose());
+        }
+
+        if (CurrentRoomId != roomId)
+        {
+            Camera.PutAway();
         }
 
         CurrentRoomId = roomId;

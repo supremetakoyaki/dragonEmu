@@ -5,6 +5,7 @@ public sealed class PresentOpenedMessageEvent : IMessageEvent
     private const string FloorTypeCode = "s";
     private const string WallTypeCode = "i";
     private const string SubscriptionTypeCode = "h";
+    private const string FilmTypeCode = "f";
 
     private readonly string _typeCode;
     private readonly int _refFurnidata;
@@ -22,6 +23,8 @@ public sealed class PresentOpenedMessageEvent : IMessageEvent
     }
 
     public static PresentOpenedMessageEvent Subscription() => new(SubscriptionTypeCode, refFurnidata: 0);
+
+    public static PresentOpenedMessageEvent Film(int cameraFurnidata) => new(FilmTypeCode, cameraFurnidata);
 
     public ServerPacket Compose()
     {

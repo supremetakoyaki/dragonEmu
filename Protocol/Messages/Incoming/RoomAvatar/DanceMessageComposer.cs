@@ -56,16 +56,12 @@ public sealed class DanceMessageComposer : IMessageComposer
         lock (actor!.Lock)
         {
             actor.DanceId = danceId;
-
             putsDownHandItem = danceId > 0 && actor.CarryItemId > 0;
-            if (putsDownHandItem)
-            {
-                actor.CarryItemId = 0;
-            }
         }
 
         if (putsDownHandItem)
         {
+            room.GiveHandItem(actor, 0);
             _broadcaster.Broadcast(room, new CarryObjectMessageEvent(actor.VirtualId, 0).Compose());
         }
 

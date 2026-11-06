@@ -6,6 +6,7 @@ public enum CatalogProductType
     Wall,
     Effect,
     Subscription,
+    Film,
 }
 
 public static class CatalogProductTypeExtensions
@@ -16,6 +17,7 @@ public static class CatalogProductTypeExtensions
         CatalogProductType.Wall => "i",
         CatalogProductType.Effect => "e",
         CatalogProductType.Subscription => "h",
+        CatalogProductType.Film => "f",
         _ => throw new ArgumentOutOfRangeException(nameof(type), type, "Unknown catalog product type."),
     };
 
@@ -25,6 +27,7 @@ public static class CatalogProductTypeExtensions
         'i' => CatalogProductType.Wall,
         'e' => CatalogProductType.Effect,
         'h' => CatalogProductType.Subscription,
+        'f' => CatalogProductType.Film,
         _ => throw new ArgumentOutOfRangeException(nameof(wireChar), wireChar, "Unknown catalog product type wire char."),
     };
 }

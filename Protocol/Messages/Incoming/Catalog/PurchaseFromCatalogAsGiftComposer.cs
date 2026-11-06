@@ -163,6 +163,19 @@ public sealed class PurchaseFromCatalogAsGiftComposer : IMessageComposer
                 contents.Add(new GiftContent(GiftContentType.Subscription, "habbo_club", months.ToString()));
             }
         }
+        else if (product.ProductType == CatalogProductType.Film)
+        {
+            if (!int.TryParse(product.ExtraData, out int photos) || photos <= 0)
+            {
+                session.Send(new PurchaseErrorMessageEvent(PurchaseErrorReason.OfferNotPurchasable).Compose());
+                return;
+            }
+
+            for (int i = 0; i < product.Quantity; i++)
+            {
+                contents.Add(new GiftContent(GiftContentType.Film, "film", photos.ToString()));
+            }
+        }
         else
         {
             if (product.FurnitureDefId is not { } furniDefId)

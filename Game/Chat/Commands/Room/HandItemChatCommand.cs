@@ -41,7 +41,7 @@ public sealed class HandItemChatCommand : IChatCommand
             return ValueTask.CompletedTask;
         }
 
-        Room.GiveHandItem(actor, itemId);
+        room.GiveHandItem(actor, itemId);
         _roomBroadcaster.Broadcast(room, new CarryObjectMessageEvent(actor.VirtualId, itemId).Compose());
         _scheduler.MarkActive(room);
         return ValueTask.CompletedTask;

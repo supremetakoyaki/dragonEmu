@@ -5,6 +5,8 @@ public enum GiftContentType
     Furni,
     Effect,
     Subscription,
+
+    Film,
 }
 
 public static class GiftContentTypeExtensions
@@ -14,6 +16,7 @@ public static class GiftContentTypeExtensions
         GiftContentType.Furni => "furni",
         GiftContentType.Effect => "effect",
         GiftContentType.Subscription => "subscription",
+        GiftContentType.Film => "film",
         _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown gift content type."),
     };
 
@@ -22,6 +25,7 @@ public static class GiftContentTypeExtensions
         "furni" => GiftContentType.Furni,
         "effect" => GiftContentType.Effect,
         "subscription" => GiftContentType.Subscription,
+        "film" => GiftContentType.Film,
         _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown gift content type from the database."),
     };
 }

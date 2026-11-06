@@ -3,6 +3,7 @@ using System.Reflection;
 using DragonEmu.Game.Achievements;
 using DragonEmu.Game.Advertisement;
 using DragonEmu.Game.Avatars;
+using DragonEmu.Game.Camera;
 using DragonEmu.Game.Catalog;
 using DragonEmu.Game.Chat;
 using DragonEmu.Game.Chat.Commands;
@@ -152,6 +153,7 @@ public static class ServiceRegistration
         services.AddSingleton<PetNameRules>();
         services.AddHostedSingleton<PetService>();
         services.AddHostedSingleton<IdolService>();
+        services.AddHostedSingleton<CameraService>();
         services.AddHostedSingleton<PollService>();
         services.AddSingleton<RoomVoteService>();
         services.AddHostedSingleton<GuideBotService>();

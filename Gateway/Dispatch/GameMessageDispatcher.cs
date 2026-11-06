@@ -29,6 +29,7 @@ using DragonEmu.Protocol.Messages.Incoming.RoomPublicRoom;
 using DragonEmu.Protocol.Messages.Incoming.RoomSession;
 using DragonEmu.Protocol.Messages.Incoming.RoomSettings;
 using DragonEmu.Protocol.Messages.Incoming.Sound;
+using DragonEmu.Protocol.Messages.Incoming.Camera;
 using DragonEmu.Protocol.Messages.Incoming.Idol;
 using DragonEmu.Protocol.Messages.Incoming.Trax;
 using DragonEmu.Protocol.Messages.Incoming.Users;
@@ -156,6 +157,10 @@ public sealed class GameMessageDispatcher : IPacketDispatcher
         [IncomingOpcodes.Trax.GetUserSongDiscsMessageComposer] = sp => ActivatorUtilities.CreateInstance<GetUserSongDiscsMessageComposer>(sp),
         [IncomingOpcodes.Trax.ResetJukeboxMessageComposer] = sp => ActivatorUtilities.CreateInstance<ResetJukeboxMessageComposer>(sp),
         [IncomingOpcodes.Trax.TraxClientMessageComposer] = sp => ActivatorUtilities.CreateInstance<TraxClientMessageComposer>(sp),
+        [IncomingOpcodes.Camera.CarryItemMessageComposer] = sp => ActivatorUtilities.CreateInstance<CarryItemMessageComposer>(sp),
+        [IncomingOpcodes.Camera.UseItemMessageComposer] = sp => ActivatorUtilities.CreateInstance<UseItemMessageComposer>(sp),
+        [IncomingOpcodes.Camera.SavePhotoMessageComposer] = sp => ActivatorUtilities.CreateInstance<SavePhotoMessageComposer>(sp),
+        [IncomingOpcodes.Camera.CameraClientMessageComposer] = sp => ActivatorUtilities.CreateInstance<CameraClientMessageComposer>(sp),
         [IncomingOpcodes.RoomPublicRoom.ExitLockerRoomMessageComposer] = sp => ActivatorUtilities.CreateInstance<ExitLockerRoomMessageComposer>(sp),
         [IncomingOpcodes.Users.ApproveNameMessageComposer] = sp => ActivatorUtilities.CreateInstance<ApproveNameMessageComposer>(sp),
         [IncomingOpcodes.InventoryPets.GetPetInventoryComposer] = sp => ActivatorUtilities.CreateInstance<GetPetInventoryComposer>(sp),

@@ -23,6 +23,8 @@ public static class FurnitureLogicClassExtensions
         FurnitureLogicClass.EcotronBox => "ecotron_box",
         FurnitureLogicClass.VotingChair => "voting_chair",
         FurnitureLogicClass.Hotspot => "hotspot",
+        FurnitureLogicClass.Camera => "camera",
+        FurnitureLogicClass.Photo => "photo",
         _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown furniture logic class."),
     };
 
@@ -47,6 +49,8 @@ public static class FurnitureLogicClassExtensions
         "ecotron_box" => FurnitureLogicClass.EcotronBox,
         "voting_chair" => FurnitureLogicClass.VotingChair,
         "hotspot" => FurnitureLogicClass.Hotspot,
+        "camera" => FurnitureLogicClass.Camera,
+        "photo" => FurnitureLogicClass.Photo,
         _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown furniture logic_class value from the database."),
     };
 }

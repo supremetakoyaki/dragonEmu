@@ -10,6 +10,8 @@ public interface ICurrencyRepository
 
     Task<long> AddBalanceAsync(int userId, int currency, long delta, CancellationToken cancellationToken = default);
 
+    Task<long?> TrySpendAsync(int userId, int currency, long amount, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyDictionary<int, long>> AddBalanceToManyAsync(
         IReadOnlyCollection<int> userIds, int currency, long delta, CancellationToken cancellationToken = default);
 }

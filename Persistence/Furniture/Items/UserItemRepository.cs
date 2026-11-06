@@ -132,6 +132,25 @@ public sealed class UserItemRepository : IUserItemRepository
         return await ReadAllAsync(command, cancellationToken);
     }
 
+    public async Task<bool> HasInInventoryAsync(int userId, IReadOnlyCollection<int> furniDefIds, CancellationToken cancellationToken = default)
+    {
+        if (furniDefIds.Count == 0)
+        {
+            return false;
+        }
+
+        await using MySqlConnection connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+        await using var command = new MySqlCommand(
+            $"""
+            SELECT 1 FROM users_items i
+            WHERE i.user_ref = @userId AND i.room_ref IS NULL AND i.ref_furni_def IN ({string.Join(", ", furniDefIds.Select(id => (int)id))})
+              AND {ItemHolds.NotHeld("i.id")}
+            LIMIT 1;
+            """, connection);
+        command.Parameters.AddWithValue("@userId", userId);
+        return await command.ExecuteScalarAsync(cancellationToken) is not null;
+    }
+
     public async Task<IReadOnlyList<UserItem>> GetFloorItemsInRoomAsync(int roomId, CancellationToken cancellationToken = default)
     {
         await using MySqlConnection connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);

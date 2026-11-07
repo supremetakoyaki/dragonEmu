@@ -56,6 +56,10 @@ public sealed class ClientSession : IAsyncDisposable, IGameSession
 
     public int? LetInto { get; set; }
 
+    public int? QueuedAt { get; set; }
+
+    public PendingRoomAdmission? Admission { get; set; }
+
     public int AvatarEffectId { get; set; }
 
     public bool UserObjectSent { get; set; }

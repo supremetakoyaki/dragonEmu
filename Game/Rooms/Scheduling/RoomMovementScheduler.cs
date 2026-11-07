@@ -207,12 +207,16 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
                         WalkOut(room, kicked, throughTheDoor: false);
                     }
 
+                    RoomQueueTickResult queue = room.AdvanceQueue(room.Data.MaxUsers, _gameSettings.Current.MaxSpectators, DateTime.UtcNow);
+                    LetInTheQueue(room, queue);
+
                     AnnounceStacking(room);
                     _broadcaster.FlushPending(room);
 
                     if (!stillNeedsMovementTicks && !teleporters.NeedsFurtherTicks && !stillNeedsRollTicks && !rollers.NeedsFurtherTicks
                         && !someoneHoldsAHandItem && !vending.NeedsFurtherTicks && !hockeyLightsLit
-                        && !oneWayDoorsBusy && !kicksUnderWay && !room.BotsAwake && !room.PetsAwake && !room.IdolBusy && !headsTurned)
+                        && !oneWayDoorsBusy && !kicksUnderWay && !room.BotsAwake && !room.PetsAwake && !room.IdolBusy && !headsTurned
+                        && !queue.NeedsFurtherTicks)
                     {
                         _activeRooms.TryRemove(roomId, out _);
                     }
@@ -244,6 +248,31 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "RoomMovementScheduler tick loop crashed.");
+        }
+    }
+
+    private void LetInTheQueue(Room room, RoomQueueTickResult queue)
+    {
+        foreach ((long sessionId, RoomQueueLine line) in queue.Admitted)
+        {
+            if (!_sessionManager.TryGet(sessionId, out ClientSession? session))
+            {
+                room.LeaveQueue(sessionId);
+                continue;
+            }
+
+            session!.QueuedAt = null;
+            session.Admission = new PendingRoomAdmission(room.Id, line, DateTime.UtcNow + Room.AdmissionWindow);
+            session.EnqueueSend(new RoomForwardMessageEvent(isPublic: room.Data.OwnerId is null, room.Id).Compose());
+        }
+
+        bool spectatorsAllowed = RoomQueueService.SpectatorsAllowed(_gameSettings.Current);
+        foreach ((long sessionId, RoomQueueStatus status) in queue.Moved)
+        {
+            if (_sessionManager.TryGet(sessionId, out ClientSession? waiting))
+            {
+                waiting!.EnqueueSend(new RoomQueueStatusMessageEvent(status, spectatorsAllowed).Compose());
+            }
         }
     }
 

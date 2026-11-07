@@ -114,6 +114,11 @@ public sealed class ClientSessionManager
             }
         }
 
+        if (session.QueuedAt is { } queuedAt && _roomManager.TryGetLoadedRoom(queuedAt, out Room? queuedRoom))
+        {
+            queuedRoom!.LeaveQueue(session.Id);
+        }
+
         _logger.LogInformation(
             "Session {SessionId} disconnected ({Count}/{Max})",
             session.Id, _sessions.Count, _options.MaxConnections);

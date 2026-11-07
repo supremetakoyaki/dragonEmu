@@ -230,7 +230,7 @@ public sealed class RoomManager : IRoomManager, IHostedService, IDisposable
             }
 
             Room? room = lazyRoom.Value.Result;
-            if (room is not null && room.UserCount == 0 && room.EmptySince is { } emptySince && emptySince < cutoff)
+            if (room is not null && room.UserCount == 0 && room.EmptySince is { } emptySince && emptySince < cutoff && !room.HasQueueOrSpectators)
             {
                 _rooms.TryRemove(roomId, out _);
                 RoomRemoved?.Invoke(room);

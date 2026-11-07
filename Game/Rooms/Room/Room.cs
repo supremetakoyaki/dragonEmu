@@ -94,6 +94,12 @@ public sealed partial class Room
 
     public bool TryRemoveActor(long sessionId, out RoomActor? actor)
     {
+        if (StopSpectating(sessionId))
+        {
+            actor = null;
+            return false;
+        }
+
         bool removed = _actors.TryRemove(sessionId, out actor);
         if (!removed)
         {

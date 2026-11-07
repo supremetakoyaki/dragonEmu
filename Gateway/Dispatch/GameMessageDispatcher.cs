@@ -200,6 +200,7 @@ public sealed class GameMessageDispatcher : IPacketDispatcher
         [IncomingOpcodes.RoomSession.OpenConnectionMessageComposer] = sp => ActivatorUtilities.CreateInstance<OpenConnectionMessageComposer>(sp),
         [IncomingOpcodes.RoomSession.GoToFlatMessageComposer] = sp => ActivatorUtilities.CreateInstance<GoToFlatMessageComposer>(sp),
         [IncomingOpcodes.RoomSession.QuitMessageComposer] = sp => ActivatorUtilities.CreateInstance<QuitRoomMessageComposer>(sp),
+        [IncomingOpcodes.RoomSession.ChangeQueueMessageComposer] = sp => ActivatorUtilities.CreateInstance<ChangeQueueMessageComposer>(sp),
         [IncomingOpcodes.RoomEngine.GetFurnitureAliasesMessageComposer] = sp => ActivatorUtilities.CreateInstance<GetFurnitureAliasesMessageComposer>(sp),
         [IncomingOpcodes.RoomEngine.GetRoomEntryDataMessageComposer] = sp => ActivatorUtilities.CreateInstance<GetRoomEntryDataMessageComposer>(sp),
         [IncomingOpcodes.Catalog.PurchaseFromCatalogComposer] = sp => ActivatorUtilities.CreateInstance<PurchaseFromCatalogComposer>(sp),

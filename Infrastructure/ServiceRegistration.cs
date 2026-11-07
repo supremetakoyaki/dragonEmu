@@ -149,6 +149,7 @@ public static class ServiceRegistration
         services.AddSingleton<RoomBroadcaster>();
         services.AddSingleton<RoomPaintService>();
         services.AddSingleton<RoomTeleportService>();
+        services.AddSingleton<RoomQueueService>();
         services.AddSingleton<PublicRoomTransfers>();
         services.AddSingleton<PetNameRules>();
         services.AddHostedSingleton<PetService>();

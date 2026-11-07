@@ -40,6 +40,10 @@ public interface IGameSession
 
     int? LetInto { get; set; }
 
+    int? QueuedAt { get; set; }
+
+    PendingRoomAdmission? Admission { get; set; }
+
     int AvatarEffectId { get; set; }
 
     bool UserObjectSent { get; set; }

@@ -56,18 +56,18 @@ public sealed class RoomBroadcaster
             return;
         }
 
-        IReadOnlyCollection<RoomActor> actors = room.Actors;
+        long[] audience = [.. room.Actors.Select(actor => actor.SessionId), .. room.Spectators];
 
         while (queue.TryDequeue(out (byte[] Frame, long? ExcludeSessionId, int? FromUserId) item))
         {
-            foreach (RoomActor actor in actors)
+            foreach (long sessionId in audience)
             {
-                if (actor.SessionId == item.ExcludeSessionId)
+                if (sessionId == item.ExcludeSessionId)
                 {
                     continue;
                 }
 
-                if (_sessionManager.TryGet(actor.SessionId, out ClientSession? session)
+                if (_sessionManager.TryGet(sessionId, out ClientSession? session)
                     && !(item.FromUserId is { } from && session!.IgnoredUsers.Contains(from)))
                 {
                     session!.EnqueueSend(item.Frame);

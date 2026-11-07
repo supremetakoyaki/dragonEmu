@@ -37,7 +37,8 @@ public sealed record GameSettings(
     GroupSettings Groups,
     UsernameSettings Username,
     int MaxGuideBotsInHotelAtOnce,
-    int IdleDisconnectTime)
+    int IdleDisconnectTime,
+    int MaxSpectators)
 {
     public static GameSettings Default { get; } = new(
         PrivateRoomsLimit: 100,
@@ -72,5 +73,6 @@ public sealed record GameSettings(
         GroupSettings.Default,
         UsernameSettings.Default,
         MaxGuideBotsInHotelAtOnce: 10,
-        IdleDisconnectTime: 30);
+        IdleDisconnectTime: 30,
+        MaxSpectators: 100);
 }

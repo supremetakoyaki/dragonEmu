@@ -28,7 +28,7 @@ internal static class RoomEntryHandler
         PublicRoomCache publicRooms, SubscriptionManager subscriptionManager,
         IRoomVoteRepository roomVoteRepository, RoomRightsService roomRights, GameSettingsCache gameSettings,
         RoomBroadcaster roomBroadcaster, FurnitureAliasCache furnitureAliasCache, IRoomVisitRepository roomVisitRepository,
-        AchievementService achievementService, RoomTeleportService teleportService, int roomId, string password,
+        AchievementService achievementService, RoomTeleportService teleportService, RoomQueueService queue, int roomId, string password,
         CancellationToken cancellationToken, bool startsNewSession = false)
     {
         if (session.AuthenticatedUser is not { } account)
@@ -45,6 +45,7 @@ internal static class RoomEntryHandler
         bool letIn = session.LetInto == roomId;
         session.LetInto = null;
         session.RingingAt = null;
+        queue.Leave(session);
 
         if (session.CurrentRoomId == roomId && !startsNewSession)
         {
@@ -102,14 +103,16 @@ internal static class RoomEntryHandler
             return;
         }
 
-        if (!isOwner && room.UserCount >= room.Data.MaxUsers
+        RoomQueueLine? turn = RoomQueueService.TurnOf(session, room);
+        if (turn is null && !isOwner && room.MustQueue(RoomQueueLine.Visitors, room.Data.MaxUsers)
             && !await roomRights.HoldsFuseAsync(account, EnterFullRoomsFuse, cancellationToken))
         {
-            session.Send(new CantConnectMessageEvent(1).Compose());
-            session.Send(new CloseConnectionMessageEvent().Compose());
+            await queue.JoinAsync(session, room, account.Id, cancellationToken);
             session.SetLoadingRoom(null);
             return;
         }
+
+        bool asSpectator = turn == RoomQueueLine.Spectators;
 
         bool throughTheDoor = room.Data.AccessType == RoomAccess.Open || isPublic || isOwner
             || arrivalTeleporter is not null || letIn
@@ -139,43 +142,57 @@ internal static class RoomEntryHandler
             return;
         }
 
-        (int spawnX, int spawnY, double spawnZ, int spawnDir) = arrivalTeleporter is { } teleporter
-            ? (teleporter.X, teleporter.Y, teleporter.Z, teleporter.Direction)
-            : tileArrival is { } tile && isPublic && room.Grid.IsWalkable(tile.X, tile.Y)
-                ? (tile.X, tile.Y, room.SurfaceHeightAt(tile.X, tile.Y), tile.Rotation)
-                : (room.Data.DoorX, room.Data.DoorY, room.Data.DoorZ, room.Data.DoorDir);
+        if (turn is not null)
+        {
+            RoomQueueService.TakeTurn(session, room);
+        }
 
         bool hasGrantedRights = !isPublic && !isOwner && await roomRights.HasGrantedRightsAsync(account.Id, roomId, cancellationToken);
 
-        var actor = new RoomActor(
-            SessionId: session.Id,
-            VirtualId: room.NextVirtualId(),
-            Type: ActorType.Player,
-            AccountId: account.Id,
-            Username: account.Username,
-            Motto: account.Motto,
-            Figure: account.Figure,
-            Gender: account.Gender,
-            X: spawnX,
-            Y: spawnY,
-            Z: spawnZ)
+        RoomActor? actor = null;
+        if (asSpectator)
         {
-            RotBody = spawnDir,
-            RotHead = spawnDir,
-            EffectId = session.AvatarEffectId,
-            FavouriteGroup = account.FavouriteGroup,
+            room.StartSpectating(session.Id);
+        }
+        else
+        {
+            (int spawnX, int spawnY, double spawnZ, int spawnDir) = arrivalTeleporter is { } teleporter
+                ? (teleporter.X, teleporter.Y, teleporter.Z, teleporter.Direction)
+                : tileArrival is { } tile && isPublic && room.Grid.IsWalkable(tile.X, tile.Y)
+                    ? (tile.X, tile.Y, room.SurfaceHeightAt(tile.X, tile.Y), tile.Rotation)
+                    : (room.Data.DoorX, room.Data.DoorY, room.Data.DoorZ, room.Data.DoorDir);
 
-            Swimsuit = room.IsPool ? session.Swimsuit : null,
-            FlatControl = !isPublic && isOwner ? FlatControlStatus.Owner : hasGrantedRights ? FlatControlStatus.RightsHolder : null,
-        };
+            actor = new RoomActor(
+                SessionId: session.Id,
+                VirtualId: room.NextVirtualId(),
+                Type: ActorType.Player,
+                AccountId: account.Id,
+                Username: account.Username,
+                Motto: account.Motto,
+                Figure: account.Figure,
+                Gender: account.Gender,
+                X: spawnX,
+                Y: spawnY,
+                Z: spawnZ)
+            {
+                RotBody = spawnDir,
+                RotHead = spawnDir,
+                EffectId = session.AvatarEffectId,
+                FavouriteGroup = account.FavouriteGroup,
 
-        actor.IsSwimming = room.IsInWater(actor, spawnX, spawnY);
-        session.Swimsuit = actor.Swimsuit;
-        room.TryAddActor(actor);
+                Swimsuit = room.IsPool ? session.Swimsuit : null,
+                FlatControl = !isPublic && isOwner ? FlatControlStatus.Owner : hasGrantedRights ? FlatControlStatus.RightsHolder : null,
+            };
+
+            actor.IsSwimming = room.IsInWater(actor, spawnX, spawnY);
+            session.Swimsuit = actor.Swimsuit;
+            room.TryAddActor(actor);
+        }
+
         session.SetCurrentRoom(roomId);
         session.SetLoadingRoom(null);
 
-        if (!isPublic)
+        if (!isPublic && actor is not null)
         {
             bool firstVisit = await roomVisitRepository.RecordVisitAsync(account.Id, roomId, cancellationToken);
             if (firstVisit && !isOwner)
@@ -187,6 +204,11 @@ internal static class RoomEntryHandler
         if (!isPublic)
         {
             session.Send(new OpenConnectionMessageEvent().Compose());
+        }
+
+        if (asSpectator)
+        {
+            session.Send(new YouAreSpectatorMessageEvent().Compose());
         }
 
         session.Send(new RoomReadyMessageEvent(room.Data.HeightmapLabel, roomId).Compose());
@@ -281,6 +303,11 @@ internal static class RoomEntryHandler
         if (room.Data.HeightmapLabel == InfobusHeightmapLabel)
         {
             session.Send(new ParkBusDoorMessageEvent(infobusOpen).Compose());
+        }
+
+        if (actor is null)
+        {
+            return;
         }
 
         if (actor.FavouriteGroup is { } group)

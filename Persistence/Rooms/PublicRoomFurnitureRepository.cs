@@ -12,8 +12,8 @@ public sealed class PublicRoomFurnitureRepository : IPublicRoomFurnitureReposito
         _connectionFactory = connectionFactory;
     }
 
-    public async Task<IReadOnlyList<PublicRoomFurnitureItem>> GetForModelAsync(
-        string heightmapLabel, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<PublicRoomFurnitureItem>> GetForRoomAsync(
+        int roomId, string heightmapLabel, CancellationToken cancellationToken = default)
     {
         await using MySqlConnection connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
 
@@ -25,10 +25,13 @@ public sealed class PublicRoomFurnitureRepository : IPublicRoomFurnitureReposito
             INNER JOIN definition_public_room_furniture d ON d.id = i.furni_ref
             INNER JOIN definition_room_heightmap h ON h.id = i.heightmap_ref
             WHERE h.label = @label
+              AND (i.room_ref = @roomId
+                   OR (i.room_ref IS NULL AND NOT EXISTS (SELECT 1 FROM definition_public_room_items own WHERE own.room_ref = @roomId)))
             ORDER BY i.id;
             """,
             connection);
         command.Parameters.AddWithValue("@label", heightmapLabel);
+        command.Parameters.AddWithValue("@roomId", roomId);
 
         var items = new List<PublicRoomFurnitureItem>();
         await using MySqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);

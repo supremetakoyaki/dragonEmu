@@ -26,7 +26,7 @@ public sealed class GetPublicSpaceCastLibsMessageComposer : IMessageComposer
     {
         if (session.AuthenticatedUser is not null)
         {
-            string libraryName = _publicRooms.RoomDataOf(_roomId) is { } room ? _publicRooms.LibrariesOf(room.HeightmapLabel) : string.Empty;
+            string libraryName = _publicRooms.RoomDataOf(_roomId) is { } room ? _publicRooms.LibrariesOf(_roomId, room.HeightmapLabel) : string.Empty;
             session.Send(new PublicSpaceCastLibsEvent(_roomId, libraryName).Compose());
         }
 

@@ -4,5 +4,5 @@ namespace DragonEmu.Persistence;
 
 public interface IPublicRoomFurnitureRepository
 {
-    Task<IReadOnlyList<PublicRoomFurnitureItem>> GetForModelAsync(string heightmapLabel, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<PublicRoomFurnitureItem>> GetForRoomAsync(int roomId, string heightmapLabel, CancellationToken cancellationToken = default);
 }

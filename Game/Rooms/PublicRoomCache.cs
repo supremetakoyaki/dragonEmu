@@ -52,9 +52,12 @@ public sealed class PublicRoomCache : IHostedService
 
     public bool IsPublic(int roomId) => _snapshot.RoomData.ContainsKey(roomId);
 
-    public string LibrariesOf(string heightmapLabel) => _snapshot.Libraries.GetValueOrDefault(heightmapLabel)?.LibraryName ?? string.Empty;
+    public string LibrariesOf(int roomId, string heightmapLabel) => LibraryOf(roomId, heightmapLabel)?.LibraryName ?? string.Empty;
 
-    public string NavCodeOf(string heightmapLabel) => _snapshot.Libraries.GetValueOrDefault(heightmapLabel)?.NavCode ?? heightmapLabel;
+    public string NavCodeOf(int roomId, string heightmapLabel) => LibraryOf(roomId, heightmapLabel)?.NavCode ?? heightmapLabel;
+
+    private PublicRoomLibraries? LibraryOf(int roomId, string heightmapLabel) =>
+        _snapshot.RoomLibraries.GetValueOrDefault(roomId) ?? _snapshot.Libraries.GetValueOrDefault(heightmapLabel);
 
     public IReadOnlySet<(int X, int Y)> ExitTilesOf(string heightmapLabel) =>
         _snapshot.ExitTiles.GetValueOrDefault(heightmapLabel) ?? NoExitTiles;
@@ -83,7 +86,8 @@ public sealed class PublicRoomCache : IHostedService
             roomData.ToDictionary(room => room.Id),
             exitTiles.GroupBy(tile => tile.HeightmapLabel).ToDictionary(
                 group => group.Key, group => (IReadOnlySet<(int X, int Y)>)group.Select(tile => (tile.X, tile.Y)).ToHashSet()),
-            libraries.GroupBy(library => library.HeightmapLabel).ToDictionary(group => group.Key, group => group.First()));
+            libraries.Where(library => library.RoomId is null).GroupBy(library => library.HeightmapLabel).ToDictionary(group => group.Key, group => group.First()),
+            libraries.Where(library => library.RoomId is not null).GroupBy(library => library.RoomId!.Value).ToDictionary(group => group.Key, group => group.First()));
 
         _logger.LogInformation(
             "Public room cache loaded: {Rooms} navigator entries, {RoomRows} public rooms",
@@ -102,11 +106,12 @@ public sealed class PublicRoomCache : IHostedService
         int? ParkRoomId,
         IReadOnlyDictionary<int, PrivateRoomSummary> RoomData,
         IReadOnlyDictionary<string, IReadOnlySet<(int X, int Y)>> ExitTiles,
-        IReadOnlyDictionary<string, PublicRoomLibraries> Libraries)
+        IReadOnlyDictionary<string, PublicRoomLibraries> Libraries,
+        IReadOnlyDictionary<int, PublicRoomLibraries> RoomLibraries)
     {
         public static Snapshot Empty { get; } = new(
             [], [], new Dictionary<int, NavigatorPublicRoom>(), new Dictionary<string, IReadOnlyDictionary<(int X, int Y), PublicRoomWarpTile>>(), null,
             new Dictionary<int, PrivateRoomSummary>(), new Dictionary<string, IReadOnlySet<(int X, int Y)>>(),
-            new Dictionary<string, PublicRoomLibraries>());
+            new Dictionary<string, PublicRoomLibraries>(), new Dictionary<int, PublicRoomLibraries>());
     }
 }

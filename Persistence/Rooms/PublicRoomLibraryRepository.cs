@@ -17,7 +17,7 @@ public sealed class PublicRoomLibraryRepository : IPublicRoomLibraryRepository
         await using MySqlConnection connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
         await using var command = new MySqlCommand(
             """
-            SELECT h.label, l.library_name, l.nav_code FROM definition_public_room_libraries l
+            SELECT h.label, l.library_name, l.nav_code, l.room_ref FROM definition_public_room_libraries l
             INNER JOIN definition_room_heightmap h ON h.id = l.heightmap_ref;
             """, connection);
 
@@ -25,7 +25,8 @@ public sealed class PublicRoomLibraryRepository : IPublicRoomLibraryRepository
         await using MySqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
         {
-            libraries.Add(new PublicRoomLibraries(reader.GetString(0), reader.GetString(1), reader.IsDBNull(2) ? null : reader.GetString(2)));
+            libraries.Add(new PublicRoomLibraries(
+                reader.GetString(0), reader.GetString(1), reader.IsDBNull(2) ? null : reader.GetString(2), reader.IsDBNull(3) ? null : (int)reader.GetUInt32(3)));
         }
 
         return libraries;

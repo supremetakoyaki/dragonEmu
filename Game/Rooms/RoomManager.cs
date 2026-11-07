@@ -175,7 +175,7 @@ public sealed class RoomManager : IRoomManager, IHostedService, IDisposable
             room.StartPlayback(machine.Id, await _trax.GetPlaylistOfAsync(machine.Id, machine.LogicClass, cancellationToken), DateTime.UtcNow);
         }
         room.LoadWallItems(await _userItemRepository.GetWallItemsInRoomAsync(roomId, cancellationToken));
-        room.LoadStaticFurniture(await _publicRoomFurnitureRepository.GetForModelAsync(data.HeightmapLabel, cancellationToken));
+        room.LoadStaticFurniture(await _publicRoomFurnitureRepository.GetForRoomAsync(roomId, data.HeightmapLabel, cancellationToken));
         room.WarpTiles = _publicRooms.WarpTilesOf(data.HeightmapLabel);
         room.BusEntranceTile = data.HeightmapLabel == PublicRoomCache.ParkHeightmapLabel && data.OwnerId is null ? PublicRoomTransfers.BusEntranceTile : null;
         room.AddBots(await _bots.LoadAsync(roomId, cancellationToken));

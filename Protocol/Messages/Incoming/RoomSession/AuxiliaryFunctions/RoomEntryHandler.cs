@@ -241,7 +241,7 @@ internal static class RoomEntryHandler
         session.Send(new UsersMessageEvent(room.Actors.ToList()).Compose());
 
         session.Send((isPublic
-            ? RoomEntryInfoMessageEvent.ForPublicRoom(publicRooms.NavCodeOf(room.Data.HeightmapLabel), publicEntry?.NavIndex ?? 0)
+            ? RoomEntryInfoMessageEvent.ForPublicRoom(publicRooms.NavCodeOf(roomId, room.Data.HeightmapLabel), publicEntry?.NavIndex ?? 0)
             : RoomEntryInfoMessageEvent.ForPrivateRoom(roomId, isOwner)).Compose());
 
         session.Send(new UserUpdateMessageEvent(room.Actors.ToList()).Compose());

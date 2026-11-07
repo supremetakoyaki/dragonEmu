@@ -176,6 +176,19 @@ public sealed class PurchaseFromCatalogAsGiftComposer : IMessageComposer
                 contents.Add(new GiftContent(GiftContentType.Film, "film", photos.ToString()));
             }
         }
+        else if (product.ProductType == CatalogProductType.Effect)
+        {
+            if (!int.TryParse(product.ExtraData, out int effectId) || effectId <= 0 || product.RentalDuration <= 0)
+            {
+                session.Send(new PurchaseErrorMessageEvent(PurchaseErrorReason.OfferNotPurchasable).Compose());
+                return;
+            }
+
+            for (int i = 0; i < product.Quantity; i++)
+            {
+                contents.Add(new GiftContent(GiftContentType.Effect, effectId.ToString(), product.RentalDuration.ToString()));
+            }
+        }
         else
         {
             if (product.FurnitureDefId is not { } furniDefId)

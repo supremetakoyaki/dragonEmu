@@ -16,8 +16,8 @@ public sealed record CatalogOffer(
     public bool IsActuallyGiftable =>
         Giftable
         && Products.Count == 1
-        && Products[0].ProductType is CatalogProductType.Floor or CatalogProductType.Wall or CatalogProductType.Subscription or CatalogProductType.Film
-        && Products[0].RentalDuration <= 0
+        && Products[0].ProductType is CatalogProductType.Floor or CatalogProductType.Wall or CatalogProductType.Subscription or CatalogProductType.Film or CatalogProductType.Effect
+        && (Products[0].RentalDuration <= 0 || Products[0].ProductType == CatalogProductType.Effect)
         && PetOffer.TypeOf(this) is null
         && PrebuiltSong is null;
 }

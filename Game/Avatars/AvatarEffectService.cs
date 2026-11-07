@@ -56,9 +56,13 @@ public sealed class AvatarEffectService : IHostedService
         }
     }
 
-    public async Task GrantAsync(IGameSession session, int userId, int effectId, int duration, int quantity, CancellationToken cancellationToken)
+    public async Task GrantAsync(IGameSession? session, int userId, int effectId, int duration, int quantity, CancellationToken cancellationToken)
     {
         await _repository.AddAsync(userId, effectId, duration, quantity, cancellationToken);
+        if (session is null)
+        {
+            return;
+        }
 
         ServerPacket added = new AvatarEffectAddedMessageEvent(effectId, duration).Compose();
         for (int i = 0; i < quantity; i++)

@@ -1,6 +1,7 @@
 using DragonEmu.Game.Fuses;
 using DragonEmu.Domain;
 using DragonEmu.Game.Achievements;
+using DragonEmu.Game.Avatars;
 using DragonEmu.Game.Camera;
 using DragonEmu.Game.Furniture;
 using DragonEmu.Game.Rooms;
@@ -33,6 +34,8 @@ public sealed class PresentOpenMessageComposer : IMessageComposer
     private readonly TraxEditorService _traxEditor;
     private readonly ICurrencyRepository _currency;
     private readonly CameraService _camera;
+    private readonly AvatarEffectService _avatarEffects;
+    private readonly ClientSessionManager _sessions;
 
     private int _objectId;
 
@@ -51,8 +54,12 @@ public sealed class PresentOpenMessageComposer : IMessageComposer
         HotelClock clock,
         TraxEditorService traxEditor,
         ICurrencyRepository currency,
-        CameraService camera)
+        CameraService camera,
+        AvatarEffectService avatarEffects,
+        ClientSessionManager sessions)
     {
+        _avatarEffects = avatarEffects;
+        _sessions = sessions;
         _traxEditor = traxEditor;
         _currency = currency;
         _camera = camera;
@@ -147,6 +154,14 @@ public sealed class PresentOpenMessageComposer : IMessageComposer
                     break;
 
                 case GiftContentType.Effect:
+                    if (int.TryParse(content.Reference, out int effectId) && effectId > 0
+                        && int.TryParse(content.ExtraData, out int duration) && duration > 0)
+                    {
+                        IGameSession? owner = item.UserId == account.Id ? session
+                            : _sessions.TryGetByUserId(item.UserId, out ClientSession? online) ? online : null;
+                        await _avatarEffects.GrantAsync(owner, item.UserId, effectId, duration, 1, cancellationToken);
+                    }
+
                     break;
             }
         }

@@ -18,8 +18,9 @@ public sealed class PublicRoomWarpTileRepository : IPublicRoomWarpTileRepository
         await using var command = new MySqlCommand(
             """
             SELECT h.label, w.x, w.y,
-                   (SELECT MIN(r.id) FROM rooms r WHERE r.heightmap_ref = w.target_heightmap_ref AND r.owner_ref IS NULL),
-                   w.target_x, w.target_y
+                   COALESCE(w.target_room_ref,
+                            (SELECT MIN(r.id) FROM rooms r WHERE r.heightmap_ref = w.target_heightmap_ref AND r.owner_ref IS NULL)),
+                   w.target_x, w.target_y, w.room_ref
             FROM definition_public_room_warp_tiles w
             INNER JOIN definition_room_heightmap h ON h.id = w.heightmap_ref
             ORDER BY w.id;
@@ -32,7 +33,8 @@ public sealed class PublicRoomWarpTileRepository : IPublicRoomWarpTileRepository
             if (!reader.IsDBNull(3))
             {
                 tiles.Add(new PublicRoomWarpTile(
-                    reader.GetString(0), reader.GetInt32(1), reader.GetInt32(2), reader.GetInt32(3), reader.GetInt32(4), reader.GetInt32(5)));
+                    reader.GetString(0), reader.GetInt32(1), reader.GetInt32(2), reader.GetInt32(3), reader.GetInt32(4), reader.GetInt32(5),
+                    reader.IsDBNull(6) ? null : reader.GetInt32(6)));
             }
         }
 

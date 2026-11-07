@@ -176,7 +176,7 @@ public sealed class RoomManager : IRoomManager, IHostedService, IDisposable
         }
         room.LoadWallItems(await _userItemRepository.GetWallItemsInRoomAsync(roomId, cancellationToken));
         room.LoadStaticFurniture(await _publicRoomFurnitureRepository.GetForRoomAsync(roomId, data.HeightmapLabel, cancellationToken));
-        room.WarpTiles = _publicRooms.WarpTilesOf(data.HeightmapLabel);
+        room.WarpTiles = _publicRooms.WarpTilesOf(roomId, data.HeightmapLabel);
         room.BusEntranceTile = data.HeightmapLabel == PublicRoomCache.ParkHeightmapLabel && data.OwnerId is null ? PublicRoomTransfers.BusEntranceTile : null;
         room.AddBots(await _bots.LoadAsync(roomId, cancellationToken));
         if (_gameSettings.Current.Pets.Enabled)

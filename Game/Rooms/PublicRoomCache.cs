@@ -62,8 +62,8 @@ public sealed class PublicRoomCache : IHostedService
     public IReadOnlySet<(int X, int Y)> ExitTilesOf(string heightmapLabel) =>
         _snapshot.ExitTiles.GetValueOrDefault(heightmapLabel) ?? NoExitTiles;
 
-    public IReadOnlyDictionary<(int X, int Y), PublicRoomWarpTile> WarpTilesOf(string heightmapLabel) =>
-        _snapshot.WarpTiles.GetValueOrDefault(heightmapLabel) ?? NoWarpTiles;
+    public IReadOnlyDictionary<(int X, int Y), PublicRoomWarpTile> WarpTilesOf(int roomId, string heightmapLabel) =>
+        _snapshot.RoomWarpTiles.GetValueOrDefault(roomId) ?? _snapshot.WarpTiles.GetValueOrDefault(heightmapLabel) ?? NoWarpTiles;
 
     public async Task ReloadAsync(CancellationToken cancellationToken = default)
     {
@@ -79,7 +79,10 @@ public sealed class PublicRoomCache : IHostedService
             rooms,
             categories,
             rooms.GroupBy(room => room.RoomId).ToDictionary(group => group.Key, group => group.First()),
-            warpTiles.GroupBy(tile => tile.HeightmapLabel).ToDictionary(
+            warpTiles.Where(tile => tile.RoomId is null).GroupBy(tile => tile.HeightmapLabel).ToDictionary(
+                group => group.Key,
+                group => (IReadOnlyDictionary<(int X, int Y), PublicRoomWarpTile>)group.ToDictionary(tile => (tile.X, tile.Y))),
+            warpTiles.Where(tile => tile.RoomId is not null).GroupBy(tile => tile.RoomId!.Value).ToDictionary(
                 group => group.Key,
                 group => (IReadOnlyDictionary<(int X, int Y), PublicRoomWarpTile>)group.ToDictionary(tile => (tile.X, tile.Y))),
             parkRoomId,
@@ -103,6 +106,7 @@ public sealed class PublicRoomCache : IHostedService
         IReadOnlyList<NavigatorPublicRoomCategory> Categories,
         IReadOnlyDictionary<int, NavigatorPublicRoom> RoomsById,
         IReadOnlyDictionary<string, IReadOnlyDictionary<(int X, int Y), PublicRoomWarpTile>> WarpTiles,
+        IReadOnlyDictionary<int, IReadOnlyDictionary<(int X, int Y), PublicRoomWarpTile>> RoomWarpTiles,
         int? ParkRoomId,
         IReadOnlyDictionary<int, PrivateRoomSummary> RoomData,
         IReadOnlyDictionary<string, IReadOnlySet<(int X, int Y)>> ExitTiles,
@@ -110,7 +114,8 @@ public sealed class PublicRoomCache : IHostedService
         IReadOnlyDictionary<int, PublicRoomLibraries> RoomLibraries)
     {
         public static Snapshot Empty { get; } = new(
-            [], [], new Dictionary<int, NavigatorPublicRoom>(), new Dictionary<string, IReadOnlyDictionary<(int X, int Y), PublicRoomWarpTile>>(), null,
+            [], [], new Dictionary<int, NavigatorPublicRoom>(), new Dictionary<string, IReadOnlyDictionary<(int X, int Y), PublicRoomWarpTile>>(),
+            new Dictionary<int, IReadOnlyDictionary<(int X, int Y), PublicRoomWarpTile>>(), null,
             new Dictionary<int, PrivateRoomSummary>(), new Dictionary<string, IReadOnlySet<(int X, int Y)>>(),
             new Dictionary<string, PublicRoomLibraries>(), new Dictionary<int, PublicRoomLibraries>());
     }

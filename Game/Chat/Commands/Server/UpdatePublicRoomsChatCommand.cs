@@ -28,7 +28,7 @@ public sealed class UpdatePublicRoomsChatCommand : IChatCommand
 
         foreach (Room room in _roomManager.LoadedRooms.Where(room => room.Data.OwnerId is null))
         {
-            room.WarpTiles = _publicRooms.WarpTilesOf(room.Data.HeightmapLabel);
+            room.WarpTiles = _publicRooms.WarpTilesOf(room.Id, room.Data.HeightmapLabel);
             if (room.PublicExitTiles is not null)
             {
                 room.PublicExitTiles = _publicRooms.ExitTilesOf(room.Data.HeightmapLabel);

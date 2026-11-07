@@ -49,6 +49,8 @@ public sealed class RoomActor
 
     public int RotBody { get; set; }
 
+    public int HeadTurnTicksLeft { get; set; }
+
     public int DanceId { get; set; }
 
     public int BotDanceTicksLeft { get; set; }

@@ -100,6 +100,7 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
                     BotTickResult bots = AdvanceBots(room, changed);
                     PetTickResult pets = AdvancePets(room, changed);
                     IdolTickResult idol = room.AdvanceIdol(DateTime.UtcNow, changed);
+                    changed.AddRange(room.AdvanceHeads(out bool headsTurned).Except(changed));
 
                     foreach (FurnitureStateChange change in vending.StateChanges)
                     {
@@ -211,7 +212,7 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
 
                     if (!stillNeedsMovementTicks && !teleporters.NeedsFurtherTicks && !stillNeedsRollTicks && !rollers.NeedsFurtherTicks
                         && !someoneHoldsAHandItem && !vending.NeedsFurtherTicks && !hockeyLightsLit
-                        && !oneWayDoorsBusy && !kicksUnderWay && !room.BotsAwake && !room.PetsAwake && !room.IdolBusy)
+                        && !oneWayDoorsBusy && !kicksUnderWay && !room.BotsAwake && !room.PetsAwake && !room.IdolBusy && !headsTurned)
                     {
                         _activeRooms.TryRemove(roomId, out _);
                     }
@@ -229,7 +230,7 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
                         AnnounceStacking(room!);
                         _broadcaster.FlushPending(room!);
 
-                        if (room!.RollersHaveWork() || room.BotsAwake || room.PetsAwake)
+                        if (room!.RollersHaveWork() || room.BotsAwake || room.PetsAwake || room.HeadsTurned)
                         {
                             MarkActive(room);
                         }

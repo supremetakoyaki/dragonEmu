@@ -1,9 +1,12 @@
 using DragonEmu.Game.Achievements;
+using DragonEmu.Game.Catalog;
 using DragonEmu.Game.Chat;
 using DragonEmu.Game.Moderation;
 using DragonEmu.Game.Settings;
 using DragonEmu.Gateway;
 using DragonEmu.Persistence;
+using DragonEmu.Protocol.Messages;
+using DragonEmu.Protocol.Messages.Outgoing.Catalog;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -21,6 +24,7 @@ public sealed class WebCommandService : IHostedService, IDisposable
     private readonly IModerationRepository _moderation;
     private readonly GameSettingsCache _gameSettings;
     private readonly ProfanityFilterCache _profanity;
+    private readonly CatalogCache _catalog;
     private readonly ILogger<WebCommandService> _logger;
     private readonly PeriodicTimer _timer = new(CheckInterval);
     private CancellationTokenSource? _stoppingCts;
@@ -33,6 +37,7 @@ public sealed class WebCommandService : IHostedService, IDisposable
         IModerationRepository moderation,
         GameSettingsCache gameSettings,
         ProfanityFilterCache profanity,
+        CatalogCache catalog,
         ILogger<WebCommandService> logger)
     {
         _commands = commands;
@@ -41,6 +46,7 @@ public sealed class WebCommandService : IHostedService, IDisposable
         _moderation = moderation;
         _gameSettings = gameSettings;
         _profanity = profanity;
+        _catalog = catalog;
         _logger = logger;
     }
 
@@ -87,6 +93,10 @@ public sealed class WebCommandService : IHostedService, IDisposable
             case "word_filter":
                 await _gameSettings.ReloadProfanityFilterAsync(cancellationToken);
                 await _profanity.ReloadAsync(cancellationToken);
+                break;
+            case "catalog":
+                await _catalog.ReloadAsync(cancellationToken);
+                _sessions.BroadcastToAll(new CatalogPublishedMessageEvent().Compose().ToArray());
                 break;
             default:
                 _logger.LogWarning("Web command {Id}: unknown command {Command}, dropped.", command.Id, command.Command);

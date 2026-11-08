@@ -7,6 +7,8 @@ public sealed record ServerStats(bool ServerUp, TimeSpan Uptime, int UsersOnline
 public interface IServerStatsRepository
 {
     Task SaveAsync(ServerStats stats, CancellationToken cancellationToken = default);
+
+    Task ClearOnlineAsync(CancellationToken cancellationToken = default);
 }
 
 public sealed class ServerStatsRepository : IServerStatsRepository
@@ -35,5 +37,12 @@ public sealed class ServerStatsRepository : IServerStatsRepository
 
         update.CommandText = "INSERT INTO global_server_stats (server_up, uptime_seconds, users_online, updated_at) VALUES (@up, @uptime, @users, UTC_TIMESTAMP());";
         await update.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    public async Task ClearOnlineAsync(CancellationToken cancellationToken = default)
+    {
+        await using MySqlConnection connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+        await using var command = new MySqlCommand("UPDATE users SET online = '0' WHERE online = '1';", connection);
+        await command.ExecuteNonQueryAsync(cancellationToken);
     }
 }

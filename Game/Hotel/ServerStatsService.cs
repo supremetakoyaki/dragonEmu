@@ -40,6 +40,7 @@ public sealed class ServerStatsService : IHostedLifecycleService
     {
         _startedAt = _time.GetTimestamp();
         _status.ShutdownBegan += OnShutdownBegan;
+        await ClearOnlineAsync(cancellationToken);
         int online = await SaveAsync(serverUp: !_status.IsShuttingDown, cancellationToken);
         _stoppingCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         _loop = RunAsync(online, _stoppingCts.Token);
@@ -76,6 +77,19 @@ public sealed class ServerStatsService : IHostedLifecycleService
         }
 
         await SaveAsync(serverUp: false, cancellationToken);
+        await ClearOnlineAsync(cancellationToken);
+    }
+
+    private async Task ClearOnlineAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _repository.ClearOnlineAsync(cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "Couldn't mark everyone offline (users.online).");
+        }
     }
 
     private async Task RunAsync(int online, CancellationToken cancellationToken)

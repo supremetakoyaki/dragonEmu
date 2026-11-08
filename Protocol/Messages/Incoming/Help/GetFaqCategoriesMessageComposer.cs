@@ -18,7 +18,7 @@ public sealed class GetFaqCategoriesMessageComposer : IMessageComposer
 
     public ValueTask HandleAsync(IGameSession session, CancellationToken cancellationToken)
     {
-        session.Send(new FaqCategoriesMessageEvent(_faq.Categories).Compose());
+        session.Send(new FaqCategoriesMessageEvent(_faq.Categories(session.Language)).Compose());
         return ValueTask.CompletedTask;
     }
 }

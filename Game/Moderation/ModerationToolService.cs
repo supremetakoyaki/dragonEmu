@@ -42,6 +42,11 @@ public sealed class ModerationToolService
     private readonly HotelClock _clock;
     private readonly HistoryLog _history;
     private readonly MessageTexts _texts;
+    private readonly IUserSettingsRepository _userSettings;
+
+    private sealed record ToolState(ModeratorPermissions Permissions, Language PresetsLanguage);
+
+    private readonly System.Runtime.CompilerServices.ConditionalWeakTable<IGameSession, ToolState> _tools = new();
 
     private string NoSuchUser => _texts.Get(MessageKeys.NoSuchUser);
 
@@ -50,9 +55,10 @@ public sealed class ModerationToolService
     public ModerationToolService(
         FuseService fuses, ModerationPresetsCache presets, ModerationIssueService issues, IModerationToolRepository repository, IUserRepository users,
         IPrivateRoomRepository rooms, IRoomManager roomManager, ClientSessionManager sessions, RoomBroadcaster broadcaster, RoomKickService kicks,
-        ModerationService moderation, HotelClock clock, HistoryLog history, MessageTexts texts)
+        ModerationService moderation, HotelClock clock, HistoryLog history, MessageTexts texts, IUserSettingsRepository userSettings)
     {
         _texts = texts;
+        _userSettings = userSettings;
         _fuses = fuses;
         _presets = presets;
         _issues = issues;
@@ -85,13 +91,26 @@ public sealed class ModerationToolService
             AlertRoom: await HoldsAsync(account, RoomAlertFuse, cancellationToken),
             KickRoom: await HoldsAsync(account, RoomKickFuse, cancellationToken),
             WordFilter: await HoldsAsync(account, RoomRightsService.AdministratorAccessFuse, cancellationToken));
-        session.Send(new ModeratorInitMessageEvent(_issues.Active, _presets.Current, permissions, DateTime.UtcNow).Compose());
+        _tools.AddOrUpdate(session, new ToolState(permissions, session.Language));
+        session.Send(new ModeratorInitMessageEvent(_issues.Active, _presets.For(session.Language), permissions, DateTime.UtcNow).Compose());
+    }
+
+    private void PresetsIn(IGameSession session, Language language)
+    {
+        if (_tools.TryGetValue(session, out ToolState? tool) && tool.PresetsLanguage != language)
+        {
+            _tools.AddOrUpdate(session, tool with { PresetsLanguage = language });
+            session.Send(new ModeratorInitMessageEvent(_issues.Active, _presets.For(language), tool.Permissions, DateTime.UtcNow).Compose());
+        }
     }
 
     public async Task SendUserInfoAsync(IGameSession session, UserAccount moderator, int userId, CancellationToken cancellationToken)
     {
         if (await HoldsAsync(moderator, ModeratorFuse, cancellationToken) && await _repository.GetUserInfoAsync(userId, cancellationToken) is { } info)
         {
+            PresetsIn(session, _sessions.TryGetByUserId(userId, out ClientSession? online)
+                ? online!.Language
+                : await _userSettings.GetLanguageAsync(userId, cancellationToken));
             session.Send(new ModeratorUserInfoEvent(info, _sessions.IsOnline(userId), DateTime.UtcNow).Compose());
         }
     }
@@ -166,6 +185,15 @@ public sealed class ModerationToolService
 
         bool loaded = _roomManager.TryGetLoadedRoom(roomId, out Room? room);
         bool ownerInRoom = loaded && data.OwnerId is { } ownerId && room!.Actors.Any(actor => actor.Type == ActorType.Player && actor.AccountId == ownerId);
+
+        Language[] readers = loaded
+            ? [.. room!.Actors.Where(actor => actor.Type == ActorType.Player).Select(actor => _sessions.TryGet(actor.SessionId, out ClientSession? reader) ? reader!.Language : (Language?)null).OfType<Language>()]
+            : [];
+        if (readers.Length > 0)
+        {
+            PresetsIn(session, readers.GroupBy(language => language).OrderByDescending(group => group.Count()).ThenBy(group => group.Key).First().Key);
+        }
+
         session.Send(new ModeratorRoomInfoEvent(loaded ? room!.Data : data, loaded ? room!.UserCount : 0, ownerInRoom, loaded ? room!.Event : null).Compose());
     }
 
@@ -177,7 +205,7 @@ public sealed class ModerationToolService
             return;
         }
 
-        (ClientSession? target, string refusal) = await OnlineLowerRankedAsync(moderator, userId, "caution", cancellationToken);
+        (ClientSession? target, string refusal) = await OnlineLowerRankedAsync(moderator, userId, MessageKeys.VerbCaution, cancellationToken);
         if (target is null || Text(message) is not { } text)
         {
             Refuse(session, target is null ? refusal : NoMessage);
@@ -216,7 +244,7 @@ public sealed class ModerationToolService
             return;
         }
 
-        (ClientSession? target, string refusal) = await OnlineLowerRankedAsync(moderator, userId, "kick", cancellationToken);
+        (ClientSession? target, string refusal) = await OnlineLowerRankedAsync(moderator, userId, MessageKeys.VerbKick, cancellationToken);
         if (target is null)
         {
             Refuse(session, refusal);
@@ -248,7 +276,7 @@ public sealed class ModerationToolService
         }
 
         UserAccount? target = await _users.GetByIdAsync(userId, cancellationToken);
-        string? refusal = target is null ? NoSuchUser : RankRefusal(_texts, moderator, target, "ban") ?? (hours > 0 ? null : _texts.Get(MessageKeys.ChooseBanLength));
+        string? refusal = target is null ? NoSuchUser : RankRefusal(_texts, moderator, target, MessageKeys.VerbBan) ?? (hours > 0 ? null : _texts.Get(MessageKeys.ChooseBanLength));
         if (refusal is not null)
         {
             Refuse(session, refusal);
@@ -368,8 +396,8 @@ public sealed class ModerationToolService
         await _users.GetByIdAsync(userId, cancellationToken) is { } user ? _texts.Format(MessageKeys.UserNotOnline, ("username", user.Username)) : NoSuchUser;
 
     public static string? RankRefusal(MessageTexts texts, UserAccount moderator, UserAccount target, string verb) =>
-        target.Id == moderator.Id ? texts.Format(MessageKeys.RankRefusalYourself, ("verb", verb))
-        : target.Rank >= moderator.Rank ? texts.Format(MessageKeys.RankRefusalLowerOnly, ("verb", verb), ("username", target.Username))
+        target.Id == moderator.Id ? texts.Format(MessageKeys.RankRefusalYourself, ("verb", texts.Get(verb)))
+        : target.Rank >= moderator.Rank ? texts.Format(MessageKeys.RankRefusalLowerOnly, ("verb", texts.Get(verb)), ("username", target.Username))
         : null;
 
     private static bool Alert(ClientSession target, string message)

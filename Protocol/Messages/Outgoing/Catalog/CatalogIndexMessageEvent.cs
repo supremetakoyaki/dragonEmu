@@ -9,10 +9,12 @@ public sealed class CatalogIndexMessageEvent : IMessageEvent
     private readonly IReadOnlyList<CatalogPageSummary> _pages;
     private readonly int _accountRank;
     private readonly bool _seesComingSoon;
+    private readonly Language _language;
 
-    public CatalogIndexMessageEvent(IReadOnlyList<CatalogPageSummary> pages, int accountRank, bool seesComingSoon = false)
+    public CatalogIndexMessageEvent(IReadOnlyList<CatalogPageSummary> pages, int accountRank, Language language, bool seesComingSoon = false)
     {
         _pages = pages;
+        _language = language;
         _accountRank = accountRank;
         _seesComingSoon = seesComingSoon;
         _childrenByParent = pages.Where(p => p.MinRank <= accountRank).ToLookup(p => p.ParentId);
@@ -44,7 +46,7 @@ public sealed class CatalogIndexMessageEvent : IMessageEvent
         packet.AppendInt32(page.Color);
         packet.AppendInt32(page.Icon);
         packet.AppendInt32(page.Id);
-        packet.AppendString(page.DisplayName);
+        packet.AppendString(page.DisplayName.For(_language));
         packet.AppendInt32(page.ComingSoon && !_seesComingSoon ? 1 : 0);
         packet.AppendInt32(CountChildren(page.Id));
 

@@ -25,18 +25,17 @@ public sealed class MarketplaceService
 
     private const string SearchCooldown = "marketplace_search";
 
-    private const string SearchPlaceholder = "Search by name...";
-
     private readonly IMarketplaceRepository _repository;
     private readonly IUserItemRepository _items;
     private readonly GameSettingsCache _gameSettings;
     private readonly FuseService _fuses;
     private readonly TradingService _trading;
     private readonly HotelClock _clock;
+    private readonly MessageTexts _texts;
 
     public MarketplaceService(
         IMarketplaceRepository repository, IUserItemRepository items, GameSettingsCache gameSettings, FuseService fuses, TradingService trading,
-        HotelClock clock, HotelStatus hotel)
+        HotelClock clock, HotelStatus hotel, MessageTexts texts)
     {
         _hotel = hotel;
         _repository = repository;
@@ -45,6 +44,7 @@ public sealed class MarketplaceService
         _fuses = fuses;
         _trading = trading;
         _clock = clock;
+        _texts = texts;
     }
 
     private readonly HotelStatus _hotel;
@@ -136,7 +136,7 @@ public sealed class MarketplaceService
 
         MarketplaceConfig config = await _repository.GetConfigAsync(cancellationToken);
         IReadOnlyList<MarketplaceListing> listings = await _repository.SearchAsync(
-            account.Id, Math.Max(-1, minPrice), Math.Max(-1, maxPrice), CleanName(name),
+            account.Id, Math.Max(-1, minPrice), Math.Max(-1, maxPrice), CleanName(name), session.Language,
             Enum.IsDefined((MarketplaceSort)sort) ? (MarketplaceSort)sort : MarketplaceSort.MostExpensive,
             config.AveragePricePeriodDays, _clock.DayStartsUtc().Today, MaxListed, cancellationToken);
         session.Send(new MarketPlaceOffersEvent(listings).Compose());
@@ -221,10 +221,10 @@ public sealed class MarketplaceService
             : MarketplaceCanMakeOfferResult.NoTradingPass;
     }
 
-    private static string CleanName(string name)
+    private string CleanName(string name)
     {
         string text = new string(name.Where(c => !char.IsControl(c)).ToArray()).Trim();
-        if (string.Equals(text, SearchPlaceholder, StringComparison.OrdinalIgnoreCase))
+        if (_texts.Every(MessageKeys.MarketplaceSearchPlaceholder).Any(placeholder => string.Equals(text, placeholder, StringComparison.OrdinalIgnoreCase)))
         {
             return string.Empty;
         }

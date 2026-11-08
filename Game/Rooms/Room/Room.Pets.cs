@@ -4,7 +4,10 @@ using DragonEmu.Game.Rooms.Pathfinding;
 
 namespace DragonEmu.Game.Rooms;
 
-public sealed record PetUtterance(RoomActor Pet, string Text);
+public sealed record PetUtterance(RoomActor Pet, LocalizedText Said)
+{
+    public string Text => Said.For(Language.En);
+}
 
 public sealed record PetExperienceGain(RoomActor Pet, int Amount, IReadOnlyList<int> LevelsReached);
 

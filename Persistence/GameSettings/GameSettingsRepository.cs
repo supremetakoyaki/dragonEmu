@@ -71,7 +71,7 @@ public sealed class GameSettingsRepository : IGameSettingsRepository
             RoomIdleTimeKick: reader.GetInt32(28),
             BanDefaultHours: reader.GetInt32(29),
             SuperbanDefaultDays: reader.GetInt32(30),
-            BanDefaultReason: reader.GetString(31),
+            BanDefaultReason: LocalizedText.Parse(reader.GetString(31)),
             MuteDefaultHours: reader.GetInt32(32),
             RoomMuteDefaultHours: reader.GetInt32(33),
             new PetSettings(reader.GetString(34) == "1", reader.GetInt32(35), reader.GetString(36), reader.GetInt32(37)),

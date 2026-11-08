@@ -12,7 +12,7 @@ public sealed class PollRepository : IPollRepository
         _connectionFactory = connectionFactory;
     }
 
-    public async Task<Poll?> GetUnansweredInRoomAsync(int roomId, int userId, CancellationToken cancellationToken = default)
+    public async Task<Poll?> GetUnansweredInRoomAsync(int roomId, int userId, Language language, CancellationToken cancellationToken = default)
     {
         await using MySqlConnection connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
         await using var command = new MySqlCommand(
@@ -31,14 +31,15 @@ public sealed class PollRepository : IPollRepository
         await using MySqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
         return await reader.ReadAsync(cancellationToken)
             ? new Poll(
-                reader.GetInt32(0), reader.GetInt32(1), reader.GetString(2), reader.GetString(3),
+                reader.GetInt32(0), reader.GetInt32(1),
+                LocalizedText.Parse(reader.GetString(2)).For(language), LocalizedText.Parse(reader.GetString(3)).For(language),
                 reader.GetString(4) == "quiz" ? PollType.Quiz : PollType.Survey,
                 reader.GetString(5) switch { "furni" => PollRewardType.Furni, "badge" => PollRewardType.Badge, _ => PollRewardType.None },
                 reader.GetString(6))
             : null;
     }
 
-    public async Task<IReadOnlyList<PollQuestion>> GetQuestionsAsync(int pollId, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<PollQuestion>> GetQuestionsAsync(int pollId, Language language, CancellationToken cancellationToken = default)
     {
         await using MySqlConnection connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
 
@@ -62,7 +63,7 @@ public sealed class PollRepository : IPollRepository
                     options[question] = list = [];
                 }
 
-                list.Add(new PollOption(reader.GetInt32(1), reader.GetString(2), reader.GetString(3) == "1"));
+                list.Add(new PollOption(reader.GetInt32(1), LocalizedText.Parse(reader.GetString(2)).For(language), reader.GetString(3) == "1"));
             }
         }
 
@@ -77,7 +78,7 @@ public sealed class PollRepository : IPollRepository
             questions.Add(new PollQuestion(
                 id, questionReader.GetInt32(1),
                 questionReader.GetString(2) switch { "multiple" => PollQuestionType.Multiple, "text" => PollQuestionType.Text, _ => PollQuestionType.Single },
-                questionReader.GetString(3), questionReader.GetInt32(4), questionReader.GetInt32(5),
+                LocalizedText.Parse(questionReader.GetString(3)).For(language), questionReader.GetInt32(4), questionReader.GetInt32(5),
                 options.TryGetValue(id, out List<PollOption>? found) ? found : []));
         }
 

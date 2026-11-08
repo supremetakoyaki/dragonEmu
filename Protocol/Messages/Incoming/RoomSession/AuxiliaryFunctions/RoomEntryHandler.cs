@@ -28,7 +28,7 @@ internal static class RoomEntryHandler
         PublicRoomCache publicRooms, SubscriptionManager subscriptionManager,
         IRoomVoteRepository roomVoteRepository, RoomRightsService roomRights, GameSettingsCache gameSettings,
         RoomBroadcaster roomBroadcaster, FurnitureAliasCache furnitureAliasCache, IRoomVisitRepository roomVisitRepository,
-        AchievementService achievementService, RoomTeleportService teleportService, RoomQueueService queue, int roomId, string password,
+        AchievementService achievementService, RoomTeleportService teleportService, RoomQueueService queue, MessageTexts texts, int roomId, string password,
         CancellationToken cancellationToken, bool startsNewSession = false)
     {
         if (session.AuthenticatedUser is not { } account)
@@ -72,7 +72,7 @@ internal static class RoomEntryHandler
         (bool infobusOpen, int? infobusRoomRef) = (gameSettings.Current.InfobusOpen, gameSettings.Current.InfobusRoomRef);
         if (!infobusOpen && roomId == infobusRoomRef)
         {
-            session.Send(new ParkBusCannotEnterMessageEvent().Compose());
+            session.Send(new ParkBusCannotEnterMessageEvent(texts.Get(MessageKeys.InfobusClosed)).Compose());
             session.Send(new CloseConnectionMessageEvent().Compose());
             session.SetLoadingRoom(null);
             return;
@@ -260,7 +260,7 @@ internal static class RoomEntryHandler
             session.Send(new ItemsMessageEvent(wallItems).Compose());
         }
 
-        session.Send(new UsersMessageEvent(room.Actors.ToList()).Compose());
+        session.Send(new UsersMessageEvent(room.Actors.ToList(), session.Language).Compose());
 
         session.Send((isPublic
             ? RoomEntryInfoMessageEvent.ForPublicRoom(publicRooms.NavCodeOf(roomId, room.Data.HeightmapLabel), publicEntry?.NavIndex ?? 0)

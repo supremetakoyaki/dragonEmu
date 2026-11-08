@@ -1,3 +1,4 @@
+using DragonEmu.Domain;
 using MySqlConnector;
 
 namespace DragonEmu.Persistence;
@@ -11,7 +12,7 @@ public sealed class UserSettingsRepository : IUserSettingsRepository
         _connectionFactory = connectionFactory;
     }
 
-    public async Task<(int SoundVolume, int HomeRoom)> GetOrCreateAsync(int userId, CancellationToken cancellationToken = default)
+    public async Task<UserSettings> GetOrCreateAsync(int userId, CancellationToken cancellationToken = default)
     {
         await using MySqlConnection connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
 
@@ -23,12 +24,20 @@ public sealed class UserSettingsRepository : IUserSettingsRepository
         }
 
         await using var select = new MySqlCommand(
-            "SELECT sound_volume, home_room FROM users_settings WHERE ref_userid = @userId;", connection);
+            "SELECT sound_volume, home_room, preferred_language FROM users_settings WHERE ref_userid = @userId;", connection);
         select.Parameters.AddWithValue("@userId", userId);
 
         await using MySqlDataReader reader = await select.ExecuteReaderAsync(cancellationToken);
         await reader.ReadAsync(cancellationToken);
-        return (reader.GetInt32(0), reader.GetInt32(1));
+        return new UserSettings(reader.GetInt32(0), reader.GetInt32(1), LanguageExtensions.FromCode(reader.GetString(2)) ?? Language.En);
+    }
+
+    public async Task<Language> GetLanguageAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        await using MySqlConnection connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+        await using var command = new MySqlCommand("SELECT preferred_language FROM users_settings WHERE ref_userid = @userId;", connection);
+        command.Parameters.AddWithValue("@userId", userId);
+        return LanguageExtensions.FromCode(await command.ExecuteScalarAsync(cancellationToken) as string) ?? Language.En;
     }
 
     public async Task SetSoundVolumeAsync(int userId, int soundVolume, CancellationToken cancellationToken = default)

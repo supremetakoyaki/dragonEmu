@@ -25,7 +25,7 @@ public sealed class GetOfficialRoomsMessageComposer : IMessageComposer
         if (session.AuthenticatedUser is not null)
         {
             IReadOnlyList<NavigatorPublicRoom> rooms = _publicRooms.Rooms.Where(r => r.Visible).ToList();
-            session.Send(new OfficialRoomsEvent(rooms, _publicRooms.Categories, _roomManager).Compose());
+            session.Send(new OfficialRoomsEvent(rooms, _publicRooms.Categories, _roomManager, session.Language).Compose());
         }
 
         return ValueTask.CompletedTask;

@@ -26,7 +26,7 @@ public sealed class SearchFaqsMessageComposer : IMessageComposer
     {
         if (_text.Length >= MinLength)
         {
-            session.Send(new FaqSearchResultsMessageEvent(_faq.Search(_text, MaxResults)).Compose());
+            session.Send(new FaqSearchResultsMessageEvent(_faq.Search(_text, MaxResults, session.Language)).Compose());
         }
 
         return ValueTask.CompletedTask;

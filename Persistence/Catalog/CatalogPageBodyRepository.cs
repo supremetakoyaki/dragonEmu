@@ -1,4 +1,3 @@
-using System.Text.Json;
 using DragonEmu.Domain;
 using MySqlConnector;
 
@@ -35,10 +34,7 @@ public sealed class CatalogPageBodyRepository : ICatalogPageBodyRepository
         return new CatalogPageBody(
             reader.GetInt32(0),
             reader.GetString(1),
-            ParseStringArray(reader.GetString(2)),
-            ParseStringArray(reader.GetString(3)));
+            LocalizedList.Parse(reader.GetString(2)),
+            LocalizedList.Parse(reader.GetString(3)));
     }
-
-    private static IReadOnlyList<string> ParseStringArray(string json) =>
-        JsonSerializer.Deserialize<List<string>>(json) ?? [];
 }

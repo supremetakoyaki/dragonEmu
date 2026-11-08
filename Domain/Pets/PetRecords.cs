@@ -52,7 +52,7 @@ public sealed record PetStats(int Level, int Experience, int Energy, int Nutriti
 
 public sealed record PetLevel(int Level, int ExperienceCap, int NutritionCap, int EnergyCap);
 
-public sealed record PetCommand(int Id, string Name, int RequiredLevel, int Experience, int EnergyCost, int NutritionCost = 0);
+public sealed record PetCommand(int Id, string Name, int RequiredLevel, int Experience, int EnergyCost, int NutritionCost = 0, IReadOnlyList<string>? Words = null);
 
 public enum PetSpeechType
 {

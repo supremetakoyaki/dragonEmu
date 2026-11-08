@@ -3,6 +3,7 @@ using DragonEmu.Game.Chat.Commands;
 using DragonEmu.Game.Chat;
 using DragonEmu.Game.History;
 using DragonEmu.Game.Rooms;
+using DragonEmu.Game.Settings;
 using DragonEmu.Protocol.Messages.Incoming.RoomChat.AuxiliaryFunctions;
 
 namespace DragonEmu.Protocol.Messages.Incoming.RoomChat;
@@ -15,12 +16,13 @@ public sealed class ShoutMessageComposer : IMessageComposer
     private readonly ProfanityFilterCache _profanityFilterCache;
     private readonly HistoryLog _history;
     private readonly ModerationService _moderation;
+    private readonly MessageTexts _texts;
 
     private string _message = string.Empty;
 
     public ShoutMessageComposer(
         IRoomManager roomManager, RoomBroadcaster broadcaster, IChatCommandDispatcher commandDispatcher, ProfanityFilterCache profanityFilterCache,
-        HistoryLog history, ModerationService moderation)
+        HistoryLog history, ModerationService moderation, MessageTexts texts)
     {
         _roomManager = roomManager;
         _broadcaster = broadcaster;
@@ -28,6 +30,7 @@ public sealed class ShoutMessageComposer : IMessageComposer
         _profanityFilterCache = profanityFilterCache;
         _history = history;
         _moderation = moderation;
+        _texts = texts;
     }
 
     public void Parse(ClientPacket packet)
@@ -36,5 +39,5 @@ public sealed class ShoutMessageComposer : IMessageComposer
     }
 
     public ValueTask HandleAsync(IGameSession session, CancellationToken cancellationToken) =>
-        RoomChatHandler.SendAsync(session, _roomManager, _broadcaster, _commandDispatcher, _profanityFilterCache, _history, _moderation, _message, shout: true, cancellationToken);
+        RoomChatHandler.SendAsync(session, _roomManager, _broadcaster, _commandDispatcher, _profanityFilterCache, _history, _moderation, _texts, _message, shout: true, cancellationToken);
 }

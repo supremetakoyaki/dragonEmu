@@ -19,7 +19,7 @@ public sealed class GetClientFaqsMessageComposer : IMessageComposer
 
     public ValueTask HandleAsync(IGameSession session, CancellationToken cancellationToken)
     {
-        (IReadOnlyList<FaqEntry> urgent, IReadOnlyList<FaqEntry> normal) = _faq.FrontPage;
+        (IReadOnlyList<FaqEntry> urgent, IReadOnlyList<FaqEntry> normal) = _faq.FrontPage(session.Language);
         session.Send(new FaqClientFaqsMessageEvent(urgent, normal).Compose());
         return ValueTask.CompletedTask;
     }

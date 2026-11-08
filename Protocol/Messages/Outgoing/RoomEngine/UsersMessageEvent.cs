@@ -12,10 +12,12 @@ public sealed class UsersMessageEvent : IMessageEvent
     private const int BotMemberType = 3;
 
     private readonly IReadOnlyList<RoomActor> _actors;
+    private readonly Language _language;
 
-    public UsersMessageEvent(IReadOnlyList<RoomActor> actors)
+    public UsersMessageEvent(IReadOnlyList<RoomActor> actors, Language language = Language.En)
     {
         _actors = actors;
+        _language = language;
     }
 
     public ServerPacket Compose()
@@ -26,8 +28,8 @@ public sealed class UsersMessageEvent : IMessageEvent
         foreach (RoomActor actor in _actors)
         {
             packet.AppendUInt32((uint)(actor.Pet is { } pet ? PetWebId.Of(pet.PetId) : actor.AccountId));
-            packet.AppendString(actor.Username);
-            packet.AppendString(actor.Motto);
+            packet.AppendString(actor.Bot is { } bot ? bot.Definition.Name.For(_language) : actor.Username);
+            packet.AppendString(actor.Bot is { } spoken ? spoken.Definition.Motto.For(_language) : actor.Motto);
             packet.AppendString(actor.Figure);
             packet.AppendInt32(actor.VirtualId);
             packet.AppendInt32(actor.X);

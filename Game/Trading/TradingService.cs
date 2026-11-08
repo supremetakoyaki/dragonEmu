@@ -162,8 +162,8 @@ public sealed class TradingService
         if (tradeId is null)
         {
             _logger.LogWarning("Trade between users {User1} and {User2} not completed, as an item was no longer theirs to give.", opener.UserId, partner.UserId);
-            opener.Session.Send(new ModMessageEvent(_texts.Get(MessageKeys.TradeNothingExchanged)).Compose());
-            partner.Session.Send(new ModMessageEvent(_texts.Get(MessageKeys.TradeNothingExchanged)).Compose());
+            opener.Session.Send(new ModMessageEvent(_texts.Get(MessageKeys.TradeNothingExchanged, opener.Session.Language)).Compose());
+            partner.Session.Send(new ModMessageEvent(_texts.Get(MessageKeys.TradeNothingExchanged, partner.Session.Language)).Compose());
             return;
         }
 

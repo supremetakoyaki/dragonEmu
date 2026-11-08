@@ -10,7 +10,7 @@ public sealed class FurnitureDefinitionRepository : IFurnitureDefinitionReposito
         """
         SELECT id, type, ref_furnidata, classname, x_dim, y_dim, z_dim, localization_name, localization_desc,
                logic_class, visualization_class, interaction_logic, states, interaction_ids, is_sittable,
-               is_bed, is_walkable, is_stackable, allow_trade, allow_recycle
+               is_bed, is_walkable, is_stackable, allow_trade, allow_recycle, localized_name, localized_desc
         FROM definition_furniture
         """;
 
@@ -57,7 +57,16 @@ public sealed class FurnitureDefinitionRepository : IFurnitureDefinitionReposito
             IsWalkable: reader.GetBoolean(16),
             IsStackable: reader.GetBoolean(17),
             AllowTrade: reader.GetBoolean(18),
-            AllowRecycle: reader.GetBoolean(19));
+            AllowRecycle: reader.GetBoolean(19),
+            Names: InEveryLanguage(reader, 20, reader.GetString(7)),
+            Descriptions: InEveryLanguage(reader, 21, reader.GetString(8)));
+
+    private static LocalizedText InEveryLanguage(MySqlDataReader reader, int ordinal, string english)
+    {
+        LocalizedText others = reader.IsDBNull(ordinal) ? LocalizedText.Empty : LocalizedText.Parse(reader.GetString(ordinal));
+        return LocalizedText.Of(LanguageExtensions.FallbackOrder.ToDictionary(
+            language => language, language => language == Language.En ? english : others.IsEmpty ? string.Empty : others.For(language)));
+    }
 
     private static IReadOnlyList<int> ParseIntArray(string json) =>
         JsonSerializer.Deserialize<List<int>>(json) ?? [];

@@ -22,7 +22,7 @@ public interface IMarketplaceRepository
         int userId, int itemId, int askingPrice, int price, DateTime expiresAt, bool refuseCatalogueFurniture, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<MarketplaceListing>> SearchAsync(
-        int viewerId, int minPrice, int maxPrice, string name, MarketplaceSort sort, int averageDays, DateTime todayStartUtc, int limit,
+        int viewerId, int minPrice, int maxPrice, string name, Language language, MarketplaceSort sort, int averageDays, DateTime todayStartUtc, int limit,
         CancellationToken cancellationToken = default);
 
     Task<MarketplaceOwnOffers> GetOwnOffersAsync(int sellerId, int averageDays, int limit, CancellationToken cancellationToken = default);

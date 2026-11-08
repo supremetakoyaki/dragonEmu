@@ -56,7 +56,7 @@ public abstract class GiveCurrencyChatCommand : IChatCommand
             online!.EnqueueSend(BalanceUpdate(balance, amount));
         }
 
-        session.Send(new ModMessageEvent(_texts.Format(MessageKeys.CurrencyGiven, ("username", receiver.Username), ("amount", amount), ("currency", CurrencyName), ("balance", balance))).Compose());
+        session.Send(new ModMessageEvent(_texts.Format(MessageKeys.CurrencyGiven, ("username", receiver.Username), ("amount", amount), ("currency", _texts.Get(CurrencyName)), ("balance", balance))).Compose());
     }
 }
 
@@ -71,7 +71,7 @@ public sealed class GiveCreditsChatCommand : GiveCurrencyChatCommand
 
     protected override int Currency => CurrencyType.Credits;
 
-    protected override string CurrencyName => "credits";
+    protected override string CurrencyName => MessageKeys.CurrencyCredits;
 
     protected override ServerPacket BalanceUpdate(long balance, int amount) => new CreditBalanceEvent(balance).Compose();
 }
@@ -87,7 +87,7 @@ public sealed class GivePixelsChatCommand : GiveCurrencyChatCommand
 
     protected override int Currency => CurrencyType.ActivityPoints;
 
-    protected override string CurrencyName => "pixels";
+    protected override string CurrencyName => MessageKeys.CurrencyPixels;
 
     protected override ServerPacket BalanceUpdate(long balance, int amount) =>
         new HabboActivityPointNotificationMessageEvent(balance, amount).Compose();

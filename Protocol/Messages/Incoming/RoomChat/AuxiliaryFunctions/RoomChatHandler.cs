@@ -4,6 +4,7 @@ using DragonEmu.Game.Chat.Commands;
 using DragonEmu.Game.History;
 using DragonEmu.Game.Moderation;
 using DragonEmu.Game.Rooms;
+using DragonEmu.Game.Settings;
 using DragonEmu.Protocol.Messages.Outgoing.RoomChat;
 using DragonEmu.Protocol.Messages.Outgoing.RoomEngine;
 
@@ -19,6 +20,7 @@ internal static class RoomChatHandler
         ProfanityFilterCache profanityFilterCache,
         HistoryLog history,
         ModerationService moderation,
+        MessageTexts texts,
         string message,
         bool shout,
         CancellationToken cancellationToken)
@@ -28,7 +30,7 @@ internal static class RoomChatHandler
             return;
         }
 
-        if (!PassesFloodControl(session, roomManager))
+        if (!PassesFloodControl(session, roomManager, texts))
         {
             return;
         }
@@ -82,7 +84,7 @@ internal static class RoomChatHandler
         room.HearChat(actor, filtered, shout);
     }
 
-    public static bool PassesFloodControl(IGameSession session, IRoomManager roomManager)
+    public static bool PassesFloodControl(IGameSession session, IRoomManager roomManager, MessageTexts texts)
     {
         if (session.RoomChatFlood.TryPass(Environment.TickCount64, out int secondsLeft, out bool tell))
         {
@@ -92,14 +94,11 @@ internal static class RoomChatHandler
         if (tell && session.CurrentRoomId is { } roomId && roomManager.TryGetLoadedRoom(roomId, out Room? room)
             && room!.TryGetActor(session.Id, out RoomActor? actor))
         {
-            session.Send(new WhisperMessageEvent(actor!.VirtualId, FloodText(secondsLeft)).Compose());
+            session.Send(new WhisperMessageEvent(actor!.VirtualId, texts.Format(MessageKeys.ChatFlood, ("seconds", secondsLeft))).Compose());
         }
 
         return false;
     }
-
-    public static string FloodText(int secondsLeft) =>
-        $"You're typing too fast, don't flood the room! - {secondsLeft} seconds remaining";
 
     public const int MaxRecordedLength = 255;
 

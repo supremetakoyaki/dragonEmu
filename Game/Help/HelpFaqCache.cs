@@ -7,40 +7,37 @@ namespace DragonEmu.Game.Help;
 public sealed class HelpFaqCache : IHostedService
 {
     private readonly IDefinitionModerationRepository _repository;
-    private volatile IReadOnlyList<FaqCategory> _categories = [];
-    private volatile IReadOnlyDictionary<int, FaqEntry> _entries = new Dictionary<int, FaqEntry>();
+    private volatile IReadOnlyDictionary<Language, IReadOnlyList<FaqCategory>> _categories = new Dictionary<Language, IReadOnlyList<FaqCategory>>();
 
     public HelpFaqCache(IDefinitionModerationRepository repository)
     {
         _repository = repository;
     }
 
-    public IReadOnlyList<FaqCategory> Categories => _categories;
+    public IReadOnlyList<FaqCategory> Categories(Language language) =>
+        _categories.GetValueOrDefault(language) ?? _categories.GetValueOrDefault(Language.En) ?? [];
 
-    public (IReadOnlyList<FaqEntry> Urgent, IReadOnlyList<FaqEntry> Normal) FrontPage
+    public (IReadOnlyList<FaqEntry> Urgent, IReadOnlyList<FaqEntry> Normal) FrontPage(Language language)
     {
-        get
-        {
-            List<FaqEntry> all = _categories.SelectMany(category => category.Entries).ToList();
-            return (all.Where(entry => entry.FrontPage == FaqFrontPage.Urgent).ToList(), all.Where(entry => entry.FrontPage == FaqFrontPage.Normal).ToList());
-        }
+        List<FaqEntry> all = Entries(language).ToList();
+        return (all.Where(entry => entry.FrontPage == FaqFrontPage.Urgent).ToList(), all.Where(entry => entry.FrontPage == FaqFrontPage.Normal).ToList());
     }
 
-    public FaqEntry? GetEntry(int id) => _entries.TryGetValue(id, out FaqEntry? entry) ? entry : null;
+    public FaqEntry? GetEntry(int id, Language language) => Entries(language).FirstOrDefault(entry => entry.Id == id);
 
-    public FaqCategory? GetCategory(int id) => _categories.FirstOrDefault(category => category.Id == id);
+    public FaqCategory? GetCategory(int id, Language language) => Categories(language).FirstOrDefault(category => category.Id == id);
 
-    public IReadOnlyList<FaqEntry> Search(string text, int limit) =>
-        _categories.SelectMany(category => category.Entries)
+    public IReadOnlyList<FaqEntry> Search(string text, int limit, Language language) =>
+        Entries(language)
             .Where(entry => entry.Question.Contains(text, StringComparison.OrdinalIgnoreCase) || entry.Answer.Contains(text, StringComparison.OrdinalIgnoreCase))
             .Take(limit)
             .ToList();
 
+    private IEnumerable<FaqEntry> Entries(Language language) => Categories(language).SelectMany(category => category.Entries);
+
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        IReadOnlyList<FaqCategory> categories = await _repository.GetFaqAsync(cancellationToken);
-        _entries = categories.SelectMany(category => category.Entries).ToDictionary(entry => entry.Id);
-        _categories = categories;
+        _categories = await _repository.GetFaqAsync(cancellationToken);
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;

@@ -45,7 +45,7 @@ public sealed class ModerationService
         GameSettings settings = _gameSettings.Current;
         if (await LowerRankedAsync(issuer, username, cancellationToken) is not { } target)
         {
-            return await RefusalAsync(issuer, username, "ban", cancellationToken);
+            return await RefusalAsync(issuer, username, MessageKeys.VerbBan, cancellationToken);
         }
 
         long asked = superban ? (long)(amount ?? settings.SuperbanDefaultDays) * 24 : amount ?? settings.BanDefaultHours;
@@ -68,12 +68,15 @@ public sealed class ModerationService
 
     private async Task<string> BanCheckedAsync(UserAccount issuer, UserAccount target, int hours, string? reason, bool superban, CancellationToken cancellationToken)
     {
-        string why = string.IsNullOrWhiteSpace(reason) ? _gameSettings.Current.BanDefaultReason : reason.Trim();
+        _sessions.TryGetByUserId(target.Id, out ClientSession? online);
+        string why = string.IsNullOrWhiteSpace(reason)
+            ? _gameSettings.Current.BanDefaultReason.For(online?.Language ?? ReaderLanguage.Current)
+            : reason.Trim();
         why = why[..Math.Min(why.Length, MaxReasonLength)];
 
         DateTime expiresAt = hours >= PermanentHours ? Permanent : DateTime.UtcNow.ToWholeSecond().AddHours(hours);
         await _repository.BanAsync(target.Id, issuer.Id, superban, why, expiresAt, cancellationToken);
-        if (_sessions.TryGetByUserId(target.Id, out ClientSession? online))
+        if (online is not null)
         {
             ShowBanAndDisconnect(online!, why);
         }
@@ -98,7 +101,7 @@ public sealed class ModerationService
     {
         if (await LowerRankedAsync(issuer, username, cancellationToken) is not { } target)
         {
-            return await RefusalAsync(issuer, username, "mute", cancellationToken);
+            return await RefusalAsync(issuer, username, MessageKeys.VerbMute, cancellationToken);
         }
 
         int length = Math.Clamp(hours ?? _gameSettings.Current.MuteDefaultHours, 1, MaxHours);
@@ -166,8 +169,8 @@ public sealed class ModerationService
     private async Task<string> RefusalAsync(UserAccount issuer, string username, string verb, CancellationToken cancellationToken) =>
         await _users.GetByUsernameAsync(username, cancellationToken) is { } target
             ? (target.Id == issuer.Id
-                ? _texts.Format(MessageKeys.RankRefusalSelf, ("verb", verb), ("username", target.Username))
-                : _texts.Format(MessageKeys.RankRefusalLowerOnly, ("verb", verb), ("username", target.Username)))
+                ? _texts.Format(MessageKeys.RankRefusalSelf, ("verb", _texts.Get(verb)), ("username", target.Username))
+                : _texts.Format(MessageKeys.RankRefusalLowerOnly, ("verb", _texts.Get(verb)), ("username", target.Username)))
             : _texts.Format(MessageKeys.UserNotFound, ("username", username));
 
     public static async Task DisconnectLaterAsync(IGameSession session)

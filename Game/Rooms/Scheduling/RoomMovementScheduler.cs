@@ -339,17 +339,17 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
             switch (said.Kind)
             {
                 case BotStepType.Shout:
-                    _broadcaster.Broadcast(room, new ShoutMessageEvent(said.Bot.VirtualId, said.Text).Compose());
+                    _broadcaster.BroadcastLocalized(room, language => new ShoutMessageEvent(said.Bot.VirtualId, said.Said.For(language)).Compose());
                     break;
                 case BotStepType.Whisper:
                     if (said.ToSessionId is { } to && _sessionManager.TryGet(to, out ClientSession? listener))
                     {
-                        listener!.EnqueueSend(new WhisperMessageEvent(said.Bot.VirtualId, said.Text).Compose());
+                        listener!.EnqueueSend(new WhisperMessageEvent(said.Bot.VirtualId, said.Said.For(listener.Language)).Compose());
                     }
 
                     break;
                 default:
-                    _broadcaster.Broadcast(room, new ChatMessageEvent(said.Bot.VirtualId, said.Text).Compose());
+                    _broadcaster.BroadcastLocalized(room, language => new ChatMessageEvent(said.Bot.VirtualId, said.Said.For(language)).Compose());
                     break;
             }
         }

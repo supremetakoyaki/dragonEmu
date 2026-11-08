@@ -26,7 +26,7 @@ public sealed class GetUserFlatCatsMessageComposer : IMessageComposer
 
         IReadOnlyList<RoomCategory> categories = await _roomCategoryRepository.GetAllAsync(cancellationToken);
         var flatCategories = categories
-            .Select(category => new FlatCategory(category.Id, category.Label, account.Rank >= category.RequiredRights))
+            .Select(category => new FlatCategory(category.Id, category.Label.For(session.Language), account.Rank >= category.RequiredRights))
             .ToList();
 
         session.Send(new UserFlatCatsEvent(flatCategories).Compose());

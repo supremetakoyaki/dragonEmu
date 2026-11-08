@@ -101,7 +101,7 @@ public sealed class GuideBotService : IHostedService
         }
 
         _logger.LogDebug("{Username} called a guide bot to room {RoomId}.", account.Username, room.Id);
-        _broadcaster.Broadcast(room, new UsersMessageEvent([guide]).Compose());
+        _broadcaster.BroadcastLocalized(room, language => new UsersMessageEvent([guide], language).Compose());
         _broadcaster.Broadcast(room, new UserUpdateMessageEvent([guide]).Compose());
         _scheduler.MarkActive(room);
     }

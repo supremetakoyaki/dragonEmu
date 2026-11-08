@@ -325,7 +325,7 @@ public sealed class PetService : IHostedService, IDisposable
     {
         foreach (PetUtterance said in result.Utterances)
         {
-            _broadcaster.Broadcast(room, new ChatMessageEvent(said.Pet.VirtualId, said.Text).Compose());
+            _broadcaster.BroadcastLocalized(room, language => new ChatMessageEvent(said.Pet.VirtualId, said.Said.For(language)).Compose());
         }
 
         foreach (PetExperienceGain gain in result.Experience)

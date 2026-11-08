@@ -46,7 +46,7 @@ public sealed class UpdateBotsChatCommand : IChatCommand
             List<RoomActor> added = room.AddBots(definitions);
             if (added.Count > 0)
             {
-                _broadcaster.Broadcast(room, new UsersMessageEvent(added).Compose());
+                _broadcaster.BroadcastLocalized(room, language => new UsersMessageEvent(added, language).Compose());
                 _broadcaster.Broadcast(room, new UserUpdateMessageEvent(added).Compose());
                 _scheduler.MarkActive(room);
             }

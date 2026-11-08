@@ -35,7 +35,7 @@ public interface IPetDefinitionRepository
 
     Task<IReadOnlyList<PetCommand>> GetCommandsAsync(CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<(int Type, PetSpeechType Kind, string Text)>> GetSpeechAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<(int Type, PetSpeechType Kind, LocalizedText Text)>> GetSpeechAsync(CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<(int Type, int Breed)>> GetBreedsAsync(CancellationToken cancellationToken = default);
 

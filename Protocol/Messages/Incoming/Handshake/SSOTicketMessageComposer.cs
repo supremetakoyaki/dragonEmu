@@ -150,8 +150,10 @@ public sealed class SSOTicketMessageComposer : IMessageComposer
         session.Send(new AuthenticationOKMessageEvent().Compose());
         session.Send(new InfoFeedEnableMessageEvent().Compose());
 
-        (_, int homeRoom) = await _userSettingsRepository.GetOrCreateAsync(account.Id, cancellationToken);
-        session.Send(new NavigatorSettingsEvent(homeRoom).Compose());
+        UserSettings settings = await _userSettingsRepository.GetOrCreateAsync(account.Id, cancellationToken);
+        session.Send(new NavigatorSettingsEvent(settings.HomeRoom).Compose());
+
+        session.Language = settings.Language;
 
         int favouritesLimit = _gameSettings.Current.MaxFavouriteRooms;
         IReadOnlyList<int> favouriteRoomIds = await _favouriteRoomRepository.GetRoomIdsAsync(account.Id, cancellationToken);

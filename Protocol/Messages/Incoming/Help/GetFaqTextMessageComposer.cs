@@ -21,7 +21,7 @@ public sealed class GetFaqTextMessageComposer : IMessageComposer
 
     public ValueTask HandleAsync(IGameSession session, CancellationToken cancellationToken)
     {
-        if (_faq.GetEntry(_entryId) is { } entry)
+        if (_faq.GetEntry(_entryId, session.Language) is { } entry)
         {
             session.Send(new FaqTextMessageEvent(entry).Compose());
         }

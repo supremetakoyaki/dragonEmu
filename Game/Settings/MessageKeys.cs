@@ -91,6 +91,26 @@ public static class MessageKeys
     public const string ShutdownConfirmPrompt = "shutdown_confirm_prompt";
     public const string ShutdownBadTime = "shutdown_bad_time";
     public const string ShutdownAlready = "shutdown_already";
+    public const string ChatFlood = "chat_flood";
+
+    public const string MarketplaceSearchPlaceholder = "marketplace_search_placeholder";
+
+    public const string VerbBan = "verb_ban";
+    public const string VerbMute = "verb_mute";
+    public const string VerbKick = "verb_kick";
+    public const string VerbCaution = "verb_caution";
+
+    public const string CurrencyCredits = "currency_credits";
+    public const string CurrencyPixels = "currency_pixels";
+
+    public const string InfobusClosed = "infobus_closed";
+
+    public const string PositionRotation = "position_rotation";
+    public const string PositionRoomId = "position_room_id";
+    public const string PositionRoomName = "position_room_name";
+    public const string PositionRoomModel = "position_room_model";
+    public const string InfoUsersOnline = "info_users_online";
+    public const string InfoRoomsLoaded = "info_rooms_loaded";
 
     public static readonly IReadOnlyList<string> All =
         [.. typeof(MessageKeys).GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)

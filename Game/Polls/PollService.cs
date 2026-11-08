@@ -73,7 +73,7 @@ public sealed class PollService : IHostedService
                 return;
             }
 
-            if (await _polls.GetUnansweredInRoomAsync(roomId, userId) is { } poll)
+            if (await _polls.GetUnansweredInRoomAsync(roomId, userId, session.Language) is { } poll)
             {
                 session.EnqueueSend(new PollOfferEvent(poll.Id, poll.Name).Compose());
             }
@@ -87,12 +87,12 @@ public sealed class PollService : IHostedService
     public async Task BeginAsync(IGameSession session, UserAccount account, int pollId, CancellationToken cancellationToken)
     {
         if (session.CurrentRoomId is not { } roomId
-            || await _polls.GetUnansweredInRoomAsync(roomId, account.Id, cancellationToken) is not { } poll || poll.Id != pollId)
+            || await _polls.GetUnansweredInRoomAsync(roomId, account.Id, session.Language, cancellationToken) is not { } poll || poll.Id != pollId)
         {
             return;
         }
 
-        IReadOnlyList<PollQuestion> questions = await _polls.GetQuestionsAsync(poll.Id, cancellationToken);
+        IReadOnlyList<PollQuestion> questions = await _polls.GetQuestionsAsync(poll.Id, session.Language, cancellationToken);
         if (questions.Count == 0)
         {
             return;

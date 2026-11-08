@@ -9,7 +9,7 @@ public sealed class ModerationPresetsCache : IHostedService
 {
     private readonly IDefinitionModerationRepository _repository;
     private readonly ILogger<ModerationPresetsCache> _logger;
-    private volatile ModerationPresets _presets = ModerationPresets.Empty;
+    private volatile IReadOnlyDictionary<Language, ModerationPresets> _presets = new Dictionary<Language, ModerationPresets>();
 
     public ModerationPresetsCache(IDefinitionModerationRepository repository, ILogger<ModerationPresetsCache> logger)
     {
@@ -17,14 +17,16 @@ public sealed class ModerationPresetsCache : IHostedService
         _logger = logger;
     }
 
-    public ModerationPresets Current => _presets;
+    public ModerationPresets For(Language language) =>
+        _presets.GetValueOrDefault(language) ?? _presets.GetValueOrDefault(Language.En) ?? ModerationPresets.Empty;
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         _presets = await _repository.GetPresetsAsync(cancellationToken);
+        ModerationPresets english = For(Language.En);
         _logger.LogInformation(
             "Moderation presets loaded: {User} user, {Room} room message(s), {Categories} offence categories.",
-            _presets.UserMessages.Count, _presets.RoomMessages.Count, _presets.Offences.Count);
+            english.UserMessages.Count, english.RoomMessages.Count, english.Offences.Count);
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;

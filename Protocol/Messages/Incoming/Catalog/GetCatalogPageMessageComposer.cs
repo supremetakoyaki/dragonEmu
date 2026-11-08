@@ -51,6 +51,6 @@ public sealed class GetCatalogPageMessageComposer : IMessageComposer
 
         IReadOnlyList<CatalogOffer> offers = _catalogCache.GetOffers(_pageId);
 
-        session.Send(new CatalogPageMessageEvent(body, offers).Compose());
+        session.Send(new CatalogPageMessageEvent(body, offers, session.Language).Compose());
     }
 }

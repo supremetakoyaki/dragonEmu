@@ -12,15 +12,18 @@ public sealed class OfficialRoomsEvent : IMessageEvent
     private readonly IReadOnlyList<NavigatorPublicRoom> _rooms;
     private readonly IReadOnlyList<NavigatorPublicRoomCategory> _categories;
     private readonly IRoomManager _roomManager;
+    private readonly Language _language;
 
     public OfficialRoomsEvent(
         IReadOnlyList<NavigatorPublicRoom> rooms,
         IReadOnlyList<NavigatorPublicRoomCategory> categories,
-        IRoomManager roomManager)
+        IRoomManager roomManager,
+        Language language)
     {
         _rooms = rooms;
         _categories = categories;
         _roomManager = roomManager;
+        _language = language;
     }
 
     public ServerPacket Compose()
@@ -59,7 +62,7 @@ public sealed class OfficialRoomsEvent : IMessageEvent
 
             if (category is not null)
             {
-                packet.AppendString(category.Caption);
+                packet.AppendString(category.Caption.For(_language));
                 packet.AppendString(string.Empty);
                 packet.AppendInt32(0);
                 packet.AppendString(string.Empty);
@@ -70,10 +73,11 @@ public sealed class OfficialRoomsEvent : IMessageEvent
                 continue;
             }
 
-            packet.AppendString(room!.Caption);
-            packet.AppendString(room.Description);
+            string caption = room!.Caption.For(_language);
+            packet.AppendString(caption);
+            packet.AppendString(room.Description.For(_language));
             packet.AppendInt32(room.ImageSize == NavigatorImageSize.Square ? 1 : 0);
-            packet.AppendString(room.Caption);
+            packet.AppendString(caption);
             packet.AppendString(room.ImageType == NavigatorImageType.External ? room.Image : string.Empty);
             packet.AppendInt32(parentId);
             packet.AppendInt32(_roomManager.GetLiveUserCount(room.RoomId));

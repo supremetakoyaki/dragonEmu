@@ -6,11 +6,13 @@ public sealed class CatalogPageMessageEvent : IMessageEvent
 {
     private readonly CatalogPageBody _body;
     private readonly IReadOnlyList<CatalogOffer> _offers;
+    private readonly Language _language;
 
-    public CatalogPageMessageEvent(CatalogPageBody body, IReadOnlyList<CatalogOffer> offers)
+    public CatalogPageMessageEvent(CatalogPageBody body, IReadOnlyList<CatalogOffer> offers, Language language)
     {
         _body = body;
         _offers = offers;
+        _language = language;
     }
 
     public ServerPacket Compose()
@@ -20,14 +22,16 @@ public sealed class CatalogPageMessageEvent : IMessageEvent
         packet.AppendInt32(_body.PageId);
         packet.AppendString(_body.LayoutCode);
 
-        packet.AppendInt32(_body.LocalizationImages.Count);
-        foreach (string image in _body.LocalizationImages)
+        IReadOnlyList<string> images = _body.LocalizationImages.For(_language);
+        packet.AppendInt32(images.Count);
+        foreach (string image in images)
         {
             packet.AppendString(image);
         }
 
-        packet.AppendInt32(_body.LocalizationTexts.Count);
-        foreach (string text in _body.LocalizationTexts)
+        IReadOnlyList<string> texts = _body.LocalizationTexts.For(_language);
+        packet.AppendInt32(texts.Count);
+        foreach (string text in texts)
         {
             packet.AppendString(text);
         }

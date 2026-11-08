@@ -1,8 +1,12 @@
+using DragonEmu.Domain;
 using DragonEmu.Game.Rooms.Pathfinding;
 
 namespace DragonEmu.Game.Rooms;
 
-public sealed record BotUtterance(RoomActor Bot, BotStepType Kind, string Text, long? ToSessionId);
+public sealed record BotUtterance(RoomActor Bot, BotStepType Kind, LocalizedText Said, long? ToSessionId)
+{
+    public string Text => Said.For(Language.En);
+}
 
 public sealed record BotTickResult(
     List<BotUtterance> Utterances, List<(RoomActor Holder, int ItemId)> HandItems, List<RoomActor> Waves, List<(RoomActor Bot, int DanceId)> Dances)
@@ -30,8 +34,8 @@ public sealed partial class Room
         foreach (BotDefinition bot in bots)
         {
             var actor = new RoomActor(
-                SessionId: BotSessionId(bot.Id), VirtualId: NextVirtualId(), Type: ActorType.Bot, AccountId: 0, Username: bot.Name,
-                Motto: bot.Motto, Figure: bot.Figure, Gender: bot.Gender, X: bot.X, Y: bot.Y, Z: bot.Z)
+                SessionId: BotSessionId(bot.Id), VirtualId: NextVirtualId(), Type: ActorType.Bot, AccountId: 0, Username: bot.Name.For(Language.En),
+                Motto: bot.Motto.For(Language.En), Figure: bot.Figure, Gender: bot.Gender, X: bot.X, Y: bot.Y, Z: bot.Z)
             {
                 RotBody = bot.Rotation,
                 RotHead = bot.Rotation,
@@ -164,11 +168,11 @@ public sealed partial class Room
         {
             case BotStepType.Say:
             case BotStepType.Shout:
-                result.Utterances.Add(new BotUtterance(bot, step.Type, Fill(step.Text, definition, target), ToSessionId: null));
+                result.Utterances.Add(new BotUtterance(bot, step.Type, Fill(step, definition, target), ToSessionId: null));
                 break;
 
             case BotStepType.Whisper when target is not null:
-                result.Utterances.Add(new BotUtterance(bot, step.Type, Fill(step.Text, definition, target), target.SessionId));
+                result.Utterances.Add(new BotUtterance(bot, step.Type, Fill(step, definition, target), target.SessionId));
                 break;
 
             case BotStepType.Walk:
@@ -221,9 +225,13 @@ public sealed partial class Room
         }
     }
 
-    private static string Fill(string text, BotDefinition definition, RoomActor? target) =>
-        text.Replace("{username}", target?.Username ?? string.Empty, StringComparison.Ordinal)
-            .Replace("{botname}", definition.Name, StringComparison.Ordinal);
+    private static LocalizedText Fill(BotStep step, BotDefinition definition, RoomActor? target)
+    {
+        LocalizedText said = step.Said ?? LocalizedText.English(step.Text);
+        return LocalizedText.Of(LanguageExtensions.FallbackOrder.ToDictionary(language => language, language => said.For(language)
+            .Replace("{username}", target?.Username ?? string.Empty, StringComparison.Ordinal)
+            .Replace("{botname}", definition.Name.For(language), StringComparison.Ordinal)));
+    }
 
     private void WalkSomewhere(RoomActor bot, BotDefinition definition, int maxDistance)
     {

@@ -2,11 +2,9 @@ namespace DragonEmu.Protocol.Messages.Outgoing.RoomPublicRoom;
 
 public sealed class ParkBusCannotEnterMessageEvent : IMessageEvent
 {
-    public const string DefaultReason = "The Infobus is not currently running.";
-
     private readonly string _reason;
 
-    public ParkBusCannotEnterMessageEvent(string reason = DefaultReason)
+    public ParkBusCannotEnterMessageEvent(string reason)
     {
         _reason = reason;
     }

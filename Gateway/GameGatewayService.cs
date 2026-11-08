@@ -3,6 +3,7 @@ using System.Net.Sockets;
 using System.Net.WebSockets;
 using DragonEmu.Game.Achievements;
 using DragonEmu.Game.Messenger;
+using DragonEmu.Persistence;
 using DragonEmu.Protocol;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -21,6 +22,7 @@ public sealed class GameGatewayService : BackgroundService
     private readonly IPacketDispatcher _dispatcher;
     private readonly PresenceService _presence;
     private readonly MessengerService _messenger;
+    private readonly IUserRepository _users;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<GameGatewayService> _logger;
     private readonly List<Socket> _listeners = [];
@@ -32,10 +34,12 @@ public sealed class GameGatewayService : BackgroundService
         IPacketDispatcher dispatcher,
         PresenceService presence,
         MessengerService messenger,
+        IUserRepository users,
         ILoggerFactory loggerFactory,
         ILogger<GameGatewayService> logger)
     {
         _messenger = messenger;
+        _users = users;
         _options = options.Value;
         _policyResponse = FlashSocketPolicy.BuildResponse(_options.Port);
         _sessionManager = sessionManager;
@@ -240,6 +244,7 @@ public sealed class GameGatewayService : BackgroundService
             if (session.AuthenticatedUser is { } leaving && !_sessionManager.IsOnline(leaving.Id))
             {
                 await _messenger.AnnounceAsync(leaving.Id, CancellationToken.None);
+                await MarkOfflineAsync(leaving.Id);
             }
 
             await session.DisposeAsync();
@@ -255,5 +260,17 @@ public sealed class GameGatewayService : BackgroundService
         }
 
         await base.StopAsync(cancellationToken);
+    }
+
+    private async Task MarkOfflineAsync(int userId)
+    {
+        try
+        {
+            await _users.SetOfflineAsync(userId, CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Couldn't mark user {UserId} offline (users.online).", userId);
+        }
     }
 }

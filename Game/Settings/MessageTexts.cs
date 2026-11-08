@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+using DragonEmu.Domain;
 using DragonEmu.Persistence;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -20,21 +21,24 @@ public sealed partial class MessageTexts : IHostedService
     private readonly ILogger<MessageTexts>? _logger;
     private readonly HashSet<string> _reported = [];
 
-    private volatile IReadOnlyDictionary<string, string> _texts;
+    private volatile IReadOnlyDictionary<string, LocalizedText> _texts;
 
     public MessageTexts(IMessageTextRepository repository, ILogger<MessageTexts> logger)
     {
         _repository = repository;
         _logger = logger;
-        _texts = new Dictionary<string, string>();
+        _texts = new Dictionary<string, LocalizedText>();
     }
 
-    private MessageTexts(IReadOnlyDictionary<string, string> texts)
+    private MessageTexts(IReadOnlyDictionary<string, LocalizedText> texts)
     {
         _texts = texts;
     }
 
-    public static MessageTexts From(IReadOnlyDictionary<string, string> texts) => new(texts);
+    public static MessageTexts From(IReadOnlyDictionary<string, string> texts) =>
+        new(texts.ToDictionary(entry => entry.Key, entry => LocalizedText.English(entry.Value)));
+
+    public static MessageTexts From(IReadOnlyDictionary<string, LocalizedText> texts) => new(texts);
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
@@ -49,11 +53,13 @@ public sealed partial class MessageTexts : IHostedService
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
-    public string Get(string key)
+    public string Get(string key) => Get(key, ReaderLanguage.Current);
+
+    public string Get(string key, Language language)
     {
-        if (_texts.TryGetValue(key, out string? text))
+        if (_texts.TryGetValue(key, out LocalizedText? text))
         {
-            return text;
+            return text.For(language);
         }
 
         lock (_reported)
@@ -88,6 +94,8 @@ public sealed partial class MessageTexts : IHostedService
             return match.Value;
         });
     }
+
+    public IEnumerable<string> Every(string key) => _texts.TryGetValue(key, out LocalizedText? text) ? text.All : [];
 
     public string Duration(DurationUnit unit, int count) => count == 1
         ? Get(unit switch { DurationUnit.Minute => MessageKeys.DurationOneMinute, DurationUnit.Hour => MessageKeys.DurationOneHour, _ => MessageKeys.DurationOneDay })

@@ -22,7 +22,7 @@ public sealed class RoomCategoryRepository : IRoomCategoryRepository
         await using MySqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
         {
-            categories.Add(new RoomCategory(reader.GetInt32(0), reader.GetString(1), reader.GetInt32(2)));
+            categories.Add(new RoomCategory(reader.GetInt32(0), LocalizedText.Parse(reader.GetString(1)), reader.GetInt32(2)));
         }
 
         return categories;

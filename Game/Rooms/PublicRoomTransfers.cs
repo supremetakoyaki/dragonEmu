@@ -20,8 +20,12 @@ public sealed class PublicRoomTransfers
     private readonly ClientSessionManager _sessions;
     private readonly IRoomManager _roomManager;
 
-    public PublicRoomTransfers(PublicRoomCache publicRooms, GameSettingsCache gameSettings, ClientSessionManager sessions, IRoomManager roomManager)
+    private readonly MessageTexts _texts;
+
+    public PublicRoomTransfers(
+        PublicRoomCache publicRooms, GameSettingsCache gameSettings, ClientSessionManager sessions, IRoomManager roomManager, MessageTexts texts)
     {
+        _texts = texts;
         _publicRooms = publicRooms;
         _gameSettings = gameSettings;
         _sessions = sessions;
@@ -47,7 +51,7 @@ public sealed class PublicRoomTransfers
     {
         if (!_gameSettings.Current.InfobusOpen || _gameSettings.Current.InfobusRoomRef is null)
         {
-            session.Send(new ParkBusCannotEnterMessageEvent().Compose());
+            session.Send(new ParkBusCannotEnterMessageEvent(_texts.Get(MessageKeys.InfobusClosed)).Compose());
             return;
         }
 

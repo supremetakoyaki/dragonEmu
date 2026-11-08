@@ -37,6 +37,8 @@ public interface IUserRepository
 
     Task<IReadOnlyList<int>> GetUserIdsWhoseClubEndedAsync(DateTime after, DateTime upTo, CancellationToken cancellationToken = default);
 
+    Task SetOfflineAsync(int userId, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyDictionary<int, int>> AddOnlineSecondsAsync(IReadOnlyDictionary<int, int> secondsByUser, CancellationToken cancellationToken = default);
 
     Task<int> GetOnlineSecondsAsync(int userId, CancellationToken cancellationToken = default);

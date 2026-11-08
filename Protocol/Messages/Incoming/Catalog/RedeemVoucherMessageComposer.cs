@@ -165,8 +165,8 @@ public sealed class RedeemVoucherMessageComposer : IMessageComposer
                 }
 
                 session.Send(new VoucherRedeemOkMessageEvent(
-                    productDescription: string.Join(", ", furniture.Select(f => f.LocalizationDesc)),
-                    productName: string.Join(", ", furniture.Select(f => f.LocalizationName))).Compose());
+                    productDescription: string.Join(", ", furniture.Select(f => f.DescriptionIn(session.Language))),
+                    productName: string.Join(", ", furniture.Select(f => f.NameIn(session.Language)))).Compose());
                 break;
 
             case ClubType:

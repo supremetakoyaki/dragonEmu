@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using DragonEmu.Domain;
 using System.Linq;
 using DragonEmu.Gateway;
 using DragonEmu.Protocol;
@@ -8,7 +9,9 @@ namespace DragonEmu.Game.Rooms;
 public sealed class RoomBroadcaster
 {
     private readonly ClientSessionManager _sessionManager;
-    private readonly ConcurrentDictionary<int, ConcurrentQueue<(byte[] Frame, long? ExcludeSessionId, int? FromUserId)>> _pending = new();
+    private readonly ConcurrentDictionary<int, ConcurrentQueue<Pending>> _pending = new();
+
+    private readonly record struct Pending(byte[] Frame, byte[][]? ByLanguage, long? ExcludeSessionId, int? FromUserId);
 
     public RoomBroadcaster(ClientSessionManager sessionManager)
     {
@@ -22,12 +25,21 @@ public sealed class RoomBroadcaster
 
     public void Broadcast(Room room, byte[] frame, long? excludeSessionId = null) => Enqueue(room, frame, excludeSessionId, fromUserId: null);
 
-    public void BroadcastFrom(Room room, ServerPacket packet, int fromUserId) => Enqueue(room, packet.ToArray(), excludeSessionId: null, fromUserId);
+    public void BroadcastFrom(Room room, ServerPacket packet, int fromUserId) => Enqueue(room, new Pending(packet.ToArray(), null, null, fromUserId));
 
-    private void Enqueue(Room room, byte[] frame, long? excludeSessionId, int? fromUserId)
+    public void BroadcastLocalized(Room room, Func<Language, ServerPacket> compose)
     {
-        ConcurrentQueue<(byte[], long?, int?)> queue = _pending.GetOrAdd(room.Id, static _ => new ConcurrentQueue<(byte[], long?, int?)>());
-        queue.Enqueue((frame, excludeSessionId, fromUserId));
+        byte[][] frames = [.. LanguageExtensions.FallbackOrder.Order().Select(language => compose(language).ToArray())];
+        Enqueue(room, new Pending(frames[(int)Language.En], frames, null, null));
+    }
+
+    private void Enqueue(Room room, byte[] frame, long? excludeSessionId, int? fromUserId) =>
+        Enqueue(room, new Pending(frame, null, excludeSessionId, fromUserId));
+
+    private void Enqueue(Room room, Pending pending)
+    {
+        ConcurrentQueue<Pending> queue = _pending.GetOrAdd(room.Id, static _ => new ConcurrentQueue<Pending>());
+        queue.Enqueue(pending);
     }
 
     public int SendToRightsHolders(Room room, ServerPacket packet)
@@ -51,14 +63,14 @@ public sealed class RoomBroadcaster
 
     public void FlushPending(Room room)
     {
-        if (!_pending.TryGetValue(room.Id, out ConcurrentQueue<(byte[] Frame, long? ExcludeSessionId, int? FromUserId)>? queue) || queue.IsEmpty)
+        if (!_pending.TryGetValue(room.Id, out ConcurrentQueue<Pending>? queue) || queue.IsEmpty)
         {
             return;
         }
 
         long[] audience = [.. room.Actors.Select(actor => actor.SessionId), .. room.Spectators];
 
-        while (queue.TryDequeue(out (byte[] Frame, long? ExcludeSessionId, int? FromUserId) item))
+        while (queue.TryDequeue(out Pending item))
         {
             foreach (long sessionId in audience)
             {
@@ -70,7 +82,7 @@ public sealed class RoomBroadcaster
                 if (_sessionManager.TryGet(sessionId, out ClientSession? session)
                     && !(item.FromUserId is { } from && session!.IgnoredUsers.Contains(from)))
                 {
-                    session!.EnqueueSend(item.Frame);
+                    session!.EnqueueSend(item.ByLanguage?[(int)session.Language] ?? item.Frame);
                 }
             }
         }

@@ -1,3 +1,4 @@
+using DragonEmu.Domain;
 using DragonEmu.Persistence;
 using DragonEmu.Protocol.Messages.Outgoing.Sound;
 
@@ -23,7 +24,7 @@ public sealed class GetSoundSettingsComposer : IMessageComposer
             return;
         }
 
-        (int soundVolume, _) = await _userSettingsRepository.GetOrCreateAsync(account.Id, cancellationToken);
-        session.Send(new SoundSettingsEvent(soundVolume).Compose());
+        UserSettings settings = await _userSettingsRepository.GetOrCreateAsync(account.Id, cancellationToken);
+        session.Send(new SoundSettingsEvent(settings.SoundVolume).Compose());
     }
 }

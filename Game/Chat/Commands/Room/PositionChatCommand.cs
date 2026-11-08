@@ -49,16 +49,16 @@ public sealed class PositionChatCommand : IChatCommand
             $"X: {x}",
             $"Y: {y}",
             $"Z: {z.ToString("0.####", CultureInfo.InvariantCulture)}",
-            $"Rotation: {rotation}",
+            _texts.Format(MessageKeys.PositionRotation, ("rotation", rotation)),
         };
 
         if (session.AuthenticatedUser is { } account
             && await _fuses.HoldsAsync(account, RoomRightsService.AdministratorAccessFuse, cancellationToken: cancellationToken))
         {
             lines.Add(string.Empty);
-            lines.Add($"Room ID: {room.Id}");
-            lines.Add($"Room name: {room.Data.Label}");
-            lines.Add($"Room model: {room.Data.HeightmapLabel}");
+            lines.Add(_texts.Format(MessageKeys.PositionRoomId, ("id", room.Id)));
+            lines.Add(_texts.Format(MessageKeys.PositionRoomName, ("name", room.Data.Label)));
+            lines.Add(_texts.Format(MessageKeys.PositionRoomModel, ("model", room.Data.HeightmapLabel)));
         }
 
         session.Send(ModMessageEvent.FromLines(lines).Compose());

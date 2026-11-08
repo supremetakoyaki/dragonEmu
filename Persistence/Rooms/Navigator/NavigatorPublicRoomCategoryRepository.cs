@@ -32,7 +32,7 @@ public sealed class NavigatorPublicRoomCategoryRepository : INavigatorPublicRoom
             categories.Add(new NavigatorPublicRoomCategory(
                 Id: reader.GetInt32(0),
                 OrderNum: reader.GetInt32(1),
-                Caption: reader.GetString(2),
+                Caption: LocalizedText.Parse(reader.GetString(2)),
                 Image: reader.GetString(3)));
         }
 

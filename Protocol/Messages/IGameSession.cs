@@ -40,6 +40,8 @@ public interface IGameSession
 
     int? LetInto { get; set; }
 
+    Language Language { get; set; }
+
     int? QueuedAt { get; set; }
 
     PendingRoomAdmission? Admission { get; set; }

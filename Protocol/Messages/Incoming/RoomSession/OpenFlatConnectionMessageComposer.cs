@@ -1,7 +1,7 @@
-using DragonEmu.Game.Settings;
 using DragonEmu.Game.Achievements;
 using DragonEmu.Game.Furniture;
 using DragonEmu.Game.Rooms;
+using DragonEmu.Game.Settings;
 using DragonEmu.Game.Subscriptions;
 using DragonEmu.Persistence;
 using DragonEmu.Protocol.Messages.Incoming.RoomSession.AuxiliaryFunctions;
@@ -23,6 +23,7 @@ public sealed class OpenFlatConnectionMessageComposer : IMessageComposer
     private readonly AchievementService _achievementService;
     private readonly RoomTeleportService _teleportService;
     private readonly RoomQueueService _queue;
+    private readonly MessageTexts _texts;
 
     private int _roomId;
     private string _password = string.Empty;
@@ -32,7 +33,7 @@ public sealed class OpenFlatConnectionMessageComposer : IMessageComposer
         PublicRoomCache publicRooms, SubscriptionManager subscriptionManager, IRoomVoteRepository roomVoteRepository,
         RoomRightsService roomRights, GameSettingsCache gameSettings, RoomBroadcaster roomBroadcaster, FurnitureAliasCache furnitureAliasCache,
         IRoomVisitRepository roomVisitRepository, AchievementService achievementService, RoomTeleportService teleportService,
-        RoomQueueService queue)
+        RoomQueueService queue, MessageTexts texts)
     {
         _roomManager = roomManager;
         _userItemRepository = userItemRepository;
@@ -47,6 +48,7 @@ public sealed class OpenFlatConnectionMessageComposer : IMessageComposer
         _achievementService = achievementService;
         _teleportService = teleportService;
         _queue = queue;
+        _texts = texts;
     }
 
     public void Parse(ClientPacket packet)
@@ -60,5 +62,5 @@ public sealed class OpenFlatConnectionMessageComposer : IMessageComposer
         RoomEntryHandler.EnterAsync(
             session, _roomManager, _userItemRepository, _publicRooms, _subscriptionManager, _roomVoteRepository,
             _roomRights, _gameSettings, _roomBroadcaster, _furnitureAliasCache, _roomVisitRepository, _achievementService,
-            _teleportService, _queue, _roomId, _password, cancellationToken, startsNewSession: true);
+            _teleportService, _queue, _texts, _roomId, _password, cancellationToken, startsNewSession: true);
 }

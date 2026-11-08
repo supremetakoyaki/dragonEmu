@@ -221,11 +221,15 @@ public sealed class PetDefinitionRepository : IPetDefinitionRepository
 
     public Task<IReadOnlyList<PetCommand>> GetCommandsAsync(CancellationToken cancellationToken = default) =>
         ReadAsync("SELECT id, name, required_level, experience, energy_cost, nutrition_cost FROM definition_pet_commands ORDER BY id;",
-            reader => new PetCommand(Int(reader, 0), reader.GetString(1), Int(reader, 2), Int(reader, 3), Int(reader, 4), Int(reader, 5)), cancellationToken);
+            reader =>
+            {
+                LocalizedText name = LocalizedText.Parse(reader.GetString(1));
+                return new PetCommand(Int(reader, 0), name.For(Language.En), Int(reader, 2), Int(reader, 3), Int(reader, 4), Int(reader, 5), [.. name.All]);
+            }, cancellationToken);
 
-    public Task<IReadOnlyList<(int Type, PetSpeechType Kind, string Text)>> GetSpeechAsync(CancellationToken cancellationToken = default) =>
+    public Task<IReadOnlyList<(int Type, PetSpeechType Kind, LocalizedText Text)>> GetSpeechAsync(CancellationToken cancellationToken = default) =>
         ReadAsync("SELECT pet_type, speech_type, text FROM definition_pet_speech ORDER BY id;",
-            reader => (Int(reader, 0), KindOf(reader.GetString(1)), reader.GetString(2)), cancellationToken);
+            reader => (Int(reader, 0), KindOf(reader.GetString(1)), LocalizedText.Parse(reader.GetString(2))), cancellationToken);
 
     public Task<IReadOnlyList<(int Type, int Breed)>> GetBreedsAsync(CancellationToken cancellationToken = default) =>
         ReadAsync("SELECT pet_type, breed FROM definition_pet_breeds;", reader => (Int(reader, 0), Int(reader, 1)), cancellationToken);

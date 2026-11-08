@@ -159,7 +159,7 @@ public sealed class MarketplaceRepository : IMarketplaceRepository
     }
 
     public async Task<IReadOnlyList<MarketplaceListing>> SearchAsync(
-        int viewerId, int minPrice, int maxPrice, string name, MarketplaceSort sort, int averageDays, DateTime todayStartUtc, int limit,
+        int viewerId, int minPrice, int maxPrice, string name, Language language, MarketplaceSort sort, int averageDays, DateTime todayStartUtc, int limit,
         CancellationToken cancellationToken = default)
     {
         string order = sort switch
@@ -191,7 +191,7 @@ public sealed class MarketplaceRepository : IMarketplaceRepository
             INNER JOIN definition_furniture fd ON fd.id = l.furni_def_ref
             WHERE l.place = 1
               AND (@minPrice < 0 OR l.price >= @minPrice) AND (@maxPrice < 0 OR l.price <= @maxPrice)
-              AND (@name = '' OR fd.localization_name LIKE @pattern)
+              AND (@name = '' OR fd.localization_name LIKE @pattern OR JSON_UNQUOTE(JSON_EXTRACT(fd.localized_name, @namePath)) COLLATE utf8mb4_unicode_ci LIKE @pattern)
             ORDER BY {order}, fd.id
             LIMIT @limit;
             """, connection);
@@ -200,6 +200,7 @@ public sealed class MarketplaceRepository : IMarketplaceRepository
         command.Parameters.AddWithValue("@maxPrice", maxPrice);
         command.Parameters.AddWithValue("@name", name);
         command.Parameters.AddWithValue("@pattern", $"%{EscapeLike(name)}%");
+        command.Parameters.AddWithValue("@namePath", $"$.\"{language.ToCode()}\"");
         command.Parameters.AddWithValue("@averageDays", averageDays);
         command.Parameters.AddWithValue("@todayStart", todayStartUtc);
         command.Parameters.AddWithValue("@limit", limit);

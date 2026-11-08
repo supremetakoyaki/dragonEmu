@@ -20,4 +20,11 @@ public sealed record FurnitureDefinition(
     bool IsWalkable,
     bool IsStackable,
     bool AllowTrade,
-    bool AllowRecycle);
+    bool AllowRecycle,
+    LocalizedText? Names = null,
+    LocalizedText? Descriptions = null)
+{
+    public string NameIn(Language language) => Names?.For(language) is { Length: > 0 } name ? name : LocalizationName;
+
+    public string DescriptionIn(Language language) => Descriptions?.For(language) is { Length: > 0 } description ? description : LocalizationDesc;
+}

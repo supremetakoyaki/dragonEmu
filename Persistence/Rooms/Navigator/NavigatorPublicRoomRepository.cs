@@ -20,7 +20,7 @@ public sealed class NavigatorPublicRoomRepository : INavigatorPublicRoomReposito
             """
             SELECT np.id, np.order_num, np.image_size, r.label, r.description, np.image, np.image_type,
                    np.room_ref, r.max_users, np.category_ref, np.club_only,
-                   np.nav_index, np.visible
+                   np.nav_index, np.visible, np.caption, np.description
             FROM definition_navigator_public_rooms np
             INNER JOIN rooms r ON r.id = np.room_ref
             ORDER BY np.order_num ASC;
@@ -36,8 +36,8 @@ public sealed class NavigatorPublicRoomRepository : INavigatorPublicRoomReposito
                 Id: reader.GetInt32(0),
                 OrderNum: reader.GetInt32(1),
                 ImageSize: reader.GetString(2) == "wide" ? NavigatorImageSize.Wide : NavigatorImageSize.Square,
-                Caption: reader.GetString(3),
-                Description: reader.GetString(4),
+                Caption: OwnOrRoom(reader, 13, reader.GetString(3)),
+                Description: OwnOrRoom(reader, 14, reader.GetString(4)),
                 Image: reader.GetString(5),
                 ImageType: reader.GetString(6) == "external" ? NavigatorImageType.External : NavigatorImageType.Internal,
                 RoomId: reader.GetInt32(7),
@@ -49,5 +49,11 @@ public sealed class NavigatorPublicRoomRepository : INavigatorPublicRoomReposito
         }
 
         return rooms;
+    }
+
+    private static LocalizedText OwnOrRoom(MySqlDataReader reader, int ordinal, string room)
+    {
+        LocalizedText own = reader.IsDBNull(ordinal) ? LocalizedText.Empty : LocalizedText.Parse(reader.GetString(ordinal));
+        return own.IsEmpty ? LocalizedText.English(room) : own;
     }
 }

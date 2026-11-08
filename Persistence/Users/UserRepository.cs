@@ -70,7 +70,8 @@ public sealed class UserRepository : IUserRepository
                     ELSE 1
                 END,
                 last_login_at = UTC_TIMESTAMP(),
-                last_login_ip = @ip
+                last_login_ip = @ip,
+                online = '1'
             WHERE id = @id;
             """, connection, transaction))
         {
@@ -312,6 +313,14 @@ public sealed class UserRepository : IUserRepository
         }
 
         return ids;
+    }
+
+    public async Task SetOfflineAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        await using MySqlConnection connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+        await using var command = new MySqlCommand("UPDATE users SET online = '0' WHERE id = @id;", connection);
+        command.Parameters.AddWithValue("@id", userId);
+        await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
     public async Task<IReadOnlyDictionary<int, int>> AddOnlineSecondsAsync(

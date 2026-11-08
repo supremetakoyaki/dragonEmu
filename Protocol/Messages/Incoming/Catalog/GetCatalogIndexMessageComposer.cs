@@ -38,7 +38,7 @@ public sealed class GetCatalogIndexMessageComposer : IMessageComposer
 
         IReadOnlyList<CatalogPageSummary> pages = _catalogCache.Pages;
         bool seesComingSoon = await _fuses.HoldsAsync(account, RoomRightsService.AdministratorAccessFuse, cancellationToken: cancellationToken);
-        session.Send(new CatalogIndexMessageEvent(pages, account.Rank, seesComingSoon).Compose());
+        session.Send(new CatalogIndexMessageEvent(pages, account.Rank, session.Language, seesComingSoon).Compose());
         session.Send(new FurnitureAliasesMessageEvent(_furnitureAliasCache.Aliases).Compose());
 
         (_, int clubMonthsAccumulated, int clubGiftsClaimed) = await _userRepository.GetClubStatusAsync(account.Id, cancellationToken);

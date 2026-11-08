@@ -7,7 +7,7 @@ public sealed class PetDefinitions
     private readonly Dictionary<int, PetLevel> _levels;
     private readonly Dictionary<int, PetCommand> _commands;
     private readonly Dictionary<string, PetCommand> _commandsByWord;
-    private readonly Dictionary<(int Type, PetSpeechType Kind), string[]> _speech;
+    private readonly Dictionary<(int Type, PetSpeechType Kind), LocalizedText[]> _speech;
     private readonly HashSet<(int Type, int Breed)> _breeds;
     private readonly HashSet<(int Type, string Color)> _colors;
     private readonly Dictionary<string, PetFood> _foodByClassname;
@@ -17,7 +17,7 @@ public sealed class PetDefinitions
     public PetDefinitions(
         IEnumerable<PetLevel> levels,
         IEnumerable<PetCommand> commands,
-        IEnumerable<(int Type, PetSpeechType Kind, string Text)> speech,
+        IEnumerable<(int Type, PetSpeechType Kind, LocalizedText Text)> speech,
         IEnumerable<(int Type, int Breed)> breeds,
         IEnumerable<(int Type, string Color)> colors,
         IReadOnlyDictionary<string, PetFood> foodByClassname)
@@ -25,7 +25,15 @@ public sealed class PetDefinitions
         _levels = levels.ToDictionary(level => level.Level);
         MaxLevel = _levels.Count == 0 ? 1 : _levels.Keys.Max();
         _commands = commands.ToDictionary(command => command.Id);
-        _commandsByWord = _commands.Values.ToDictionary(command => Normalize(command.Name), StringComparer.Ordinal);
+        _commandsByWord = new Dictionary<string, PetCommand>(StringComparer.Ordinal);
+        foreach (PetCommand command in _commands.Values)
+        {
+            foreach (string word in (command.Words ?? []).Prepend(command.Name))
+            {
+                _commandsByWord.TryAdd(Normalize(word), command);
+            }
+        }
+
         _speech = speech.GroupBy(line => (line.Type, line.Kind)).ToDictionary(group => group.Key, group => group.Select(line => line.Text).ToArray());
         _breeds = breeds.ToHashSet();
         _colors = colors.Select(color => (color.Type, color.Color.ToUpperInvariant())).ToHashSet();
@@ -53,8 +61,8 @@ public sealed class PetDefinitions
     public IReadOnlyList<int> CommandsKnownAt(int level) =>
         _commands.Values.Where(command => command.RequiredLevel <= level).Select(command => command.Id).Order().ToList();
 
-    public string? Speech(int type, PetSpeechType kind, Random random) =>
-        _speech.TryGetValue((type, kind), out string[]? lines) && lines.Length > 0 ? lines[random.Next(lines.Length)] : null;
+    public LocalizedText? Speech(int type, PetSpeechType kind, Random random) =>
+        _speech.TryGetValue((type, kind), out LocalizedText[]? lines) && lines.Length > 0 ? lines[random.Next(lines.Length)] : null;
 
     public bool IsValidBreed(int type, int breed) => _breeds.Contains((type, breed));
 
@@ -62,6 +70,18 @@ public sealed class PetDefinitions
 
     public PetFood? FoodFor(string classname) => _foodByClassname.GetValueOrDefault(classname);
 
-    private static string Normalize(string words) =>
-        string.Join(' ', words.Split(' ', StringSplitOptions.RemoveEmptyEntries)).ToLowerInvariant();
+    private static string Normalize(string words)
+    {
+        string spaced = string.Join(' ', words.Split(' ', StringSplitOptions.RemoveEmptyEntries)).ToLowerInvariant();
+        var plain = new System.Text.StringBuilder(spaced.Length);
+        foreach (char c in spaced.Normalize(System.Text.NormalizationForm.FormD))
+        {
+            if (System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark)
+            {
+                plain.Append(c);
+            }
+        }
+
+        return plain.ToString().Normalize(System.Text.NormalizationForm.FormC);
+    }
 }

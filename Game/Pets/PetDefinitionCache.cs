@@ -40,7 +40,7 @@ public sealed class PetDefinitionCache : IHostedService
 
         IReadOnlyList<PetLevel> levels = await _repository.GetLevelsAsync(cancellationToken);
         IReadOnlyList<PetCommand> commands = await _repository.GetCommandsAsync(cancellationToken);
-        IReadOnlyList<(int Type, PetSpeechType Kind, string Text)> speech = await _repository.GetSpeechAsync(cancellationToken);
+        IReadOnlyList<(int Type, PetSpeechType Kind, LocalizedText Text)> speech = await _repository.GetSpeechAsync(cancellationToken);
         IReadOnlyList<(int Type, int Breed)> breeds = await _repository.GetBreedsAsync(cancellationToken);
         IReadOnlyList<(int Type, string Color)> colors = await _repository.GetColorsAsync(cancellationToken);
         _current = new PetDefinitions(levels, commands, speech, breeds, colors, foodByClassname);

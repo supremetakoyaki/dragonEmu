@@ -5,7 +5,7 @@ public sealed record CatalogPageSummary(
     int ParentId,
     int Color,
     int Icon,
-    string DisplayName,
+    LocalizedText DisplayName,
     bool ComingSoon,
     bool Enabled,
     int MinRank)

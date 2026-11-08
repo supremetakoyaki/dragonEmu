@@ -4,6 +4,7 @@ using DragonEmu.Game.Fuses;
 using DragonEmu.Game.History;
 using DragonEmu.Game.Chat;
 using DragonEmu.Game.Rooms;
+using DragonEmu.Game.Settings;
 using DragonEmu.Gateway;
 using DragonEmu.Persistence;
 using DragonEmu.Protocol.Messages.Incoming.RoomChat.AuxiliaryFunctions;
@@ -25,10 +26,11 @@ public sealed class WhisperMessageComposer : IMessageComposer
     private string _message = string.Empty;
 
     private readonly ModerationService _moderation;
+    private readonly MessageTexts _texts;
 
     public WhisperMessageComposer(
         IRoomManager roomManager, ClientSessionManager sessionManager, FuseService fuses, ProfanityFilterCache profanityFilterCache,
-        HistoryLog history, ModerationService moderation)
+        HistoryLog history, ModerationService moderation, MessageTexts texts)
     {
         _roomManager = roomManager;
         _sessionManager = sessionManager;
@@ -36,6 +38,7 @@ public sealed class WhisperMessageComposer : IMessageComposer
         _profanityFilterCache = profanityFilterCache;
         _history = history;
         _moderation = moderation;
+        _texts = texts;
     }
 
     public void Parse(ClientPacket packet)
@@ -60,7 +63,7 @@ public sealed class WhisperMessageComposer : IMessageComposer
             return;
         }
 
-        if (!RoomChatHandler.PassesFloodControl(session, _roomManager))
+        if (!RoomChatHandler.PassesFloodControl(session, _roomManager, _texts))
         {
             return;
         }

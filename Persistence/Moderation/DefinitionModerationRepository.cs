@@ -12,74 +12,82 @@ public sealed class DefinitionModerationRepository : IDefinitionModerationReposi
         _connectionFactory = connectionFactory;
     }
 
-    public async Task<ModerationPresets> GetPresetsAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyDictionary<Language, ModerationPresets>> GetPresetsAsync(CancellationToken cancellationToken = default)
     {
         await using MySqlConnection connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
         await using var command = new MySqlCommand(
             "SELECT type, category, name, message FROM definition_moderation_presets ORDER BY order_num, id;", connection);
 
-        var userMessages = new List<string>();
-        var roomMessages = new List<string>();
-        var offences = new List<(string Category, string Name, string Message)>();
+        var userMessages = new List<LocalizedText>();
+        var roomMessages = new List<LocalizedText>();
+        var offences = new List<(LocalizedText Category, LocalizedText Name, LocalizedText Message)>();
         await using MySqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
         {
             switch (reader.GetString(0))
             {
                 case "user_message":
-                    userMessages.Add(reader.GetString(3));
+                    userMessages.Add(LocalizedText.Parse(reader.GetString(3)));
                     break;
                 case "room_message":
-                    roomMessages.Add(reader.GetString(3));
+                    roomMessages.Add(LocalizedText.Parse(reader.GetString(3)));
                     break;
                 default:
-                    offences.Add((reader.GetString(1), reader.GetString(2), reader.GetString(3)));
+                    offences.Add((LocalizedText.Parse(reader.GetString(1)), LocalizedText.Parse(reader.GetString(2)), LocalizedText.Parse(reader.GetString(3))));
                     break;
             }
         }
 
-        List<OffenceCategory> categories = offences
-            .GroupBy(offence => offence.Category)
-            .Select(group => new OffenceCategory(group.Key, group.Select(offence => (offence.Name, offence.Message)).ToList()))
-            .ToList();
-        return new ModerationPresets(userMessages, roomMessages, categories);
+        return LanguageExtensions.FallbackOrder.ToDictionary(language => language, language => new ModerationPresets(
+            [.. userMessages.Select(message => message.For(language))],
+            [.. roomMessages.Select(message => message.For(language))],
+            [.. offences
+                .GroupBy(offence => offence.Category.For(Language.En))
+                .Select(group => new OffenceCategory(
+                    group.First().Category.For(language),
+                    [.. group.Select(offence => (offence.Name.For(language), offence.Message.For(language)))]))]));
     }
 
-    public async Task<IReadOnlyList<FaqCategory>> GetFaqAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyDictionary<Language, IReadOnlyList<FaqCategory>>> GetFaqAsync(CancellationToken cancellationToken = default)
     {
         await using MySqlConnection connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
 
-        var entries = new Dictionary<int, List<FaqEntry>>();
+        var entries = new Dictionary<int, List<(int Id, LocalizedText Question, LocalizedText Answer, FaqFrontPage FrontPage)>>();
         await using (var entryQuery = new MySqlCommand(
             "SELECT id, category_ref, question, answer, front_page FROM definition_help_faq_entries ORDER BY order_num, id;", connection))
         await using (MySqlDataReader reader = await entryQuery.ExecuteReaderAsync(cancellationToken))
         {
             while (await reader.ReadAsync(cancellationToken))
             {
-                var entry = new FaqEntry(
-                    reader.GetInt32(0), reader.GetInt32(1), reader.GetString(2), reader.GetString(3),
-                    reader.GetString(4) switch { "urgent" => FaqFrontPage.Urgent, "normal" => FaqFrontPage.Normal, _ => FaqFrontPage.None });
-                if (!entries.TryGetValue(entry.CategoryId, out List<FaqEntry>? list))
+                int categoryId = reader.GetInt32(1);
+                if (!entries.TryGetValue(categoryId, out var list))
                 {
-                    entries[entry.CategoryId] = list = [];
+                    entries[categoryId] = list = [];
                 }
 
-                list.Add(entry);
+                list.Add((reader.GetInt32(0), LocalizedText.Parse(reader.GetString(2)), LocalizedText.Parse(reader.GetString(3)),
+                    reader.GetString(4) switch { "urgent" => FaqFrontPage.Urgent, "normal" => FaqFrontPage.Normal, _ => FaqFrontPage.None }));
             }
         }
 
-        var categories = new List<FaqCategory>();
+        var categories = new List<(int Id, LocalizedText Name, LocalizedText Description)>();
         await using (var categoryQuery = new MySqlCommand(
             "SELECT id, name, description FROM definition_help_faq_categories ORDER BY order_num, id;", connection))
         await using (MySqlDataReader reader = await categoryQuery.ExecuteReaderAsync(cancellationToken))
         {
             while (await reader.ReadAsync(cancellationToken))
             {
-                int id = reader.GetInt32(0);
-                categories.Add(new FaqCategory(id, reader.GetString(1), reader.GetString(2), entries.TryGetValue(id, out List<FaqEntry>? list) ? list : []));
+                categories.Add((reader.GetInt32(0), LocalizedText.Parse(reader.GetString(1)), LocalizedText.Parse(reader.GetString(2))));
             }
         }
 
-        return categories;
+        return LanguageExtensions.FallbackOrder.ToDictionary(language => language, language => (IReadOnlyList<FaqCategory>)
+            [.. categories.Select(category => new FaqCategory(
+                category.Id,
+                category.Name.For(language),
+                category.Description.For(language),
+                entries.TryGetValue(category.Id, out var list)
+                    ? [.. list.Select(entry => new FaqEntry(entry.Id, category.Id, entry.Question.For(language), entry.Answer.For(language), entry.FrontPage))]
+                    : []))]);
     }
 }

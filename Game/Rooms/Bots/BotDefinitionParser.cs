@@ -1,4 +1,5 @@
 using System.Text.Json;
+using DragonEmu.Domain;
 using DragonEmu.Persistence;
 
 namespace DragonEmu.Game.Rooms;
@@ -42,7 +43,7 @@ public static class BotDefinitionParser
         }
 
         return new BotDefinition(
-            record.Id, record.Name, record.Gender, record.Figure, record.Motto, record.X, record.Y, record.Z,
+            record.Id, LocalizedText.Parse(record.Name), record.Gender, record.Figure, LocalizedText.Parse(record.Motto), record.X, record.Y, record.Z,
             ((record.Rotation % 8) + 8) % 8, area, record.DiagonalMoveAllowed, actions);
     }
 
@@ -110,10 +111,15 @@ public static class BotDefinitionParser
         }
         else if (trigger != BotTrigger.OnArrival)
         {
-            if (data is not { } chat || !chat.TryGetProperty("phrases", out JsonElement list) || list.ValueKind != JsonValueKind.Array)
+            if (data is not { } chat || !chat.TryGetProperty("phrases", out JsonElement list)
+                || list.ValueKind is not (JsonValueKind.Array or JsonValueKind.Object))
             {
                 throw new FormatException("trigger_data needs \"phrases\": [...]");
             }
+
+            IEnumerable<JsonElement> lists = list.ValueKind == JsonValueKind.Array
+                ? [list]
+                : list.EnumerateObject().Select(language => language.Value).Where(value => value.ValueKind == JsonValueKind.Array);
 
             PhraseMatch match = String(data, "match") switch
             {
@@ -124,7 +130,9 @@ public static class BotDefinitionParser
             };
 
             bool caseSensitive = chat.TryGetProperty("case_sensitive", out JsonElement sensitive) && sensitive.ValueKind == JsonValueKind.True;
-            phrases = new PhraseMatcher(list.EnumerateArray().Where(p => p.ValueKind == JsonValueKind.String).Select(p => p.GetString()!), match, caseSensitive);
+            phrases = new PhraseMatcher(
+                lists.SelectMany(phraseList => phraseList.EnumerateArray()).Where(p => p.ValueKind == JsonValueKind.String).Select(p => p.GetString()!).Distinct(),
+                match, caseSensitive);
             if (phrases.IsEmpty)
             {
                 throw new FormatException("no phrases");
@@ -165,9 +173,9 @@ public static class BotDefinitionParser
 
         return String(step, "type") switch
         {
-            "say" => new BotStep(BotStepType.Say, Text(step)),
-            "shout" => new BotStep(BotStepType.Shout, Text(step)),
-            "whisper" => new BotStep(BotStepType.Whisper, Text(step)),
+            "say" => Line(BotStepType.Say, step),
+            "shout" => Line(BotStepType.Shout, step),
+            "whisper" => Line(BotStepType.Whisper, step),
             "walk" => new BotStep(
                 BotStepType.Walk,
                 Text: String(step, "to") switch
@@ -195,8 +203,16 @@ public static class BotDefinitionParser
         };
     }
 
-    private static string Text(JsonElement step) =>
-        String(step, "text") is { Length: > 0 } text ? text : throw new FormatException($"{step.GetRawText()} needs a \"text\"");
+    private static BotStep Line(BotStepType type, JsonElement step)
+    {
+        LocalizedText said = !step.TryGetProperty("text", out JsonElement text) ? LocalizedText.Empty
+            : text.ValueKind == JsonValueKind.String ? LocalizedText.Of(new Dictionary<Language, string> { [Language.En] = text.GetString()! })
+            : text.ValueKind == JsonValueKind.Object ? LocalizedText.Parse(text.GetRawText())
+            : LocalizedText.Empty;
+        return said.IsEmpty
+            ? throw new FormatException($"{step.GetRawText()} needs a \"text\"")
+            : new BotStep(type, said.For(Language.En), Said: said);
+    }
 
     private static string? String(JsonElement? element, string name) =>
         element is { } e && e.TryGetProperty(name, out JsonElement value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;

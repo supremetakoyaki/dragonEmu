@@ -35,6 +35,7 @@ using DragonEmu.Protocol.Messages.Incoming.Trax;
 using DragonEmu.Protocol.Messages.Incoming.Users;
 using Microsoft.Extensions.DependencyInjection;
 using DragonEmu.Domain;
+using DragonEmu.Game.Settings;
 
 namespace DragonEmu.Gateway;
 
@@ -353,6 +354,10 @@ public sealed class GameMessageDispatcher : IPacketDispatcher
 
         IMessageComposer message = factory!(_serviceProvider);
         message.Parse(packet);
-        await message.HandleAsync(session, cancellationToken);
+
+        using (ReaderLanguage.For(session))
+        {
+            await message.HandleAsync(session, cancellationToken);
+        }
     }
 }

@@ -56,6 +56,8 @@ public sealed class ClientSession : IAsyncDisposable, IGameSession
 
     public int? LetInto { get; set; }
 
+    public Language Language { get; set; }
+
     public int? QueuedAt { get; set; }
 
     public PendingRoomAdmission? Admission { get; set; }

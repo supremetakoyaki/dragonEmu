@@ -32,7 +32,7 @@ public sealed class CatalogPageRepository : ICatalogPageRepository
                 reader.GetInt32(1),
                 reader.GetInt32(2),
                 reader.GetInt32(3),
-                reader.GetString(4),
+                LocalizedText.Parse(reader.GetString(4)),
                 reader.GetBoolean(5),
                 reader.GetBoolean(6),
                 reader.GetInt32(7)));

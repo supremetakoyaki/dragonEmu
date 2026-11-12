@@ -13,6 +13,9 @@ public static class FurnitureVisualizationClassExtensions
         FurnitureVisualizationClass.ValRandomizer => "val_randomizer",
         FurnitureVisualizationClass.PartyBeamer => "party_beamer",
         FurnitureVisualizationClass.PlanetSystem => "planet_system",
+        FurnitureVisualizationClass.CounterClock => "counter_clock",
+        FurnitureVisualizationClass.ScoreBoard => "score_board",
+        FurnitureVisualizationClass.WaterArea => "water_area",
         _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown furniture visualization class."),
     };
 
@@ -27,6 +30,9 @@ public static class FurnitureVisualizationClassExtensions
         "val_randomizer" => FurnitureVisualizationClass.ValRandomizer,
         "party_beamer" => FurnitureVisualizationClass.PartyBeamer,
         "planet_system" => FurnitureVisualizationClass.PlanetSystem,
+        "counter_clock" => FurnitureVisualizationClass.CounterClock,
+        "score_board" => FurnitureVisualizationClass.ScoreBoard,
+        "water_area" => FurnitureVisualizationClass.WaterArea,
         _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown furniture visualization_class value from the database."),
     };
 }

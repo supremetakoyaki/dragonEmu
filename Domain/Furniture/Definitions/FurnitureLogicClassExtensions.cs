@@ -25,6 +25,10 @@ public static class FurnitureLogicClassExtensions
         FurnitureLogicClass.Hotspot => "hotspot",
         FurnitureLogicClass.Camera => "camera",
         FurnitureLogicClass.Photo => "photo",
+        FurnitureLogicClass.ClothingChange => "clothing_change",
+        FurnitureLogicClass.CounterClock => "counter_clock",
+        FurnitureLogicClass.Pushable => "pushable",
+        FurnitureLogicClass.Score => "score",
         _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown furniture logic class."),
     };
 
@@ -51,6 +55,10 @@ public static class FurnitureLogicClassExtensions
         "hotspot" => FurnitureLogicClass.Hotspot,
         "camera" => FurnitureLogicClass.Camera,
         "photo" => FurnitureLogicClass.Photo,
+        "clothing_change" => FurnitureLogicClass.ClothingChange,
+        "counter_clock" => FurnitureLogicClass.CounterClock,
+        "pushable" => FurnitureLogicClass.Pushable,
+        "score" => FurnitureLogicClass.Score,
         _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown furniture logic_class value from the database."),
     };
 }

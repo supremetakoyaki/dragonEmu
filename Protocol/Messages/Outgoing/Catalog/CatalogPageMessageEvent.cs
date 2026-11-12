@@ -7,12 +7,14 @@ public sealed class CatalogPageMessageEvent : IMessageEvent
     private readonly CatalogPageBody _body;
     private readonly IReadOnlyList<CatalogOffer> _offers;
     private readonly Language _language;
+    private readonly int _offerId;
 
-    public CatalogPageMessageEvent(CatalogPageBody body, IReadOnlyList<CatalogOffer> offers, Language language)
+    public CatalogPageMessageEvent(CatalogPageBody body, IReadOnlyList<CatalogOffer> offers, Language language, int offerId = -1)
     {
         _body = body;
         _offers = offers;
         _language = language;
+        _offerId = offerId;
     }
 
     public ServerPacket Compose()
@@ -54,6 +56,9 @@ public sealed class CatalogPageMessageEvent : IMessageEvent
                 packet.AppendInt32(product.RentalDuration);
             }
         }
+
+        packet.AppendInt32(_offerId);
+        packet.AppendInt32(0);
 
         return packet;
     }

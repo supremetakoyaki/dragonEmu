@@ -11,4 +11,8 @@ public enum FurnitureVisualizationClass
     ValRandomizer,
     PartyBeamer,
     PlanetSystem,
+
+    CounterClock,
+    ScoreBoard,
+    WaterArea,
 }

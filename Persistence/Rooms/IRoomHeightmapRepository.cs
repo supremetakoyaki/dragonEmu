@@ -1,6 +1,6 @@
 namespace DragonEmu.Persistence;
 
-public sealed record RoomModel(int Id, string Label, bool Club);
+public sealed record RoomModel(int Id, string Label, int ClubLevel);
 
 public interface IRoomHeightmapRepository
 {

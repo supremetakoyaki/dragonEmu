@@ -18,11 +18,12 @@ public sealed class RoomSettingsDataEvent : IMessageEvent
     private readonly bool _allowPets;
     private readonly bool _allowPetsEat;
     private readonly bool _allowWalkthrough;
+    private readonly bool _hideWalls;
 
     public RoomSettingsDataEvent(
         int roomId, string name, string description, int accessType, int categoryId, int maxUsers,
         IReadOnlyList<string> tags, IReadOnlyList<RoomRightsHolder> holders, int totalHolderCount,
-        bool allowPets, bool allowPetsEat, bool allowWalkthrough)
+        bool allowPets, bool allowPetsEat, bool allowWalkthrough, bool hideWalls = false)
     {
         _roomId = roomId;
         _name = name;
@@ -36,6 +37,7 @@ public sealed class RoomSettingsDataEvent : IMessageEvent
         _allowPets = allowPets;
         _allowPetsEat = allowPetsEat;
         _allowWalkthrough = allowWalkthrough;
+        _hideWalls = hideWalls;
     }
 
     public ServerPacket Compose()
@@ -66,6 +68,7 @@ public sealed class RoomSettingsDataEvent : IMessageEvent
         packet.AppendInt32(_allowPets ? 1 : 0);
         packet.AppendInt32(_allowPetsEat ? 1 : 0);
         packet.AppendInt32(_allowWalkthrough ? 1 : 0);
+        packet.AppendInt32(_hideWalls ? 1 : 0);
 
         return packet;
     }

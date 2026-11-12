@@ -171,7 +171,8 @@ public sealed class RedeemVoucherMessageComposer : IMessageComposer
 
             case ClubType:
                 SubscriptionGrantResult grant = await _subscriptionManager.GrantDaysAsync(account.Id, clubDays, cancellationToken);
-                session.Send(ScrSendUserInfoEvent.HabboClubJustSubscribed(grant.ClubExpiresAt).Compose());
+                var details = ScrSendUserInfoEvent.ClubDetails.Of(await _subscriptionManager.GetClubSummaryAsync(account.Id, cancellationToken));
+                session.Send(ScrSendUserInfoEvent.HabboClubJustSubscribed(grant.ClubExpiresAt, details).Compose());
                 await _fuses.SendHeldAsync(session, account, cancellationToken);
 
                 session.Send(new VoucherRedeemOkMessageEvent().Compose());

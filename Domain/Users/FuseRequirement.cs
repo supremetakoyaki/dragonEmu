@@ -8,6 +8,8 @@ public interface IFuseFacts
 
     ValueTask<bool> HasSubscriptionAsync(string subscription);
 
+    ValueTask<bool> IsVipAsync();
+
     ValueTask<int> AchievementLevelAsync(string codeBase);
 
     bool IsRoomOwner { get; }
@@ -44,6 +46,11 @@ public abstract record FuseRequirement
     private sealed record HasSubscription(string Subscription) : FuseRequirement
     {
         public override ValueTask<bool> IsMetAsync(IFuseFacts facts) => facts.HasSubscriptionAsync(Subscription);
+    }
+
+    private sealed record IsVip : FuseRequirement
+    {
+        public override ValueTask<bool> IsMetAsync(IFuseFacts facts) => facts.IsVipAsync();
     }
 
     private sealed record HasAchievement(string CodeBase, int Level) : FuseRequirement
@@ -136,6 +143,9 @@ public abstract record FuseRequirement
 
                 case "user_is_room_owner":
                     return new UserIsRoomOwner();
+
+                case "is_vip":
+                    return new IsVip();
 
                 case "rank":
                     string comparison = ReadComparison();

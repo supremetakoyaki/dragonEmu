@@ -15,12 +15,12 @@ public sealed class RoomHeightmapRepository : IRoomHeightmapRepository
     {
         await using MySqlConnection connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
         await using var command = new MySqlCommand(
-            "SELECT id, label, club FROM definition_room_heightmap WHERE label = @label LIMIT 1;", connection);
+            "SELECT id, label, CAST(club AS SIGNED) FROM definition_room_heightmap WHERE label = @label LIMIT 1;", connection);
         command.Parameters.AddWithValue("@label", label);
 
         await using MySqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
         return await reader.ReadAsync(cancellationToken)
-            ? new RoomModel(reader.GetInt32(0), reader.GetString(1), reader.GetBoolean(2))
+            ? new RoomModel(reader.GetInt32(0), reader.GetString(1), reader.GetInt32(2))
             : null;
     }
 

@@ -16,7 +16,10 @@ public sealed class LatestEventsSearchMessageComposer : IMessageComposer
     public void Parse(ClientPacket packet)
     {
         _category = packet.PopString();
+        AdIndex = packet.RemainingLength > 0 ? packet.PopInt32() : 0;
     }
+
+    public int AdIndex { get; private set; }
 
     public ValueTask HandleAsync(IGameSession session, CancellationToken cancellationToken)
     {

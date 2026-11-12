@@ -129,6 +129,29 @@ public sealed class PurchaseFromCatalogComposer : IMessageComposer
             return;
         }
 
+        ClubOffer? clubOffer = _catalogCache.GetClubOffer(offer.Id);
+        int? upgradeDays = null;
+        if (offer.Products.Any(p => p.ProductType == CatalogProductType.Subscription))
+        {
+            ClubMembership membership = await _subscriptionManager.GetMembershipAsync(account.Id, cancellationToken);
+            if (!ClubOfferRules.MayBuy(membership, clubOffer?.Vip ?? false, clubOffer?.Upgrade ?? false))
+            {
+                session.Send(new PurchaseNotAllowedMessageEvent(PurchaseNotAllowedReason.Unknown).Compose());
+                return;
+            }
+
+            if (clubOffer is { Upgrade: true })
+            {
+                (DateTime? clubExpiresAt, _, _) = await _userRepository.GetClubStatusAsync(account.Id, cancellationToken);
+                upgradeDays = ClubOfferRules.UpgradeDays(clubOffer, _catalogCache.ClubOffers, ClubOfferRules.DaysLeft(clubExpiresAt, DateTime.UtcNow));
+                if (upgradeDays is null)
+                {
+                    session.Send(new PurchaseErrorMessageEvent(PurchaseErrorReason.OfferNotPurchasable).Compose());
+                    return;
+                }
+            }
+        }
+
         var subscriptionMonths = new List<int>();
         var furnitureToCreate = new List<(FurnitureDefinition Definition, string? ExtraData, int Count, int RentalMinutes)>();
         var effectsToGrant = new List<(int EffectId, int Duration, int Count)>();
@@ -157,7 +180,11 @@ public sealed class PurchaseFromCatalogComposer : IMessageComposer
                         return;
                     }
 
-                    subscriptionMonths.Add(months);
+                    if (clubOffer is null)
+                    {
+                        subscriptionMonths.Add(months);
+                    }
+
                     break;
 
                 case CatalogProductType.Floor:
@@ -246,6 +273,15 @@ public sealed class PurchaseFromCatalogComposer : IMessageComposer
         }
 
         SubscriptionGrantResult? lastGrant = null;
+        if (upgradeDays is { } vipDays)
+        {
+            lastGrant = await _subscriptionManager.GrantClubUpgradeAsync(account.Id, vipDays, cancellationToken);
+        }
+        else if (clubOffer is not null)
+        {
+            lastGrant = await _subscriptionManager.GrantClubOfferAsync(account.Id, clubOffer, cancellationToken);
+        }
+
         foreach (int months in subscriptionMonths)
         {
             lastGrant = await _subscriptionManager.GrantMonthsAsync(account.Id, months, cancellationToken);
@@ -307,7 +343,8 @@ public sealed class PurchaseFromCatalogComposer : IMessageComposer
 
         if (lastGrant is { } grant)
         {
-            session.Send(ScrSendUserInfoEvent.HabboClubJustSubscribed(grant.ClubExpiresAt).Compose());
+            var details = ScrSendUserInfoEvent.ClubDetails.Of((grant.IsVip, await _userRepository.GetClubGiftStandingAsync(account.Id, cancellationToken)));
+            session.Send(ScrSendUserInfoEvent.HabboClubJustSubscribed(grant.ClubExpiresAt, details).Compose());
 
             await _fuses.SendHeldAsync(session, account, cancellationToken);
         }

@@ -1,3 +1,4 @@
+using DragonEmu.Game.Subscriptions;
 using DragonEmu.Persistence;
 using DragonEmu.Protocol.Messages.Outgoing.Users;
 
@@ -6,11 +7,13 @@ namespace DragonEmu.Protocol.Messages.Incoming.Users;
 public sealed class ScrGetUserInfoMessageComposer : IMessageComposer
 {
     private readonly IUserRepository _userRepository;
+    private readonly SubscriptionManager _subscriptions;
     private string _subscriptionId = string.Empty;
 
-    public ScrGetUserInfoMessageComposer(IUserRepository userRepository)
+    public ScrGetUserInfoMessageComposer(IUserRepository userRepository, SubscriptionManager subscriptions)
     {
         _userRepository = userRepository;
+        _subscriptions = subscriptions;
     }
 
     public void Parse(ClientPacket packet)
@@ -36,10 +39,12 @@ public sealed class ScrGetUserInfoMessageComposer : IMessageComposer
 
         if (clubExpiresAt is not { } expiresAt || expiresAt <= DateTime.UtcNow)
         {
-            session.Send(ScrSendUserInfoEvent.NotSubscribed("habbo_club").Compose());
+            var past = ScrSendUserInfoEvent.ClubDetails.Of((false, await _userRepository.GetClubGiftStandingAsync(account.Id, cancellationToken)));
+            session.Send(ScrSendUserInfoEvent.NotSubscribed("habbo_club", past).Compose());
             return;
         }
 
-        session.Send(ScrSendUserInfoEvent.HabboClubStatus(expiresAt).Compose());
+        var details = ScrSendUserInfoEvent.ClubDetails.Of(await _subscriptions.GetClubSummaryAsync(account.Id, cancellationToken));
+        session.Send(ScrSendUserInfoEvent.HabboClubStatus(expiresAt, details).Compose());
     }
 }

@@ -40,6 +40,8 @@ public sealed class GuestRoomSearchResultEvent : IMessageEvent
             GuestRoomDataWireFormat.Append(packet, entry.Room, entry.UsersNow, entry.Event);
         }
 
+        packet.AppendBoolean(false);
+
         return packet;
     }
 }

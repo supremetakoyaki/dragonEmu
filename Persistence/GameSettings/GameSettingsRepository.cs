@@ -30,7 +30,7 @@ public sealed class GameSettingsRepository : IGameSettingsRepository
                    pets_enabled, pet_name_max_length, pet_name_allowed_chars, pet_respect_min_account_days,
                    groups_limit, groups_limit_club, username_change_allowed, username_change_cooldown,
                    username_min_length, username_max_length, username_allowed_chars, max_guide_bots_in_hotel_at_once,
-                   username_change_limit, idle_disconnect_time, max_spectators
+                   username_change_limit, idle_disconnect_time, max_spectators, friends_limit_club_vip
             FROM global_game_settings
             LIMIT 1;
             """, connection);
@@ -63,6 +63,7 @@ public sealed class GameSettingsRepository : IGameSettingsRepository
             DailyPetRespectGrant: reader.GetInt32(20),
             FriendsLimit: reader.GetInt32(21),
             FriendsLimitClub: reader.GetInt32(22),
+            FriendsLimitClubVip: reader.GetInt32(reader.GetOrdinal("friends_limit_club_vip")),
             MaxItemsInATrade: reader.GetInt32(23),
             MaxIgnoredUsers: reader.GetInt32(24),
             RoomEventsEnabled: reader.GetString(25) == "1",

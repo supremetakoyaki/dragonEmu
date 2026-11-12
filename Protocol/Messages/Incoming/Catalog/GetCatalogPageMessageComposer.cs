@@ -12,6 +12,7 @@ public sealed class GetCatalogPageMessageComposer : IMessageComposer
     private readonly FuseService _fuses;
 
     private int _pageId;
+    private int _offerId = -1;
 
     public GetCatalogPageMessageComposer(CatalogCache catalogCache, FuseService fuses)
     {
@@ -22,6 +23,11 @@ public sealed class GetCatalogPageMessageComposer : IMessageComposer
     public void Parse(ClientPacket packet)
     {
         _pageId = packet.PopInt32();
+
+        if (packet.RemainingLength > 0)
+        {
+            _offerId = packet.PopInt32();
+        }
     }
 
     public async ValueTask HandleAsync(IGameSession session, CancellationToken cancellationToken)
@@ -51,6 +57,6 @@ public sealed class GetCatalogPageMessageComposer : IMessageComposer
 
         IReadOnlyList<CatalogOffer> offers = _catalogCache.GetOffers(_pageId);
 
-        session.Send(new CatalogPageMessageEvent(body, offers, session.Language).Compose());
+        session.Send(new CatalogPageMessageEvent(body, offers, session.Language, _offerId).Compose());
     }
 }

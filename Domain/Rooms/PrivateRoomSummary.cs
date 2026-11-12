@@ -30,7 +30,8 @@ public sealed record PrivateRoomSummary(
     bool AllowWalkthrough = false,
     int QueuetileSpeed = 1,
     double? MaxStepHeight = null,
-    double? PoolWaterMaxHeight = null)
+    double? PoolWaterMaxHeight = null,
+    bool HideWalls = false)
 {
     public const int MinQueuetileSpeed = 1;
     public const int MaxQueuetileSpeed = 4;

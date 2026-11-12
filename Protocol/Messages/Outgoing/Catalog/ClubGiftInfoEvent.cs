@@ -7,14 +7,17 @@ public sealed class ClubGiftInfoEvent : IMessageEvent
     private readonly int _daysUntilNextGift;
     private readonly int _giftsAvailableNow;
     private readonly IReadOnlyList<ClubGiftDefinition> _gifts;
-    private readonly int _accumulatedMonths;
+    private readonly Func<ClubGiftDefinition, bool> _isSelectable;
+    private readonly Func<ClubGiftDefinition, int> _daysRequired;
 
-    public ClubGiftInfoEvent(int daysUntilNextGift, int giftsAvailableNow, IReadOnlyList<ClubGiftDefinition> gifts, int accumulatedMonths)
+    public ClubGiftInfoEvent(int daysUntilNextGift, int giftsAvailableNow, IReadOnlyList<ClubGiftDefinition> gifts, Func<ClubGiftDefinition, bool> isSelectable,
+        Func<ClubGiftDefinition, int>? daysRequired = null)
     {
         _daysUntilNextGift = daysUntilNextGift;
         _giftsAvailableNow = giftsAvailableNow;
         _gifts = gifts;
-        _accumulatedMonths = accumulatedMonths;
+        _isSelectable = isSelectable;
+        _daysRequired = daysRequired ?? (gift => gift.MonthsRequired * ClubGiftRules.DaysPerMonth);
     }
 
     public ServerPacket Compose()
@@ -44,9 +47,9 @@ public sealed class ClubGiftInfoEvent : IMessageEvent
         foreach (ClubGiftDefinition gift in _gifts)
         {
             packet.AppendInt32(gift.Id);
-            packet.AppendBoolean(false);
-            packet.AppendInt32(gift.MonthsRequired);
-            packet.AppendBoolean(_accumulatedMonths >= gift.MonthsRequired);
+            packet.AppendBoolean(gift.Vip);
+            packet.AppendInt32(_daysRequired(gift));
+            packet.AppendBoolean(_isSelectable(gift));
         }
 
         return packet;

@@ -1,9 +1,11 @@
 using DragonEmu.Domain;
 using DragonEmu.Game.Chat;
+using DragonEmu.Game.Fuses;
 using DragonEmu.Game.Pets;
 using DragonEmu.Game.Rooms;
 using DragonEmu.Persistence;
 using DragonEmu.Protocol.Messages.Outgoing.Navigator;
+using DragonEmu.Protocol.Messages.Outgoing.RoomEngine;
 using DragonEmu.Protocol.Messages.Outgoing.RoomSettings;
 using DragonEmu.Protocol.Messages.Outgoing.Notifications;
 using DragonEmu.Protocol.Messages.Incoming.Register;
@@ -29,6 +31,7 @@ public sealed class SaveRoomSettingsMessageComposer : IMessageComposer
     private readonly ProfanityFilterCache _profanityFilterCache;
     private readonly RoomBroadcaster _roomBroadcaster;
     private readonly PetService _pets;
+    private readonly FuseService _fuses;
 
     private int _roomId;
     private string _name = string.Empty;
@@ -43,12 +46,14 @@ public sealed class SaveRoomSettingsMessageComposer : IMessageComposer
     private bool _allowPets;
     private bool _allowPetsEat;
     private bool _allowWalkthrough;
+    private bool _hideWalls;
 
     public SaveRoomSettingsMessageComposer(
         IRoomManager roomManager, PublicRoomCache publicRooms,
         IRoomCategoryRepository roomCategoryRepository, IPrivateRoomRepository privateRoomRepository, RoomRightsService roomRights,
-        ProfanityFilterCache profanityFilterCache, RoomBroadcaster roomBroadcaster, PetService pets, MessageTexts texts)
+        ProfanityFilterCache profanityFilterCache, RoomBroadcaster roomBroadcaster, PetService pets, MessageTexts texts, FuseService fuses)
     {
+        _fuses = fuses;
         _texts = texts;
         _pets = pets;
         _roomBroadcaster = roomBroadcaster;
@@ -85,6 +90,8 @@ public sealed class SaveRoomSettingsMessageComposer : IMessageComposer
         _allowPets = packet.PopBoolean();
         _allowPetsEat = packet.PopBoolean();
         _allowWalkthrough = packet.PopBoolean();
+
+        _hideWalls = packet.RemainingLength > 0 && packet.PopBoolean();
     }
 
     public async ValueTask HandleAsync(IGameSession session, CancellationToken cancellationToken)
@@ -169,11 +176,21 @@ public sealed class SaveRoomSettingsMessageComposer : IMessageComposer
         string filteredDescription = _profanityFilterCache.Filter(_description);
         List<string> filteredTags = _tags.Select(_profanityFilterCache.Filter).ToList();
 
+        bool hideWalls = _hideWalls
+            ? await _fuses.HoldsAsync(account, "fuse_hide_room_walls", room.Data, cancellationToken)
+            : false;
+        bool wallsChanged = hideWalls != room.Data.HideWalls;
+
         PrivateRoomSummary updated = await _privateRoomRepository.UpdateSettingsAsync(
             _roomId, filteredName, filteredDescription, resolvedCategoryId, _accessType, passwordHash, _maxUsers,
-            filteredTags, _allowPets, _allowPetsEat, _allowWalkthrough, cancellationToken);
+            filteredTags, _allowPets, _allowPetsEat, _allowWalkthrough, hideWalls, cancellationToken);
 
         room.ApplySettingsUpdate(updated);
+
+        if (wallsChanged)
+        {
+            _roomBroadcaster.Broadcast(room, new RoomVisualizationSettingsEvent(updated.HideWalls).Compose());
+        }
 
         if (!updated.AllowPets)
         {

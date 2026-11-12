@@ -4,4 +4,5 @@ public sealed record ClubGiftDefinition(
     int Id,
     string OfferCode,
     int MonthsRequired,
-    CatalogOfferProduct Product);
+    CatalogOfferProduct Product,
+    bool Vip = false);

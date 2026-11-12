@@ -1,4 +1,6 @@
+using DragonEmu.Domain;
 using DragonEmu.Game.Catalog;
+using DragonEmu.Game.Subscriptions;
 using DragonEmu.Persistence;
 using DragonEmu.Protocol.Messages.Outgoing.Catalog;
 
@@ -8,11 +10,13 @@ public sealed class GetClubGiftInfoComposer : IMessageComposer
 {
     private readonly CatalogCache _catalogCache;
     private readonly IUserRepository _userRepository;
+    private readonly SubscriptionManager _subscriptions;
 
-    public GetClubGiftInfoComposer(CatalogCache catalogCache, IUserRepository userRepository)
+    public GetClubGiftInfoComposer(CatalogCache catalogCache, IUserRepository userRepository, SubscriptionManager subscriptions)
     {
         _catalogCache = catalogCache;
         _userRepository = userRepository;
+        _subscriptions = subscriptions;
     }
 
     public void Parse(ClientPacket packet)
@@ -26,14 +30,14 @@ public sealed class GetClubGiftInfoComposer : IMessageComposer
             return;
         }
 
-        (_, int accumulatedMonths, int giftsClaimed) = await _userRepository.GetClubStatusAsync(account.Id, cancellationToken);
-
-        int giftsAvailableNow = Math.Max(0, accumulatedMonths - giftsClaimed);
+        ClubGiftRules.Standing standing = await _userRepository.GetClubGiftStandingAsync(account.Id, cancellationToken);
+        ClubMembership membership = await _subscriptions.GetMembershipAsync(account.Id, cancellationToken);
 
         session.Send(new ClubGiftInfoEvent(
             daysUntilNextGift: 0,
-            giftsAvailableNow: giftsAvailableNow,
+            giftsAvailableNow: ClubGiftRules.PicksShown(standing, membership),
             gifts: _catalogCache.ClubGifts,
-            accumulatedMonths: accumulatedMonths).Compose());
+            isSelectable: gift => ClubGiftRules.MayPick(gift, standing, membership),
+            daysRequired: gift => ClubGiftRules.DaysShown(gift, standing, membership)).Compose());
     }
 }

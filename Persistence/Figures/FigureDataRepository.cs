@@ -15,13 +15,14 @@ public sealed class FigureDataRepository : IFigureDataRepository
     public async Task<IReadOnlyList<FigureSettype>> GetSettypesAsync(CancellationToken cancellationToken = default)
     {
         await using MySqlConnection connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
-        await using var command = new MySqlCommand("SELECT type, palette_ref, mandatory FROM definition_figure_settypes;", connection);
+        await using var command = new MySqlCommand("SELECT type, palette_ref, mand_m_0, mand_f_0, mand_m_1, mand_f_1 FROM definition_figure_settypes;", connection);
 
         var settypes = new List<FigureSettype>();
         await using MySqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
         {
-            settypes.Add(new FigureSettype(reader.GetString(0), reader.GetInt32(1), reader.GetByte(2) != 0));
+            settypes.Add(new FigureSettype(
+                reader.GetString(0), reader.GetInt32(1), reader.GetByte(2) != 0, reader.GetByte(3) != 0, reader.GetByte(4) != 0, reader.GetByte(5) != 0));
         }
 
         return settypes;
@@ -39,7 +40,7 @@ public sealed class FigureDataRepository : IFigureDataRepository
         {
             sets.Add(new FigureSet(
                 reader.GetInt32(0), reader.GetString(1), reader.GetString(2)[0],
-                reader.GetByte(3) != 0, reader.GetByte(4) != 0, reader.GetByte(5) != 0));
+                reader.GetByte(3), reader.GetByte(4) != 0, reader.GetByte(5) != 0));
         }
 
         return sets;
@@ -54,7 +55,7 @@ public sealed class FigureDataRepository : IFigureDataRepository
         await using MySqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
         {
-            colors.Add(new FigureColor(reader.GetInt32(0), reader.GetInt32(1), reader.GetString(2), reader.GetByte(3) != 0, reader.GetByte(4) != 0));
+            colors.Add(new FigureColor(reader.GetInt32(0), reader.GetInt32(1), reader.GetString(2), reader.GetByte(3), reader.GetByte(4) != 0));
         }
 
         return colors;

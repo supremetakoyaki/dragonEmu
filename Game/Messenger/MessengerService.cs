@@ -60,7 +60,7 @@ public sealed class MessengerService
         int myLimit = await _subscriptions.IsClubMemberAsync(me.Id, cancellationToken) ? clubLimit : limit;
 
         IReadOnlyList<MessengerProfile> friends = await _repository.GetFriendsAsync(me.Id, cancellationToken);
-        session.Send(new MessengerInitEvent(myLimit, limit, clubLimit, friends.Select(Entry).ToList()).Compose());
+        session.Send(new MessengerInitEvent(myLimit, limit, clubLimit, _gameSettings.Current.FriendsLimitClubVip, friends.Select(Entry).ToList()).Compose());
     }
 
     public async Task AnnounceAsync(int userId, CancellationToken cancellationToken)

@@ -252,7 +252,8 @@ public sealed class PresentOpenMessageComposer : IMessageComposer
 
         SubscriptionGrantResult grant = await _subscriptionManager.GrantMonthsAsync(account.Id, months, cancellationToken);
 
-        session.Send(ScrSendUserInfoEvent.HabboClubJustSubscribed(grant.ClubExpiresAt).Compose());
+        var details = ScrSendUserInfoEvent.ClubDetails.Of(await _subscriptionManager.GetClubSummaryAsync(account.Id, cancellationToken));
+        session.Send(ScrSendUserInfoEvent.HabboClubJustSubscribed(grant.ClubExpiresAt, details).Compose());
 
         await _fuses.SendHeldAsync(session, account, cancellationToken);
     }

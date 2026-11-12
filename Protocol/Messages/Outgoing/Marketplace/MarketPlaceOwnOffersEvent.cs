@@ -22,6 +22,7 @@ public sealed class MarketPlaceOwnOffersEvent : IMessageEvent
             packet.AppendInt32((int)offer.Status);
             packet.AppendInt32(offer.FurniType);
             packet.AppendInt32(offer.Sprite);
+            packet.AppendString(string.Empty);
             packet.AppendInt32(offer.Price);
             packet.AppendInt32(offer.MinutesLeft);
             packet.AppendInt32(offer.AveragePrice);

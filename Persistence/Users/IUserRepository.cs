@@ -27,11 +27,19 @@ public interface IUserRepository
 
     Task UpdatePoolFigureAsync(int userId, string poolFigure, CancellationToken cancellationToken = default);
 
+    Task<bool> IsVipAsync(int userId, CancellationToken cancellationToken = default);
+
     Task<(DateTime? ClubExpiresAt, int ClubMonthsAccumulated, int ClubGiftsClaimed)> GetClubStatusAsync(int userId, CancellationToken cancellationToken = default);
+
+    Task SetVipAsync(int userId, bool vip, CancellationToken cancellationToken = default);
 
     Task UpdateClubStatusAsync(int userId, DateTime clubExpiresAt, int clubMonthsAccumulated, CancellationToken cancellationToken = default);
 
-    Task<bool> TryClaimClubGiftAsync(int userId, CancellationToken cancellationToken = default);
+    Task<bool> TryClaimClubGiftAsync(int userId, bool vip = false, CancellationToken cancellationToken = default);
+
+    Task<ClubGiftRules.Standing> GetClubGiftStandingAsync(int userId, CancellationToken cancellationToken = default);
+
+    Task AddVipDaysAsync(int userId, int days, CancellationToken cancellationToken = default);
 
     Task UpdateRankAsync(int userId, int rank, CancellationToken cancellationToken = default);
 

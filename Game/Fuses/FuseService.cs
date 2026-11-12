@@ -81,6 +81,7 @@ public sealed class FuseService : IHostedService
     {
         private readonly Dictionary<string, int> _achievementLevels = [];
         private bool? _isClubMember;
+        private bool? _isVip;
 
         public int Rank => account.Rank;
 
@@ -88,6 +89,8 @@ public sealed class FuseService : IHostedService
 
         public async ValueTask<bool> HasSubscriptionAsync(string subscription) =>
             _isClubMember ??= await fuses._subscriptions.IsClubMemberAsync(account.Id, cancellationToken);
+
+        public async ValueTask<bool> IsVipAsync() => _isVip ??= await fuses._subscriptions.IsVipAsync(account.Id, cancellationToken);
 
         public async ValueTask<int> AchievementLevelAsync(string codeBase)
         {

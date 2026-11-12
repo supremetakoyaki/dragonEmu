@@ -240,6 +240,25 @@ public sealed class UserRepository : IUserRepository
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
+    public async Task<bool> IsVipAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        await using MySqlConnection connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+        await using var command = new MySqlCommand("SELECT is_vip = '1' FROM users WHERE id = @id;", connection);
+        command.Parameters.AddWithValue("@id", userId);
+
+        return await command.ExecuteScalarAsync(cancellationToken) is { } value && Convert.ToInt32(value) == 1;
+    }
+
+    public async Task SetVipAsync(int userId, bool vip, CancellationToken cancellationToken = default)
+    {
+        await using MySqlConnection connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+        await using var command = new MySqlCommand("UPDATE users SET is_vip = @vip WHERE id = @id;", connection);
+        command.Parameters.AddWithValue("@vip", vip ? "1" : "0");
+        command.Parameters.AddWithValue("@id", userId);
+
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
     public async Task<(DateTime? ClubExpiresAt, int ClubMonthsAccumulated, int ClubGiftsClaimed)> GetClubStatusAsync(
         int userId, CancellationToken cancellationToken = default)
     {
@@ -272,18 +291,49 @@ public sealed class UserRepository : IUserRepository
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
-    public async Task<bool> TryClaimClubGiftAsync(int userId, CancellationToken cancellationToken = default)
+    public async Task<bool> TryClaimClubGiftAsync(int userId, bool vip = false, CancellationToken cancellationToken = default)
     {
         await using MySqlConnection connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
         await using var command = new MySqlCommand(
-            """
-            UPDATE users SET club_gifts_claimed = club_gifts_claimed + 1
-            WHERE id = @id AND club_months_accumulated - club_gifts_claimed >= 1;
-            """, connection);
+            vip
+                ? """
+                  UPDATE users SET club_vip_gifts_claimed = club_vip_gifts_claimed + 1
+                  WHERE id = @id AND club_vip_days_accumulated DIV @daysPerMonth - club_vip_gifts_claimed >= 1;
+                  """
+                : """
+                  UPDATE users SET club_gifts_claimed = club_gifts_claimed + 1
+                  WHERE id = @id AND club_months_accumulated - club_gifts_claimed >= 1;
+                  """, connection);
         command.Parameters.AddWithValue("@id", userId);
+        command.Parameters.AddWithValue("@daysPerMonth", ClubGiftRules.DaysPerMonth);
 
         int affected = await command.ExecuteNonQueryAsync(cancellationToken);
         return affected > 0;
+    }
+
+    public async Task<ClubGiftRules.Standing> GetClubGiftStandingAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        await using MySqlConnection connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+        await using var command = new MySqlCommand(
+            "SELECT club_months_accumulated, club_gifts_claimed, club_vip_days_accumulated, club_vip_gifts_claimed FROM users WHERE id = @id;",
+            connection);
+        command.Parameters.AddWithValue("@id", userId);
+
+        await using MySqlDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
+        return await reader.ReadAsync(cancellationToken)
+            ? new ClubGiftRules.Standing(reader.GetInt32(0), reader.GetInt32(1), reader.GetInt32(2), reader.GetInt32(3))
+            : default;
+    }
+
+    public async Task AddVipDaysAsync(int userId, int days, CancellationToken cancellationToken = default)
+    {
+        await using MySqlConnection connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+        await using var command = new MySqlCommand(
+            "UPDATE users SET club_vip_days_accumulated = club_vip_days_accumulated + @days WHERE id = @id;", connection);
+        command.Parameters.AddWithValue("@days", days);
+        command.Parameters.AddWithValue("@id", userId);
+
+        await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
     public async Task UpdateRankAsync(int userId, int rank, CancellationToken cancellationToken = default)

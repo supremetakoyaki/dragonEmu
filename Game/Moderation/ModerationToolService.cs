@@ -319,7 +319,7 @@ public sealed class ModerationToolService
             PrivateRoomSummary updated = await _rooms.UpdateSettingsAsync(
                 roomId, rename ? _texts.Get(MessageKeys.RoomNameInappropriate) : current.Label, rename ? string.Empty : current.Description, current.CategoryId,
                 lockDoor ? RoomAccess.Doorbell : current.AccessType, lockDoor ? null : current.Password, current.MaxUsers,
-                rename ? [] : current.Tags, current.AllowPets, current.AllowPetsEat, current.AllowWalkthrough, cancellationToken);
+                rename ? [] : current.Tags, current.AllowPets, current.AllowPetsEat, current.AllowWalkthrough, current.HideWalls, cancellationToken);
             if (room is not null)
             {
                 room.ApplySettingsUpdate(updated);

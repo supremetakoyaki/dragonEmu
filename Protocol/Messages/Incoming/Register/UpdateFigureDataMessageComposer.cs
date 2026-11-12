@@ -13,8 +13,6 @@ namespace DragonEmu.Protocol.Messages.Incoming.Register;
 
 public sealed class UpdateFigureDataMessageComposer : IMessageComposer
 {
-    private const string ClubOutfitsFuse = "fuse_use_club_outfits";
-
     private readonly IUserRepository _userRepository;
     private readonly IRoomManager _roomManager;
     private readonly RoomBroadcaster _broadcaster;
@@ -56,8 +54,8 @@ public sealed class UpdateFigureDataMessageComposer : IMessageComposer
             return;
         }
 
-        bool isClubMember = await _fuses.HoldsAsync(account, ClubOutfitsFuse, cancellationToken: cancellationToken);
-        string? sanitizedFigure = FigureSanitizer.Sanitize(_figureDataCache, _figure, _gender, isClubMember);
+        int clubLevel = await FigureClub.LevelAsync(_fuses, account, cancellationToken);
+        string? sanitizedFigure = FigureSanitizer.Sanitize(_figureDataCache, _figure, _gender, clubLevel);
         if (sanitizedFigure is null)
         {
             return;

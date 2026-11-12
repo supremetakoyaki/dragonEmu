@@ -8,8 +8,10 @@ public static class PetType
     public const int Terrier = 3;
     public const int Bear = 4;
     public const int Pig = 5;
+    public const int Lion = 6;
+    public const int Rhino = 7;
 
-    public static bool IsValid(int type) => type is >= Dog and <= Pig;
+    public static bool IsValid(int type) => type is >= Dog and <= Rhino;
 }
 
 public sealed record PetRecord(

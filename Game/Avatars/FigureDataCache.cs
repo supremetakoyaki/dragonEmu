@@ -24,7 +24,8 @@ public sealed class FigureDataCache : IHostedService
 
     public FigureColor? GetColor(int id) => _snapshot.Colors.GetValueOrDefault(id);
 
-    public IReadOnlyList<string> MandatorySettypeTypes => _snapshot.MandatorySettypeTypes;
+    public IEnumerable<string> MandatorySettypeTypes(char gender, int clubLevel) =>
+        _snapshot.Settypes.Values.Where(s => s.IsMandatory(gender, clubLevel)).Select(s => s.Type);
 
     public FigureSet? GetDefaultFreeSet(string type, char gender) =>
         _snapshot.Sets.Values
@@ -47,8 +48,7 @@ public sealed class FigureDataCache : IHostedService
         _snapshot = new Snapshot(
             settypes.ToDictionary(s => s.Type),
             sets.ToDictionary(s => s.Id),
-            colors.ToDictionary(c => c.Id),
-            settypes.Where(s => s.Mandatory).Select(s => s.Type).ToList());
+            colors.ToDictionary(c => c.Id));
 
         _logger.LogInformation(
             "Figure data cache loaded: {SettypeCount} settypes, {SetCount} sets, {ColorCount} colors.",
@@ -62,10 +62,9 @@ public sealed class FigureDataCache : IHostedService
     private sealed record Snapshot(
         IReadOnlyDictionary<string, FigureSettype> Settypes,
         IReadOnlyDictionary<int, FigureSet> Sets,
-        IReadOnlyDictionary<int, FigureColor> Colors,
-        IReadOnlyList<string> MandatorySettypeTypes)
+        IReadOnlyDictionary<int, FigureColor> Colors)
     {
         public static readonly Snapshot Empty = new(
-            new Dictionary<string, FigureSettype>(), new Dictionary<int, FigureSet>(), new Dictionary<int, FigureColor>(), []);
+            new Dictionary<string, FigureSettype>(), new Dictionary<int, FigureSet>(), new Dictionary<int, FigureColor>());
     }
 }

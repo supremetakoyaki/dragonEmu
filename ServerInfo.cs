@@ -4,7 +4,7 @@ namespace DragonEmu;
 
 public static class ServerInfo
 {
-    public const string Name = "dragonEmulator [R48]";
+    public const string Name = "dragonEmulator [R59]";
 
     public static string Version { get; } = ReadVersion();
 

@@ -13,7 +13,6 @@ public sealed class WardrobeService
     private const int SmallWardrobeSlots = 5;
     private const string WardrobeFuse = "fuse_use_wardrobe";
     private const string LargerWardrobeFuse = "fuse_larger_wardrobe"; // this could be unused in V48 since it is a VIP fuse, but exists
-    private const string ClubOutfitsFuse = "fuse_use_club_outfits";
 
     private readonly IWardrobeRepository _wardrobeRepository;
     private readonly FuseService _fuses;
@@ -45,8 +44,8 @@ public sealed class WardrobeService
             return false;
         }
 
-        bool clubClothes = await _fuses.HoldsAsync(account, ClubOutfitsFuse, cancellationToken: cancellationToken);
-        if (FigureSanitizer.Sanitize(_figureData, figure, gender, clubClothes) is not { } filtered)
+        int clubLevel = await FigureClub.LevelAsync(_fuses, account, cancellationToken);
+        if (FigureSanitizer.Sanitize(_figureData, figure, gender, clubLevel) is not { } filtered)
         {
             return false;
         }

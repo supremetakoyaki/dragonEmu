@@ -53,6 +53,7 @@ public static class IncomingOpcodes
     {
         public const int GetBadgesComposer = 157;
         public const int SetActivatedBadgesComposer = 158;
+        public const int GetBadgePointLimitsComposer = 3032;
     }
 
     public static class InventoryAchievements
@@ -146,6 +147,7 @@ public static class IncomingOpcodes
         public const int PlacePetMessageComposer = 3002;
         public const int RemovePetFromFlatMessageComposer = 3003;
         public const int GetPetCommandsMessageComposer = 3004;
+        public const int SetClothingChangeDataMessageComposer = 480;
     }
 
     public static class RoomSession
@@ -249,6 +251,7 @@ public static class IncomingOpcodes
         public const int SearchFaqsMessageComposer = 419;
         public const int GetFaqCategoryMessageComposer = 420;
         public const int CallForHelpMessageComposer = 453;
+        public const int SendRegistrationDataComposer = 207;
     }
 
     public static class Catalog
@@ -262,6 +265,7 @@ public static class IncomingOpcodes
         public const int GetClubGiftInfo = 474;
         public const int SelectClubGiftComposer = 475;
         public const int GetIsOfferGiftableComposer = 3030;
+        public const int GetClubOffersMessageComposer = 3031;
     }
 
     public static class Recycler
@@ -357,6 +361,18 @@ public static class IncomingOpcodes
         public const int SavePhotoMessageComposer = 423;
         public const int CameraClientMessageComposer = 424;
     }
+
+    public static class UserDefinedRoomEvents
+    {
+        public const int AddEventMessageComposer = 3050;
+        public const int AddTriggerMessageComposer = 3051;
+        public const int AddActionMessageComposer = 3052;
+        public const int RemoveEventMessageComposer = 3053;
+        public const int RemoveTriggerMessageComposer = 3054;
+        public const int RemoveActionMessageComposer = 3055;
+        public const int GetEventsMessageComposer = 3056;
+        public const int ReloadEventsMessageComposer = 3057;
+    }
 }
 
 public static class OutgoingOpcodes
@@ -373,6 +389,8 @@ public static class OutgoingOpcodes
         public const int InitCryptoMessageEvent = 277;
         public const int DisconnectReasonEvent = 287;
         public const int UniqueMachineIDEvent = 439;
+        public const int StartRegistrationEvent = 271;
+        public const int IdentityAccountsEvent = 626;
     }
 
     public static class Availability
@@ -426,6 +444,7 @@ public static class OutgoingOpcodes
     public static class InventoryBadges
     {
         public const int BadgesEvent = 229;
+        public const int BadgePointLimitsEvent = 627;
     }
 
     public static class InventoryAchievements
@@ -547,6 +566,8 @@ public static class OutgoingOpcodes
         public const int FloorHeightMapMessageEvent = 470;
         public const int RoomEntryInfoMessageEvent = 471;
         public const int PlaceObjectErrorMessageEvent = 516;
+        public const int RoomVisualizationSettingsEvent = 472;
+        public const int ObjectsDataUpdateMessageEvent = 473;
     }
 
     public static class RoomPets
@@ -665,6 +686,7 @@ public static class OutgoingOpcodes
         public const int IsOfferGiftableMessageEvent = 622;
         public const int ClubGiftInfoEvent = 623;
         public const int ClubGiftSelectedEvent = 624;
+        public const int HabboClubOffersMessageEvent = 625;
     }
 
     public static class Recycler
@@ -752,6 +774,12 @@ public static class OutgoingOpcodes
         public const int PhotoSavedMessageEvent = 493;
         public const int PhotoViewMessageEvent = 494;
         public const int CameraFurniMessageEvent = 495;
+    }
+
+    public static class UserDefinedRoomEvents
+    {
+        public const int UserDefinedRoomEventsEvent = 650;
+        public const int OpenUserDefinedRoomEventsEvent = 651;
     }
 }
 

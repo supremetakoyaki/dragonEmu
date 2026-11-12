@@ -42,5 +42,5 @@ public interface IPrivateRoomRepository
 
     Task<PrivateRoomSummary> UpdateSettingsAsync(
         int roomId, string label, string description, int categoryId, int accessType, string? password, int maxUsers,
-        IReadOnlyList<string> tags, bool allowPets, bool allowPetsEat, bool allowWalkthrough, CancellationToken cancellationToken = default);
+        IReadOnlyList<string> tags, bool allowPets, bool allowPetsEat, bool allowWalkthrough, bool hideWalls = false, CancellationToken cancellationToken = default);
 }

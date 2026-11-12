@@ -17,8 +17,11 @@ public sealed class RoomsWithHighestScoreSearchMessageComposer : IMessageCompose
         _roomManager = roomManager;
     }
 
+    public int AdIndex { get; private set; }
+
     public void Parse(ClientPacket packet)
     {
+        AdIndex = packet.RemainingLength > 0 ? packet.PopInt32() : 0;
     }
 
     public async ValueTask HandleAsync(IGameSession session, CancellationToken cancellationToken)

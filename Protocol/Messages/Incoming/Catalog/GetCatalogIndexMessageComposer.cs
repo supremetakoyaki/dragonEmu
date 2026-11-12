@@ -3,6 +3,7 @@ using DragonEmu.Game.Catalog;
 using DragonEmu.Game.Furniture;
 using DragonEmu.Game.Fuses;
 using DragonEmu.Game.Rooms;
+using DragonEmu.Game.Subscriptions;
 using DragonEmu.Persistence;
 using DragonEmu.Protocol.Messages.Outgoing.Catalog;
 using DragonEmu.Protocol.Messages.Outgoing.Notifications;
@@ -16,9 +17,11 @@ public sealed class GetCatalogIndexMessageComposer : IMessageComposer
     private readonly FurnitureAliasCache _furnitureAliasCache;
     private readonly IUserRepository _userRepository;
     private readonly FuseService _fuses;
+    private readonly SubscriptionManager _subscriptions;
 
-    public GetCatalogIndexMessageComposer(CatalogCache catalogCache, FurnitureAliasCache furnitureAliasCache, IUserRepository userRepository, FuseService fuses)
+    public GetCatalogIndexMessageComposer(CatalogCache catalogCache, FurnitureAliasCache furnitureAliasCache, IUserRepository userRepository, FuseService fuses, SubscriptionManager subscriptions)
     {
+        _subscriptions = subscriptions;
         _fuses = fuses;
         _catalogCache = catalogCache;
         _furnitureAliasCache = furnitureAliasCache;
@@ -41,8 +44,9 @@ public sealed class GetCatalogIndexMessageComposer : IMessageComposer
         session.Send(new CatalogIndexMessageEvent(pages, account.Rank, session.Language, seesComingSoon).Compose());
         session.Send(new FurnitureAliasesMessageEvent(_furnitureAliasCache.Aliases).Compose());
 
-        (_, int clubMonthsAccumulated, int clubGiftsClaimed) = await _userRepository.GetClubStatusAsync(account.Id, cancellationToken);
-        int giftsAvailableNow = Math.Max(0, clubMonthsAccumulated - clubGiftsClaimed);
+        int giftsAvailableNow = ClubGiftRules.PicksShown(
+            await _userRepository.GetClubGiftStandingAsync(account.Id, cancellationToken),
+            await _subscriptions.GetMembershipAsync(account.Id, cancellationToken));
         if (giftsAvailableNow > 0)
         {
             session.Send(new ClubGiftNotificationEvent(giftsAvailableNow).Compose());

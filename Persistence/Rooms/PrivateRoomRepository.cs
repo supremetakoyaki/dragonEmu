@@ -16,7 +16,8 @@ public sealed class PrivateRoomRepository : IPrivateRoomRepository
                dh.heightmap, dh.door_x, dh.door_y, dh.door_z, dh.door_dir,
                pr.wallpaper, pr.floor, pr.landscape, dh.label,
                COALESCE(s.allow_pets_eat, 0), COALESCE(s.allow_walkthrough, 0),
-               CAST(COALESCE(s.queuetile_speed, '1') AS SIGNED), dh.max_step_height, dh.pool_water_max_height
+               CAST(COALESCE(s.queuetile_speed, '1') AS SIGNED), dh.max_step_height, dh.pool_water_max_height,
+               CAST(COALESCE(s.hide_walls, '0') AS SIGNED)
         FROM rooms pr
         LEFT JOIN users u ON u.id = pr.owner_ref
         INNER JOIN definition_room_heightmap dh ON dh.id = pr.heightmap_ref
@@ -191,7 +192,7 @@ public sealed class PrivateRoomRepository : IPrivateRoomRepository
 
     public async Task<PrivateRoomSummary> UpdateSettingsAsync(
         int roomId, string label, string description, int categoryId, int accessType, string? password, int maxUsers,
-        IReadOnlyList<string> tags, bool allowPets, bool allowPetsEat, bool allowWalkthrough, CancellationToken cancellationToken = default)
+        IReadOnlyList<string> tags, bool allowPets, bool allowPetsEat, bool allowWalkthrough, bool hideWalls = false, CancellationToken cancellationToken = default)
     {
         await using MySqlConnection connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
         await using MySqlTransaction transaction = await connection.BeginTransactionAsync(cancellationToken);
@@ -215,16 +216,17 @@ public sealed class PrivateRoomRepository : IPrivateRoomRepository
 
         await using (var upsertSettings = new MySqlCommand(
             """
-            INSERT INTO users_private_rooms_settings (room_ref, allow_pets, allow_pets_eat, allow_walkthrough)
-            VALUES (@roomId, @allowPets, @allowPetsEat, @allowWalkthrough)
+            INSERT INTO users_private_rooms_settings (room_ref, allow_pets, allow_pets_eat, allow_walkthrough, hide_walls)
+            VALUES (@roomId, @allowPets, @allowPetsEat, @allowWalkthrough, @hideWalls)
             ON DUPLICATE KEY UPDATE allow_pets = VALUES(allow_pets), allow_pets_eat = VALUES(allow_pets_eat),
-                                     allow_walkthrough = VALUES(allow_walkthrough);
+                                     allow_walkthrough = VALUES(allow_walkthrough), hide_walls = VALUES(hide_walls);
             """, connection, transaction))
         {
             upsertSettings.Parameters.AddWithValue("@roomId", roomId);
             upsertSettings.Parameters.AddWithValue("@allowPets", allowPets);
             upsertSettings.Parameters.AddWithValue("@allowPetsEat", allowPetsEat);
             upsertSettings.Parameters.AddWithValue("@allowWalkthrough", allowWalkthrough);
+            upsertSettings.Parameters.AddWithValue("@hideWalls", hideWalls ? 1 : 0);
             await upsertSettings.ExecuteNonQueryAsync(cancellationToken);
         }
 
@@ -406,7 +408,8 @@ public sealed class PrivateRoomRepository : IPrivateRoomRepository
             AllowWalkthrough: reader.GetInt32(25) != 0,
             QueuetileSpeed: Convert.ToInt32(reader.GetValue(26)),
             MaxStepHeight: reader.IsDBNull(27) ? null : reader.GetDouble(27),
-            PoolWaterMaxHeight: reader.IsDBNull(28) ? null : reader.GetDouble(28));
+            PoolWaterMaxHeight: reader.IsDBNull(28) ? null : reader.GetDouble(28),
+            HideWalls: Convert.ToInt32(reader.GetValue(29)) != 0);
     }
 
     private static async Task<List<PrivateRoomSummary>> AttachTagsAsync(

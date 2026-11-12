@@ -5,7 +5,10 @@ namespace DragonEmu.Game.Avatars;
 
 public static class FigureSanitizer
 {
-    public static string? Sanitize(FigureDataCache cache, string figure, char gender, bool isClubMember)
+    public static string? Sanitize(FigureDataCache cache, string figure, char gender, bool isClubMember) =>
+        Sanitize(cache, figure, gender, isClubMember ? 1 : 0);
+
+    public static string? Sanitize(FigureDataCache cache, string figure, char gender, int clubLevel)
     {
         string[] tokens = figure.Split('.', StringSplitOptions.RemoveEmptyEntries);
         if (tokens.Length == 0)
@@ -18,7 +21,7 @@ public static class FigureSanitizer
 
         foreach (string token in tokens)
         {
-            string? rebuilt = SanitizeToken(cache, token, gender, isClubMember, seenMandatory);
+            string? rebuilt = SanitizeToken(cache, token, gender, clubLevel, seenMandatory);
             if (rebuilt is null)
             {
                 return null;
@@ -30,7 +33,7 @@ public static class FigureSanitizer
             }
         }
 
-        foreach (string mandatoryType in cache.MandatorySettypeTypes)
+        foreach (string mandatoryType in cache.MandatorySettypeTypes(gender, clubLevel))
         {
             if (!seenMandatory.Contains(mandatoryType))
             {
@@ -41,7 +44,7 @@ public static class FigureSanitizer
         return string.Join('.', repaired);
     }
 
-    private static string? SanitizeToken(FigureDataCache cache, string token, char gender, bool isClubMember, HashSet<string> seenMandatory)
+    private static string? SanitizeToken(FigureDataCache cache, string token, char gender, int clubLevel, HashSet<string> seenMandatory)
     {
         string[] parts = token.Split('-');
         if (parts.Length < 2 || parts[0].Length != 2)
@@ -62,14 +65,15 @@ public static class FigureSanitizer
             return null;
         }
 
-        if (settype.Mandatory)
+        bool mandatory = settype.IsMandatory(gender, clubLevel);
+        if (mandatory)
         {
             seenMandatory.Add(type);
         }
 
-        if (set.Club && !isClubMember)
+        if (set.ClubLevel > clubLevel)
         {
-            if (!settype.Mandatory)
+            if (!mandatory)
             {
                 return string.Empty;
             }
@@ -100,7 +104,7 @@ public static class FigureSanitizer
                     return null;
                 }
 
-                if (color.Club && !isClubMember)
+                if (color.ClubLevel > clubLevel)
                 {
                     FigureColor? fallbackColor = cache.GetDefaultFreeColor(settype.PaletteId);
                     if (fallbackColor is null)

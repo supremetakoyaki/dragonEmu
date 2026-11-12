@@ -3,6 +3,7 @@ using DragonEmu.Game.Settings;
 using DragonEmu.Domain;
 using DragonEmu.Game.Catalog;
 using DragonEmu.Game.Furniture;
+using DragonEmu.Game.Subscriptions;
 using DragonEmu.Persistence;
 using DragonEmu.Protocol.Messages.Outgoing.Catalog;
 using DragonEmu.Protocol.Messages.Outgoing.InventoryFurni;
@@ -16,6 +17,7 @@ public sealed class SelectClubGiftMessageComposer : IMessageComposer
     private readonly IUserItemRepository _userItemRepository;
     private readonly FurnitureDefinitionCache _furnitureDefinitions;
     private readonly TeleportPairGrantService _teleportPairGrantService;
+    private readonly SubscriptionManager _subscriptions;
 
     private readonly HotelStatus _hotel;
     private readonly MessageTexts _texts;
@@ -24,8 +26,10 @@ public sealed class SelectClubGiftMessageComposer : IMessageComposer
 
     public SelectClubGiftMessageComposer(
         CatalogCache catalogCache, IUserRepository userRepository, IUserItemRepository userItemRepository,
-        FurnitureDefinitionCache furnitureDefinitions, TeleportPairGrantService teleportPairGrantService, HotelStatus hotel, MessageTexts texts)
+        FurnitureDefinitionCache furnitureDefinitions, TeleportPairGrantService teleportPairGrantService, HotelStatus hotel, MessageTexts texts,
+        SubscriptionManager subscriptions)
     {
+        _subscriptions = subscriptions;
         _texts = texts;
         _hotel = hotel;
         _catalogCache = catalogCache;
@@ -65,13 +69,14 @@ public sealed class SelectClubGiftMessageComposer : IMessageComposer
             return;
         }
 
-        (_, int accumulatedMonths, _) = await _userRepository.GetClubStatusAsync(account.Id, cancellationToken);
-        if (accumulatedMonths < gift.MonthsRequired)
+        ClubGiftRules.Standing standing = await _userRepository.GetClubGiftStandingAsync(account.Id, cancellationToken);
+        ClubMembership membership = await _subscriptions.GetMembershipAsync(account.Id, cancellationToken);
+        if (!ClubGiftRules.MayPick(gift, standing, membership))
         {
             return;
         }
 
-        if (!await _userRepository.TryClaimClubGiftAsync(account.Id, cancellationToken))
+        if (!await _userRepository.TryClaimClubGiftAsync(account.Id, gift.Vip, cancellationToken))
         {
             return;
         }

@@ -11,10 +11,6 @@ public sealed class CreateFlatMessageComposer : IMessageComposer
 {
     private const int DefaultCategoryId = 1;
     private const int MaxRoomNameLength = 100;
-    private const string ClubModelsFuse = "fuse_use_special_room_layouts";
-
-    private static readonly HashSet<string> ClientModels =
-        [.. Enumerable.Range('a', 'r' - 'a' + 1).Select(letter => "model_" + (char)letter)];
 
     private readonly IPrivateRoomRepository _privateRoomRepository;
     private readonly IRoomHeightmapRepository _roomHeightmapRepository;
@@ -50,9 +46,9 @@ public sealed class CreateFlatMessageComposer : IMessageComposer
             return;
         }
 
-        if (!ClientModels.Contains(_heightmapLabel)
+        if (!RoomModelRules.IsOfferedByClient(_heightmapLabel)
             || await _roomHeightmapRepository.GetByLabelAsync(_heightmapLabel, cancellationToken) is not { } model
-            || (model.Club && !await _fuses.HoldsAsync(account, ClubModelsFuse, cancellationToken: cancellationToken))
+            || !await MayUseAsync(account, model, cancellationToken)
             || !await _limit.MayCreateAsync(account, cancellationToken))
         {
             return;
@@ -63,4 +59,7 @@ public sealed class CreateFlatMessageComposer : IMessageComposer
 
         session.Send(new FlatCreatedEvent(room.Id, room.Label).Compose());
     }
+
+    private async Task<bool> MayUseAsync(UserAccount account, RoomModel model, CancellationToken cancellationToken) =>
+        RoomModelRules.FuseFor(model.ClubLevel) is not { } fuse || await _fuses.HoldsAsync(account, fuse, cancellationToken: cancellationToken);
 }

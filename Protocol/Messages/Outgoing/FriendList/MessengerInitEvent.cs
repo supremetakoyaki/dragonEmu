@@ -5,13 +5,15 @@ public sealed class MessengerInitEvent : IMessageEvent
     private readonly int _userLimit;
     private readonly int _normalLimit;
     private readonly int _clubLimit;
+    private readonly int _vipLimit;
     private readonly IReadOnlyList<FriendEntry> _friends;
 
-    public MessengerInitEvent(int userLimit, int normalLimit, int clubLimit, IReadOnlyList<FriendEntry> friends)
+    public MessengerInitEvent(int userLimit, int normalLimit, int clubLimit, int vipLimit, IReadOnlyList<FriendEntry> friends)
     {
         _userLimit = userLimit;
         _normalLimit = normalLimit;
         _clubLimit = clubLimit;
+        _vipLimit = vipLimit;
         _friends = friends;
     }
 
@@ -21,6 +23,7 @@ public sealed class MessengerInitEvent : IMessageEvent
         packet.AppendInt32(_userLimit);
         packet.AppendInt32(_normalLimit);
         packet.AppendInt32(_clubLimit);
+        packet.AppendInt32(_vipLimit);
         packet.AppendInt32(0);
         packet.AppendInt32(_friends.Count);
         foreach (FriendEntry friend in _friends)

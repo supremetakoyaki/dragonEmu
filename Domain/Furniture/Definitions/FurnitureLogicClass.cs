@@ -25,4 +25,9 @@ public enum FurnitureLogicClass
 
     Camera,
     Photo,
+
+    ClothingChange,
+    CounterClock,
+    Pushable,
+    Score,
 }

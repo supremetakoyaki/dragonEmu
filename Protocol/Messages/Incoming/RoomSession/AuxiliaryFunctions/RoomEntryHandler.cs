@@ -246,6 +246,11 @@ internal static class RoomEntryHandler
             {
                 session.Send(new RoomPropertyMessageEvent("landscape", room.Landscape).Compose());
             }
+
+            if (room.Data.HideWalls)
+            {
+                session.Send(new RoomVisualizationSettingsEvent(true).Compose());
+            }
         }
 
         session.Send(new FurnitureAliasesMessageEvent(furnitureAliasCache.Aliases).Compose());

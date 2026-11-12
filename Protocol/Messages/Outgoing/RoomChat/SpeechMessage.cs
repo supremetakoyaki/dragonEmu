@@ -8,6 +8,7 @@ internal static class SpeechMessage
         packet.AppendInt32(virtualId);
         packet.AppendString(message);
         packet.AppendInt32(DetectEmotion(message));
+        packet.AppendInt32(0);
         return packet;
     }
 

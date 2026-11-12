@@ -19,7 +19,7 @@ public sealed class ClubGiftRepository : IClubGiftRepository
             """
             SELECT g.id, g.offer_code, g.months_required,
                    g.product_type, g.product_count,
-                   fd.ref_furnidata, g.ref_furni_def
+                   fd.ref_furnidata, g.ref_furni_def, g.vip = '1'
             FROM definition_catalog_club_gifts g
             LEFT JOIN definition_furniture fd ON fd.id = g.ref_furni_def
             ORDER BY g.months_required, g.id;
@@ -46,7 +46,8 @@ public sealed class ClubGiftRepository : IClubGiftRepository
                 reader.GetInt32(0),
                 reader.GetString(1),
                 reader.GetInt32(2),
-                product));
+                product,
+                Convert.ToInt32(reader.GetValue(7)) == 1));
         }
 
         return gifts;

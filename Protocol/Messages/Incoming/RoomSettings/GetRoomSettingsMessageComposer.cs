@@ -62,6 +62,6 @@ public sealed class GetRoomSettingsMessageComposer : IMessageComposer
 
         session.Send(new RoomSettingsDataEvent(
             _roomId, room.Data.Label, room.Data.Description, room.Data.AccessType, room.Data.CategoryId, room.Data.MaxUsers,
-            room.Data.Tags, holders, totalHolderCount, room.Data.AllowPets, room.Data.AllowPetsEat, room.Data.AllowWalkthrough).Compose());
+            room.Data.Tags, holders, totalHolderCount, room.Data.AllowPets, room.Data.AllowPetsEat, room.Data.AllowWalkthrough, room.Data.HideWalls).Compose());
     }
 }

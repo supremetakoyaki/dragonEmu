@@ -132,8 +132,9 @@ public sealed class SSOTicketMessageComposer : IMessageComposer
         await _achievementService.SetAsync(account.Id, "ACH_Login", loginStreakDays, cancellationToken);
         int daysRegistered = (int)(DateTime.UtcNow - account.CreatedAt).TotalDays;
         await _achievementService.SetAsync(account.Id, "ACH_RegistrationDuration", daysRegistered, cancellationToken);
-        (_, int clubMonthsAccumulated, _) = await _userRepository.GetClubStatusAsync(account.Id, cancellationToken);
-        await _achievementService.SetAsync(account.Id, "HC", clubMonthsAccumulated, cancellationToken);
+        ClubGiftRules.Standing club = await _userRepository.GetClubGiftStandingAsync(account.Id, cancellationToken);
+        await _achievementService.SetAsync(account.Id, "ACH_BasicClub", club.ClubMonths, cancellationToken);
+        await _achievementService.SetAsync(account.Id, "ACH_VipClub", ClubGiftRules.VipMonths(club), cancellationToken);
 
         await _tags.CheckAchievementAsync(account.Id, cancellationToken);
 

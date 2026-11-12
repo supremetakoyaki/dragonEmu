@@ -12,6 +12,8 @@ public sealed class PopularRoomsSearchMessageComposer : IMessageComposer
 
     private string _searchParam = string.Empty;
 
+    public int AdIndex { get; private set; }
+
     public PopularRoomsSearchMessageComposer(IRoomManager roomManager)
     {
         _roomManager = roomManager;
@@ -20,6 +22,7 @@ public sealed class PopularRoomsSearchMessageComposer : IMessageComposer
     public void Parse(ClientPacket packet)
     {
         _searchParam = packet.PopString();
+        AdIndex = packet.RemainingLength > 0 ? packet.PopInt32() : 0;
     }
 
     public ValueTask HandleAsync(IGameSession session, CancellationToken cancellationToken)

@@ -136,7 +136,13 @@ public sealed class PlaceObjectMessageComposer : IMessageComposer
             definition?.IsStackable ?? false, definition?.ZDim ?? 0, definition?.Classname ?? "",
             definition?.InteractionLogic ?? FurnitureInteractionLogic.None, definition?.States,
             definition?.LogicClass ?? FurnitureLogicClass.Basic, definition?.VisualizationClass ?? FurnitureVisualizationClass.Static,
-            definition?.InteractionIds);
+            definition?.InteractionIds)
+        {
+            RefFurnidata = definition?.RefFurnidata ?? 0,
+            Heights = definition?.InteractionHeights,
+            HeightIndex = RoomFloorItem.HeightIndexOf(definition?.States, item.ExtraData),
+            GateOutfits = definition?.InteractionLogic == FurnitureInteractionLogic.ClothingGate ? item.ExtraData : null,
+        };
 
         HashSet<(int X, int Y)> footprint = placing.OccupiedTiles().ToHashSet();
         HashSet<(int X, int Y)> layTiles = placing.IsBed ? placing.LayTiles().ToHashSet() : [];

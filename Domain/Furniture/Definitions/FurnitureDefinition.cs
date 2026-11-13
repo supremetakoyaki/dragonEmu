@@ -22,7 +22,8 @@ public sealed record FurnitureDefinition(
     bool AllowTrade,
     bool AllowRecycle,
     LocalizedText? Names = null,
-    LocalizedText? Descriptions = null)
+    LocalizedText? Descriptions = null,
+    IReadOnlyList<double>? InteractionHeights = null)
 {
     public string NameIn(Language language) => Names?.For(language) is { Length: > 0 } name ? name : LocalizationName;
 

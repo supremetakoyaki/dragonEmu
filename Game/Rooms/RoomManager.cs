@@ -164,6 +164,10 @@ public sealed class RoomManager : IRoomManager, IHostedService, IDisposable
                 def?.InteractionLogic ?? FurnitureInteractionLogic.None, def?.States, def?.LogicClass ?? FurnitureLogicClass.Basic,
                 def?.VisualizationClass ?? FurnitureVisualizationClass.Static, def?.InteractionIds)
             {
+                RefFurnidata = item.RefFurnidata,
+                Heights = def?.InteractionHeights,
+                HeightIndex = RoomFloorItem.HeightIndexOf(def?.States, item.ExtraData),
+                GateOutfits = def?.InteractionLogic == FurnitureInteractionLogic.ClothingGate ? item.ExtraData : null,
                 IsGateOpen = item.ExtraData == "1",
             });
         }

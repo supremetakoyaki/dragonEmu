@@ -16,7 +16,8 @@ public static class AStarPathfinder
         IReadOnlySet<(int X, int Y)>? blockedUnlessGoal = null,
         IReadOnlySet<(int X, int Y)>? blockedAsGoal = null,
         IReadOnlySet<(int X, int Y)>? allowedTiles = null,
-        bool allowDiagonal = true)
+        bool allowDiagonal = true,
+        IReadOnlySet<(int X, int Y)>? straightOnlyTiles = null)
     {
         if (!grid.IsWalkGoal(goal.X, goal.Y) || occupied.Contains(goal) || blockedAsGoal?.Contains(goal) == true
             || allowedTiles?.Contains(goal) == false)
@@ -49,6 +50,11 @@ public static class AStarPathfinder
 
                 bool isDiagonal = dx != 0 && dy != 0;
                 if (isDiagonal && !allowDiagonal)
+                {
+                    continue;
+                }
+
+                if (isDiagonal && straightOnlyTiles is not null && (straightOnlyTiles.Contains(current) || straightOnlyTiles.Contains(neighbor)))
                 {
                     continue;
                 }

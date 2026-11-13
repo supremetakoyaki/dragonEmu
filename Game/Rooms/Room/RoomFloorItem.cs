@@ -30,7 +30,33 @@ public sealed class RoomFloorItem
 
     public bool IsStackable { get; }
 
-    public double StackHeight { get; }
+    public double StackHeight => Heights is { Count: > 0 } heights ? heights[Math.Clamp(HeightIndex, 0, heights.Count - 1)] : _stackHeight;
+
+    private readonly double _stackHeight;
+
+    public IReadOnlyList<double>? Heights { get; init; }
+
+    public int HeightIndex { get; set; }
+
+    public static int HeightIndexOf(IReadOnlyList<int>? states, string? extraData)
+    {
+        if (states is null || !int.TryParse(extraData, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int state))
+        {
+            return 0;
+        }
+
+        int index = -1;
+        for (int i = 0; i < states.Count; i++)
+        {
+            if (states[i] == state)
+            {
+                index = i;
+                break;
+            }
+        }
+
+        return Math.Max(0, index);
+    }
 
     public FurnitureInteractionLogic InteractionLogic { get; }
 
@@ -49,6 +75,16 @@ public sealed class RoomFloorItem
     public bool IsGateOpen { get; set; }
 
     public bool IsRoller => InteractionLogic == FurnitureInteractionLogic.Roller;
+
+    public bool IsClothingGate => InteractionLogic == FurnitureInteractionLogic.ClothingGate;
+
+    public string? GateOutfits { get; set; }
+
+    public bool IsFootball => InteractionLogic == FurnitureInteractionLogic.Football;
+
+    public bool IsFootballGoal => InteractionLogic == FurnitureInteractionLogic.FootballGoal;
+
+    public int RefFurnidata { get; init; }
 
     public bool IsTotemPiece => InteractionLogic is FurnitureInteractionLogic.TotemLeg or FurnitureInteractionLogic.TotemHead or FurnitureInteractionLogic.TotemPlanet;
 
@@ -78,7 +114,7 @@ public sealed class RoomFloorItem
         IsSittable = isSittable;
         IsBed = isBed;
         IsStackable = isStackable;
-        StackHeight = stackHeight;
+        _stackHeight = stackHeight;
         InteractionLogic = interactionLogic;
         States = states;
     }

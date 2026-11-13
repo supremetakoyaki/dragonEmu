@@ -976,6 +976,8 @@ public sealed partial class Room
                         actor.PendingStep = null;
                         actorChanged = true;
 
+                        TryUseClothingGate(actor);
+
                         if (!TryWarp(actor))
                         {
                             TryTakeExit(actor);
@@ -1086,7 +1088,8 @@ public sealed partial class Room
 
             IReadOnlyList<(int X, int Y)>? path = AStarPathfinder.FindPath(
                 Grid, occupied, (startX, startY), (goalX, goalY), FurnitureGoalOnlyTiles(), blockedAsGoal: others,
-                allowedTiles: actor.Bot?.Definition.WalkableArea, allowDiagonal: actor.Bot?.Definition.AllowDiagonal ?? true);
+                allowedTiles: actor.Bot?.Definition.WalkableArea, allowDiagonal: actor.Bot?.Definition.AllowDiagonal ?? true,
+                straightOnlyTiles: FurnitureStraightOnlyTiles());
 
             if (path is not { Count: > 1 })
             {
@@ -1318,7 +1321,8 @@ public sealed partial class Room
             IReadOnlyList<(int X, int Y)>? replan = actor.Goal is { } goal
                 ? AStarPathfinder.FindPath(
                     Grid, blocked, (actor.X, actor.Y), goal, FurnitureGoalOnlyTiles(), blockedAsGoal: others,
-                    allowedTiles: actor.Bot?.Definition.WalkableArea, allowDiagonal: actor.Bot?.Definition.AllowDiagonal ?? true)
+                    allowedTiles: actor.Bot?.Definition.WalkableArea, allowDiagonal: actor.Bot?.Definition.AllowDiagonal ?? true,
+                    straightOnlyTiles: FurnitureStraightOnlyTiles())
                 : null;
 
             if (replan is { Count: > 1 })
@@ -1332,6 +1336,15 @@ public sealed partial class Room
                 actor.IsWalking = false;
                 actor.Path = null;
                 return true;
+            }
+        }
+
+        bool lastStep = actor.PathIndex + 1 >= actor.Path.Count;
+        if (PlayBall(actor, nextX, nextY, lastStep) is { } nudge)
+        {
+            lock (_footballLock)
+            {
+                _nudges.Add(nudge);
             }
         }
 
@@ -1353,7 +1366,7 @@ public sealed partial class Room
     {
         bool isGoal = actor.Goal is { } goal && goal == (x, y);
         bool steppable = Grid.IsWalkable(x, y) || (isGoal && Grid.IsWalkGoal(x, y));
-        if (!steppable || !IsFurniturePassable(x, y, actor.Z, isGoal) || IsKeptOutOfWater(actor, x, y))
+        if (!steppable || !IsFurniturePassable(x, y, actor.Z, isGoal) || IsKeptOutOfWater(actor, x, y) || IsDiagonalThroughGate(actor.X, actor.Y, x, y))
         {
             return false;
         }

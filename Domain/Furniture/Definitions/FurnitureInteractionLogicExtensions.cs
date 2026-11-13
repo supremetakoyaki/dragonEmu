@@ -20,6 +20,12 @@ public static class FurnitureInteractionLogicExtensions
         FurnitureInteractionLogic.TotemPlanet => "totem_planet",
         FurnitureInteractionLogic.HockeyLight => "hockey_light",
         FurnitureInteractionLogic.SoundDisk => "sound_disk",
+        FurnitureInteractionLogic.Football => "football",
+        FurnitureInteractionLogic.FootballGoal => "football_goal",
+        FurnitureInteractionLogic.FootballCountdown => "football_countdown",
+        FurnitureInteractionLogic.FootballScoreCounter => "football_score_counter",
+        FurnitureInteractionLogic.ClothingGate => "clothing_gate",
+        FurnitureInteractionLogic.ToggleMultiheight => "toggle_multiheight",
         _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown furniture interaction logic."),
     };
 
@@ -41,6 +47,12 @@ public static class FurnitureInteractionLogicExtensions
         "totem_planet" => FurnitureInteractionLogic.TotemPlanet,
         "hockey_light" => FurnitureInteractionLogic.HockeyLight,
         "sound_disk" => FurnitureInteractionLogic.SoundDisk,
+        "football" => FurnitureInteractionLogic.Football,
+        "football_goal" => FurnitureInteractionLogic.FootballGoal,
+        "football_countdown" => FurnitureInteractionLogic.FootballCountdown,
+        "football_score_counter" => FurnitureInteractionLogic.FootballScoreCounter,
+        "clothing_gate" => FurnitureInteractionLogic.ClothingGate,
+        "toggle_multiheight" => FurnitureInteractionLogic.ToggleMultiheight,
         _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown furniture interaction_logic value from the database."),
     };
 }

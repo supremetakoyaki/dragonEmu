@@ -19,4 +19,16 @@ public enum FurnitureInteractionLogic
     HockeyLight,
 
     SoundDisk,
+
+    Football,
+
+    FootballGoal,
+
+    FootballCountdown,
+
+    FootballScoreCounter,
+
+    ClothingGate,
+
+    ToggleMultiheight,
 }

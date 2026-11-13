@@ -45,22 +45,41 @@ public sealed class FurnitureStateService
         return states[(index + 1) % states.Count];
     }
 
-    public async Task<bool> ToggleNextStateAsync(Room room, RoomFloorItem item, CancellationToken cancellationToken = default)
+    public async Task<bool> ToggleNextStateAsync(Room room, RoomFloorItem item, CancellationToken cancellationToken = default) =>
+        await ToggleNextStateValueAsync(room, item, cancellationToken) is not null;
+
+    public async Task<int?> ToggleNextStateValueAsync(Room room, RoomFloorItem item, CancellationToken cancellationToken = default)
     {
         if (item.States is not { Count: > 0 })
         {
-            return false;
+            return null;
         }
 
         UserItem? stored = await _userItemRepository.GetByIdAsync(item.Id, cancellationToken);
         if (stored is null || stored.RoomRef != room.Id || NextState(item.States, stored.ExtraData) is not { } next)
         {
-            return false;
+            return null;
         }
 
         string data = next.ToString(CultureInfo.InvariantCulture);
         await _userItemRepository.UpdateExtraDataAsync(item.Id, data, cancellationToken);
         _roomBroadcaster.Broadcast(room, new ObjectDataUpdateMessageEvent(item.Id, data).Compose());
+        return next;
+    }
+
+    public async Task<bool> ToggleMultiheightAsync(Room room, RoomFloorItem item, CancellationToken cancellationToken = default)
+    {
+        if (await ToggleNextStateValueAsync(room, item, cancellationToken) is not { } state)
+        {
+            return false;
+        }
+
+        IReadOnlyList<RoomActor> sitters = room.SetHeightState(item.Id, state);
+        if (sitters.Count > 0)
+        {
+            _roomBroadcaster.Broadcast(room, new UserUpdateMessageEvent(sitters).Compose());
+        }
+
         return true;
     }
 

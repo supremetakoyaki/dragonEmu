@@ -51,7 +51,7 @@ public sealed class FurnitureDefinitionRepository : IFurnitureDefinitionReposito
             VisualizationClass: FurnitureVisualizationClassExtensions.FromDbString(reader.GetString(10)),
             InteractionLogic: FurnitureInteractionLogicExtensions.FromDbString(reader.GetString(11)),
             States: reader.IsDBNull(12) ? null : ParseIntArray(reader.GetString(12)),
-            InteractionIds: reader.IsDBNull(13) ? null : ParseIntArray(reader.GetString(13)),
+            InteractionIds: reader.IsDBNull(13) || IsMultiheight(reader) ? null : ParseIntArray(reader.GetString(13)),
             IsSittable: reader.GetBoolean(14),
             IsBed: reader.GetBoolean(15),
             IsWalkable: reader.GetBoolean(16),
@@ -59,7 +59,8 @@ public sealed class FurnitureDefinitionRepository : IFurnitureDefinitionReposito
             AllowTrade: reader.GetBoolean(18),
             AllowRecycle: reader.GetBoolean(19),
             Names: InEveryLanguage(reader, 20, reader.GetString(7)),
-            Descriptions: InEveryLanguage(reader, 21, reader.GetString(8)));
+            Descriptions: InEveryLanguage(reader, 21, reader.GetString(8)),
+            InteractionHeights: !reader.IsDBNull(13) && IsMultiheight(reader) ? ParseDoubleArray(reader.GetString(13)) : null);
 
     private static LocalizedText InEveryLanguage(MySqlDataReader reader, int ordinal, string english)
     {
@@ -70,4 +71,10 @@ public sealed class FurnitureDefinitionRepository : IFurnitureDefinitionReposito
 
     private static IReadOnlyList<int> ParseIntArray(string json) =>
         JsonSerializer.Deserialize<List<int>>(json) ?? [];
+
+    private static bool IsMultiheight(MySqlDataReader reader) =>
+        FurnitureInteractionLogicExtensions.FromDbString(reader.GetString(11)) == FurnitureInteractionLogic.ToggleMultiheight;
+
+    private static IReadOnlyList<double> ParseDoubleArray(string json) =>
+        JsonSerializer.Deserialize<List<double>>(json) ?? [];
 }

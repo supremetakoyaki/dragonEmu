@@ -16,4 +16,17 @@ internal static class RoomFloorItemWireFormat
         packet.AppendString(item.ExtraData ?? string.Empty);
         packet.AppendInt32(item.RentMinutesLeft(DateTime.UtcNow));
     }
+
+    public static void AppendItem(ServerPacket packet, Game.Rooms.RoomFloorItem item, string extraData)
+    {
+        packet.AppendInt32(item.Id);
+        packet.AppendInt32(item.RefFurnidata);
+        packet.AppendInt32(item.X);
+        packet.AppendInt32(item.Y);
+        packet.AppendInt32(item.Direction);
+        packet.AppendString(item.Z.ToString("0.0###", System.Globalization.CultureInfo.InvariantCulture));
+        packet.AppendInt32(0);
+        packet.AppendString(extraData);
+        packet.AppendInt32(-1);
+    }
 }

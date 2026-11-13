@@ -19,14 +19,17 @@ public sealed class UseFurnitureMessageComposer : IMessageComposer
     private readonly TraxService _trax;
     private readonly TraxEditorService _traxEditor;
     private readonly JukeboxService _jukebox;
+    private readonly FootballService _football;
 
     private int _itemId;
+    private int _param;
 
     public UseFurnitureMessageComposer(
         IRoomManager roomManager, RoomTeleportService teleports, FurnitureStateService furnitureState, RoomRightsService roomRights,
         VendingService vending, TotemService totems, GateService gates, HockeyLightService hockeyLights, PetService pets, TraxService trax,
-        TraxEditorService traxEditor, JukeboxService jukebox)
+        TraxEditorService traxEditor, JukeboxService jukebox, FootballService football)
     {
+        _football = football;
         _trax = trax;
         _traxEditor = traxEditor;
         _jukebox = jukebox;
@@ -44,7 +47,7 @@ public sealed class UseFurnitureMessageComposer : IMessageComposer
     public void Parse(ClientPacket packet)
     {
         _itemId = packet.PopInt32();
-        packet.PopInt32();
+        _param = packet.PopInt32();
     }
 
     public async ValueTask HandleAsync(IGameSession session, CancellationToken cancellationToken)
@@ -99,6 +102,14 @@ public sealed class UseFurnitureMessageComposer : IMessageComposer
 
                 break;
 
+            case FurnitureInteractionLogic.ToggleMultiheight:
+                if (await _roomRights.CanToggleFurnitureAsync(account, room.Data, cancellationToken))
+                {
+                    await _furnitureState.ToggleMultiheightAsync(room, item, cancellationToken);
+                }
+
+                break;
+
             case FurnitureInteractionLogic.Gate:
                 if (await _roomRights.CanToggleFurnitureAsync(account, room.Data, cancellationToken))
                 {
@@ -127,6 +138,22 @@ public sealed class UseFurnitureMessageComposer : IMessageComposer
                 if (await _roomRights.CanToggleFurnitureAsync(account, room.Data, cancellationToken))
                 {
                     await _furnitureState.ToggleNextStateAsync(room, item, cancellationToken);
+                }
+
+                break;
+
+            case FurnitureInteractionLogic.FootballScoreCounter:
+                if (await _roomRights.CanToggleFurnitureAsync(account, room.Data, cancellationToken))
+                {
+                    await _football.UseCounterAsync(room, item, _param, cancellationToken);
+                }
+
+                break;
+
+            case FurnitureInteractionLogic.FootballCountdown:
+                if (await _roomRights.CanToggleFurnitureAsync(account, room.Data, cancellationToken))
+                {
+                    await _football.UseClockAsync(room, item, _param, cancellationToken);
                 }
 
                 break;

@@ -169,6 +169,11 @@ public sealed class MoveObjectMessageComposer : IMessageComposer
         room.ConfirmFloorItem(_itemId);
         _scheduler.MarkActive(room);
 
+        if (room.GetFloorItem(_itemId) is { IsFootball: true })
+        {
+            await _userItemRepository.UpdateExtraDataAsync(_itemId, "0", cancellationToken);
+        }
+
         UserItem? movedItem = await _userItemRepository.GetByIdAsync(_itemId, cancellationToken);
         if (movedItem is not null)
         {

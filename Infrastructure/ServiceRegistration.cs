@@ -127,6 +127,7 @@ public static class ServiceRegistration
         services.AddSingleton<GateService>();
         services.AddSingleton<VendingService>();
         services.AddSingleton<HockeyLightService>();
+        services.AddSingleton<FootballService>();
         services.AddSingleton<TraxService>();
         services.AddSingleton<TraxEditorService>();
         services.AddSingleton<JukeboxService>();

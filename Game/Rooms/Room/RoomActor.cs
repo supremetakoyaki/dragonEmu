@@ -91,6 +91,12 @@ public sealed class RoomActor
 
     public bool IsSwimming { get; set; }
 
+    public string? RegularFigure { get; set; }
+
+    public char RegularGender { get; set; }
+
+    public FootballTeam Team { get; set; }
+
     public bool InLockerRoom { get; set; }
 
     public PetBrain? Pet { get; init; }

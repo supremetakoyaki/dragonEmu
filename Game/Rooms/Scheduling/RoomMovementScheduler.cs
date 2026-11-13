@@ -20,9 +20,15 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
 {
     private static readonly TimeSpan TickInterval = TimeSpan.FromMilliseconds(500);
 
+    private static readonly TimeSpan SubTickInterval = TimeSpan.FromMilliseconds(25);
+    private static readonly int SubTicksPerTick = (int)(TickInterval / SubTickInterval);
+
     private static readonly TimeSpan TeleportArrivalWindow = TimeSpan.FromSeconds(30);
 
     private readonly ConcurrentDictionary<int, Room> _activeRooms = new();
+
+    private readonly ConcurrentDictionary<int, Room> _footballRooms = new();
+    private int _subTick;
     private readonly RoomBroadcaster _broadcaster;
     private readonly IRoomManager _roomManager;
     private readonly ClientSessionManager _sessionManager;
@@ -32,16 +38,18 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
     private readonly PetService _pets;
     private readonly IdolService _idol;
     private readonly PublicRoomTransfers _transfers;
+    private readonly FootballService _football;
     private readonly ILogger<RoomMovementScheduler> _logger;
-    private readonly PeriodicTimer _timer = new(TickInterval);
+    private readonly PeriodicTimer _timer = new(SubTickInterval);
     private CancellationTokenSource? _stoppingCts;
     private Task? _loop;
 
     public RoomMovementScheduler(
         RoomBroadcaster broadcaster, IRoomManager roomManager, ClientSessionManager sessionManager,
         GameSettingsCache gameSettings, FurniturePositionWriter positionWriter, TotemService totems, PetService pets,
-        PublicRoomTransfers transfers, IdolService idol, ILogger<RoomMovementScheduler> logger)
+        PublicRoomTransfers transfers, IdolService idol, FootballService football, ILogger<RoomMovementScheduler> logger)
     {
+        _football = football;
         _idol = idol;
         _transfers = transfers;
         _pets = pets;
@@ -60,6 +68,7 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
+        WindowsTimerResolution.Begin();
         _stoppingCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         _loop = RunAsync(_stoppingCts.Token);
         return Task.CompletedTask;
@@ -68,6 +77,7 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
     public async Task StopAsync(CancellationToken cancellationToken)
     {
         _stoppingCts?.Cancel();
+        WindowsTimerResolution.End();
 
         if (_loop is not null)
         {
@@ -87,9 +97,29 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
         {
             while (await _timer.WaitForNextTickAsync(cancellationToken))
             {
+                long nowMs = Environment.TickCount64;
+                bool roomTick = ++_subTick % SubTicksPerTick == 0;
+
+                if (!roomTick)
+                {
+                    foreach ((int roomId, Room room) in _footballRooms)
+                    {
+                        TickFootball(room, nowMs, roomTick: false);
+                        AnnounceStacking(room);
+                        _broadcaster.FlushPending(room);
+                        if (!room.BallRolling)
+                        {
+                            _footballRooms.TryRemove(roomId, out _);
+                        }
+                    }
+
+                    continue;
+                }
+
                 foreach ((int roomId, Room room) in _activeRooms)
                 {
                     bool stillNeedsMovementTicks = room.AdvanceMovement(out List<RoomActor> changed);
+                    bool footballBusy = TickFootball(room, nowMs, roomTick: true);
                     TeleporterTickResult teleporters = room.AdvanceTeleporters(changed);
                     List<OneWayDoorStatusChange> oneWayDoors = room.AdvanceOneWayDoors(changed, out bool oneWayDoorsBusy);
                     List<FurnitureStateChange> rolls = room.AdvanceRolls(out bool stillNeedsRollTicks);
@@ -101,6 +131,17 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
                     PetTickResult pets = AdvancePets(room, changed);
                     IdolTickResult idol = room.AdvanceIdol(DateTime.UtcNow, changed);
                     changed.AddRange(room.AdvanceHeads(out bool headsTurned).Except(changed));
+
+                    foreach (RoomActor dressed in room.TakeFigureChanges())
+                    {
+                        (string figure, char gender, string motto) = (string.Empty, 'M', string.Empty);
+                        lock (dressed.Lock)
+                        {
+                            (figure, gender, motto) = (dressed.Figure, dressed.Gender, dressed.Motto);
+                        }
+
+                        _broadcaster.Broadcast(room, new UserChangeMessageEvent(dressed.VirtualId, figure, gender, motto).Compose());
+                    }
 
                     foreach (FurnitureStateChange change in vending.StateChanges)
                     {
@@ -214,7 +255,7 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
                     _broadcaster.FlushPending(room);
 
                     if (!stillNeedsMovementTicks && !teleporters.NeedsFurtherTicks && !stillNeedsRollTicks && !rollers.NeedsFurtherTicks
-                        && !someoneHoldsAHandItem && !vending.NeedsFurtherTicks && !hockeyLightsLit
+                        && !someoneHoldsAHandItem && !vending.NeedsFurtherTicks && !hockeyLightsLit && !footballBusy
                         && !oneWayDoorsBusy && !kicksUnderWay && !room.BotsAwake && !room.PetsAwake && !room.IdolBusy && !headsTurned
                         && !queue.NeedsFurtherTicks)
                     {
@@ -234,7 +275,7 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
                         AnnounceStacking(room!);
                         _broadcaster.FlushPending(room!);
 
-                        if (room!.RollersHaveWork() || room.BotsAwake || room.PetsAwake || room.HeadsTurned)
+                        if (room!.RollersHaveWork() || room.BotsAwake || room.PetsAwake || room.HeadsTurned || room.FootballBusy)
                         {
                             MarkActive(room);
                         }
@@ -367,6 +408,32 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
         foreach ((RoomActor dancer, int danceId) in bots.Dances)
         {
             _broadcaster.Broadcast(room, new DanceMessageEvent(dancer.VirtualId, danceId).Compose());
+        }
+    }
+
+    private bool TickFootball(Room room, long nowMs, bool roomTick)
+    {
+        try
+        {
+            FootballTickResult football = room.AdvanceFootball(nowMs, roomTick);
+            IReadOnlyList<BallMove> nudges = roomTick ? room.TakeBallNudges() : [];
+            if (football.Moves.Count > 0 || football.Goals.Count > 0 || football.StateChanges.Count > 0 || football.Rests.Count > 0
+                || football.Finished.Count > 0 || nudges.Count > 0)
+            {
+                _football.HandleTick(room, football, nudges);
+            }
+
+            if (room.BallRolling)
+            {
+                _footballRooms.TryAdd(room.Id, room);
+            }
+
+            return football.NeedsFurtherTicks;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "The football in room {RoomId} failed this tick.", room.Id);
+            return false;
         }
     }
 

@@ -73,6 +73,26 @@ public sealed class UpdateFigureDataMessageComposer : IMessageComposer
         UserAccount updated = account with { Figure = sanitizedFigure, Gender = _gender };
         session.Authenticate(updated);
 
+        Room? currentRoom = session.CurrentRoomId is { } wearingIn ? await _roomManager.GetOrLoadRoomAsync(wearingIn, cancellationToken) : null;
+        if (currentRoom is not null && currentRoom.TryGetActor(session.Id, out RoomActor? wearing))
+        {
+            lock (wearing!.Lock)
+            {
+                if (wearing.RegularFigure is not null)
+                {
+                    wearing.RegularFigure = updated.Figure;
+                    wearing.RegularGender = updated.Gender;
+                    wearing = null;
+                }
+            }
+
+            if (wearing is null)
+            {
+                await _messenger.AnnounceAsync(account.Id, cancellationToken);
+                return;
+            }
+        }
+
         session.Send(new UserChangeMessageEvent(-1, updated.Figure, updated.Gender, updated.Motto).Compose());
         await _messenger.AnnounceAsync(account.Id, cancellationToken);
 

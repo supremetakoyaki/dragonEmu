@@ -95,6 +95,10 @@ public sealed class RoomActor
 
     public char RegularGender { get; set; }
 
+    public int WaterEffectId { get; set; }
+
+    public int EffectBeforeWater { get; set; }
+
     public FootballTeam Team { get; set; }
 
     public bool InLockerRoom { get; set; }

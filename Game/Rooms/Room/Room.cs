@@ -86,6 +86,7 @@ public sealed partial class Room
         {
             Interlocked.Increment(ref _userCount);
             EmptySince = null;
+            _autoRecheck = true;
             UserEntered?.Invoke(this, actor);
         }
 
@@ -111,6 +112,7 @@ public sealed partial class Room
 
         if (actor.Type == ActorType.Player)
         {
+            _autoRecheck = true;
             if (Interlocked.Decrement(ref _userCount) == 0)
             {
                 EmptySince = DateTime.UtcNow;
@@ -911,6 +913,8 @@ public sealed partial class Room
     private void RebuildTileIndex()
     {
         _stackingChanged = true;
+        _waterRecheck = true;
+        NoteAutoItems();
 
         var itemsByTile = new Dictionary<(int X, int Y), List<RoomFloorItem>>();
         foreach (RoomFloorItem item in _floorItems.Values)
@@ -977,6 +981,7 @@ public sealed partial class Room
                         actorChanged = true;
 
                         TryUseClothingGate(actor);
+                        UpdateWaterEffect(actor);
 
                         if (!TryWarp(actor))
                         {

@@ -31,4 +31,8 @@ public enum FurnitureInteractionLogic
     ClothingGate,
 
     ToggleMultiheight,
+
+    PoolInflatable,
+
+    PressurePlate,
 }

@@ -26,6 +26,8 @@ public static class FurnitureInteractionLogicExtensions
         FurnitureInteractionLogic.FootballScoreCounter => "football_score_counter",
         FurnitureInteractionLogic.ClothingGate => "clothing_gate",
         FurnitureInteractionLogic.ToggleMultiheight => "toggle_multiheight",
+        FurnitureInteractionLogic.PoolInflatable => "pool_inflatable",
+        FurnitureInteractionLogic.PressurePlate => "pressure_plate",
         _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown furniture interaction logic."),
     };
 
@@ -53,6 +55,8 @@ public static class FurnitureInteractionLogicExtensions
         "football_score_counter" => FurnitureInteractionLogic.FootballScoreCounter,
         "clothing_gate" => FurnitureInteractionLogic.ClothingGate,
         "toggle_multiheight" => FurnitureInteractionLogic.ToggleMultiheight,
+        "pool_inflatable" => FurnitureInteractionLogic.PoolInflatable,
+        "pressure_plate" => FurnitureInteractionLogic.PressurePlate,
         _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown furniture interaction_logic value from the database."),
     };
 }

@@ -39,6 +39,7 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
     private readonly IdolService _idol;
     private readonly PublicRoomTransfers _transfers;
     private readonly FootballService _football;
+    private readonly FurnitureAutoStateService _autoStateService;
     private readonly ILogger<RoomMovementScheduler> _logger;
     private readonly PeriodicTimer _timer = new(SubTickInterval);
     private CancellationTokenSource? _stoppingCts;
@@ -47,8 +48,10 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
     public RoomMovementScheduler(
         RoomBroadcaster broadcaster, IRoomManager roomManager, ClientSessionManager sessionManager,
         GameSettingsCache gameSettings, FurniturePositionWriter positionWriter, TotemService totems, PetService pets,
-        PublicRoomTransfers transfers, IdolService idol, FootballService football, ILogger<RoomMovementScheduler> logger)
+        PublicRoomTransfers transfers, IdolService idol, FootballService football,
+        FurnitureAutoStateService autoStateService, ILogger<RoomMovementScheduler> logger)
     {
+        _autoStateService = autoStateService;
         _football = football;
         _idol = idol;
         _transfers = transfers;
@@ -131,6 +134,23 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
                     PetTickResult pets = AdvancePets(room, changed);
                     IdolTickResult idol = room.AdvanceIdol(DateTime.UtcNow, changed);
                     changed.AddRange(room.AdvanceHeads(out bool headsTurned).Except(changed));
+
+                    IReadOnlyList<AutoStateChange> autoStates = room.AdvanceAutoStates(changed);
+                    if (autoStates.Count > 0)
+                    {
+                        _autoStateService.Apply(room, autoStates);
+                    }
+
+                    foreach (RoomActor wet in room.AdvanceWaterAreas())
+                    {
+                        int effect;
+                        lock (wet.Lock)
+                        {
+                            effect = wet.EffectId;
+                        }
+
+                        _broadcaster.Broadcast(room, new AvatarEffectMessageEvent(wet.VirtualId, effect).Compose());
+                    }
 
                     foreach (RoomActor dressed in room.TakeFigureChanges())
                     {
@@ -275,7 +295,7 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
                         AnnounceStacking(room!);
                         _broadcaster.FlushPending(room!);
 
-                        if (room!.RollersHaveWork() || room.BotsAwake || room.PetsAwake || room.HeadsTurned || room.FootballBusy)
+                        if (room!.RollersHaveWork() || room.BotsAwake || room.PetsAwake || room.HeadsTurned || room.FootballBusy || room.WaterRecheckPending || room.AutoStatesPending)
                         {
                             MarkActive(room);
                         }

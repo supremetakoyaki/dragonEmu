@@ -115,7 +115,7 @@ public sealed class AvatarEffectService : IHostedService
     private bool Wear(IGameSession session, int effectId)
     {
         session.AvatarEffectId = effectId;
-        return ShowInRoom(session, effectId);
+        return ShowInRoom(session, effectId, rememberInWater: true);
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
@@ -142,7 +142,9 @@ public sealed class AvatarEffectService : IHostedService
         }
     }
 
-    public bool ShowInRoom(IGameSession session, int effectId)
+    public bool ShowInRoom(IGameSession session, int effectId) => ShowInRoom(session, effectId, rememberInWater: false);
+
+    private bool ShowInRoom(IGameSession session, int effectId, bool rememberInWater)
     {
         if (session.CurrentRoomId is not { } roomId
             || !_roomManager.TryGetLoadedRoom(roomId, out Room? room)
@@ -151,12 +153,11 @@ public sealed class AvatarEffectService : IHostedService
             return false;
         }
 
-        lock (actor!.Lock)
+        if (room.TrySetEffect(actor!, effectId, rememberInWater))
         {
-            actor.EffectId = effectId;
+            _broadcaster.Broadcast(room, new AvatarEffectMessageEvent(actor!.VirtualId, effectId).Compose());
         }
 
-        _broadcaster.Broadcast(room, new AvatarEffectMessageEvent(actor.VirtualId, effectId).Compose());
         return true;
     }
 

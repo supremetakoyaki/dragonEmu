@@ -14,7 +14,13 @@ public sealed class RoomFloorItem
 
     public int Y { get; private set; }
 
-    public double Z { get; private set; }
+    public double Z => Pressed ? PressedZ : BaseZ;
+
+    public double BaseZ { get; private set; }
+
+    public bool Pressed { get; set; }
+
+    public const double PressedZ = 0;
 
     public int Rotation { get; private set; }
 
@@ -76,6 +82,12 @@ public sealed class RoomFloorItem
 
     public bool IsRoller => InteractionLogic == FurnitureInteractionLogic.Roller;
 
+    public bool IsAutoState => InteractionLogic is FurnitureInteractionLogic.PoolInflatable or FurnitureInteractionLogic.PressurePlate;
+
+    public bool IsWaterArea => VisualizationClass == FurnitureVisualizationClass.WaterArea;
+
+    public int WaterEffectId => IsWaterArea && InteractionIds is { Count: > 0 } ids ? ids[0] : 0;
+
     public bool IsClothingGate => InteractionLogic == FurnitureInteractionLogic.ClothingGate;
 
     public string? GateOutfits { get; set; }
@@ -106,7 +118,7 @@ public sealed class RoomFloorItem
         Classname = classname;
         X = x;
         Y = y;
-        Z = z;
+        BaseZ = z;
         Rotation = rotation;
         Width = width < 1 ? 1 : width;
         Length = length < 1 ? 1 : length;
@@ -191,7 +203,7 @@ public sealed class RoomFloorItem
     {
         X = x;
         Y = y;
-        Z = z;
+        BaseZ = z;
         Rotation = rotation;
     }
 }

@@ -10,9 +10,6 @@ namespace DragonEmu.Game.Furniture;
 
 public sealed class FootballService
 {
-    private const int CounterAdd = 1;
-    private const int CounterTake = 2;
-    private const int CounterReset = 3;
     private const int ClockStartStop = 1;
     private const int ClockNextPreset = 2;
 
@@ -76,11 +73,11 @@ public sealed class FootballService
 
     public async Task UseCounterAsync(Room room, RoomFloorItem counter, int param, CancellationToken cancellationToken)
     {
-        int? next = param switch
+        int? next = FootballRules.CounterButtonOf(param) switch
         {
-            CounterAdd => FootballRules.NextScore(await CurrentValueAsync(room, counter.Id, cancellationToken)),
-            CounterTake => FootballRules.PreviousScore(await CurrentValueAsync(room, counter.Id, cancellationToken)),
-            CounterReset => 0,
+            CounterButton.Add => FootballRules.NextScore(await CurrentValueAsync(room, counter.Id, cancellationToken)),
+            CounterButton.Take => FootballRules.PreviousScore(await CurrentValueAsync(room, counter.Id, cancellationToken)),
+            CounterButton.Reset => 0,
             _ => null,
         };
 

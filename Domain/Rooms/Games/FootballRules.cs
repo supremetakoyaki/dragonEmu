@@ -29,6 +29,14 @@ public static class FootballRules
         return CountdownPresets[0];
     }
 
+    public static CounterButton CounterButtonOf(int param) => param switch
+    {
+        1 => CounterButton.Add,
+        2 => CounterButton.Take,
+        0 or 3 => CounterButton.Reset,
+        _ => CounterButton.None,
+    };
+
     public static bool MayChangePreset(bool running) => !running;
 
     public const int CountdownTicksPerSecond = 2;
@@ -48,4 +56,12 @@ public static class FootballRules
     };
 
     public static bool EntersGoal(int ballDirection, int goalDirection) => ballDirection == Opposite(goalDirection);
+}
+
+public enum CounterButton
+{
+    None,
+    Add,
+    Take,
+    Reset,
 }

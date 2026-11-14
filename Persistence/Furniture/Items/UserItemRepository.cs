@@ -393,6 +393,30 @@ public sealed class UserItemRepository : IUserItemRepository
         return await command.ExecuteNonQueryAsync(cancellationToken) > 0;
     }
 
+    public async Task<IReadOnlyList<int>> DeleteInventoryAsync(int userId, Func<int, bool> keep, CancellationToken cancellationToken = default)
+    {
+        List<int> ids = (await GetInventoryAsync(userId, cancellationToken))
+            .Where(item => item.Type is FurnitureType.Floor or FurnitureType.Wall && !keep(item.Id))
+            .Select(item => item.Id)
+            .ToList();
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+
+        await using MySqlConnection connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+        foreach (int[] batch in ids.Chunk(500))
+        {
+            await using var command = new MySqlCommand(
+                $"DELETE FROM users_items WHERE id IN ({string.Join(", ", batch)}) AND user_ref = @userId AND room_ref IS NULL AND {ItemHolds.NotHeld("users_items.id")};",
+                connection);
+            command.Parameters.AddWithValue("@userId", userId);
+            await command.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        return ids;
+    }
+
     public async Task<StickiePlacement?> PlaceStickieAsync(
         int padId, int userId, int roomId, string wallPosition, string noteData, CancellationToken cancellationToken = default)
     {

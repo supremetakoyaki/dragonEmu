@@ -13,6 +13,8 @@ public sealed partial class Room
     private readonly object _banzaiTeleportLock = new();
     private readonly Dictionary<long, BanzaiTrip> _banzaiTrips = [];
     private readonly List<FurnitureStateChange> _banzaiTeleportStates = [];
+
+    private readonly List<(int ItemId, int Tick)> _banzaiStillAfterSpin = [];
     private int _banzaiTeleportTick;
 
     private volatile bool _hasBanzaiTeleports;
@@ -73,11 +75,58 @@ public sealed partial class Room
 
     private void DepartUnlocked(RoomActor actor, int teleportId, int dueTick)
     {
+        if (PickBanzaiTeleportUnlocked(actor, teleportId) is not { } targetId)
+        {
+            _banzaiTrips.Remove(actor.SessionId);
+            return;
+        }
+
         actor.IsWalking = false;
         actor.Path = null;
         actor.BanzaiTeleportHeld = true;
-        _banzaiTrips[actor.SessionId] = new BanzaiTrip(teleportId, Departing: true, Tick: dueTick);
+        _banzaiTrips[actor.SessionId] = new BanzaiTrip(teleportId, Departing: true, Tick: dueTick, TargetId: targetId);
         _banzaiTeleportStates.Add(new FurnitureStateChange(teleportId, BanzaiTeleportSpinning));
+        _banzaiTeleportStates.Add(new FurnitureStateChange(targetId, BanzaiTeleportSpinning));
+    }
+
+    private int? PickBanzaiTeleportUnlocked(RoomActor actor, int fromId)
+    {
+        List<int> free = FreeBanzaiTeleportsUnlocked(actor, fromId);
+        return free.Count == 0 ? null : free[Random.Shared.Next(free.Count)];
+    }
+
+    private List<int> FreeBanzaiTeleportsUnlocked(RoomActor actor, int fromId)
+    {
+        var taken = new HashSet<(int X, int Y)>();
+        foreach (RoomActor other in _actors.Values)
+        {
+            if (other.SessionId == actor.SessionId)
+            {
+                continue;
+            }
+
+            lock (other.Lock)
+            {
+                taken.Add((other.X, other.Y));
+                if (other.PendingStep is { } step)
+                {
+                    taken.Add((step.X, step.Y));
+                }
+            }
+        }
+
+        var reserved = new HashSet<int>(_banzaiTrips
+            .Where(trip => trip.Key != actor.SessionId && trip.Value.Departing)
+            .Select(trip => trip.Value.TargetId));
+
+        lock (_furnitureLock)
+        {
+            return _floorItems.Values
+                .Where(item => item.IsBanzaiTeleport && item.Id != fromId && !reserved.Contains(item.Id) && !taken.Contains((item.X, item.Y))
+                    && TopUnderBallsUnlocked(item.X, item.Y)?.Id == item.Id)
+                .Select(item => item.Id)
+                .ToList();
+        }
     }
 
     public IReadOnlyList<FurnitureStateChange> AdvanceBanzaiTeleports(List<RoomActor> changed, out bool busy)
@@ -102,6 +151,7 @@ public sealed partial class Room
                     if (trip.Departing)
                     {
                         _banzaiTeleportStates.Add(new FurnitureStateChange(trip.TeleportId, BanzaiTeleportStill));
+                        _banzaiTeleportStates.Add(new FurnitureStateChange(trip.TargetId, BanzaiTeleportStill));
                     }
 
                     continue;
@@ -149,40 +199,22 @@ public sealed partial class Room
         actor.BanzaiTeleportHeld = false;
         _banzaiTeleportStates.Add(new FurnitureStateChange(trip.TeleportId, BanzaiTeleportStill));
 
-        var taken = new HashSet<(int X, int Y)>();
-        foreach (RoomActor other in _actors.Values)
+        List<int> free = FreeBanzaiTeleportsUnlocked(actor, trip.TeleportId);
+        int? targetId = free.Contains(trip.TargetId) ? trip.TargetId
+            : free.Count > 0 ? free[Random.Shared.Next(free.Count)]
+            : null;
+        if (targetId != trip.TargetId)
         {
-            if (other.SessionId == actor.SessionId)
-            {
-                continue;
-            }
-
-            lock (other.Lock)
-            {
-                taken.Add((other.X, other.Y));
-                if (other.PendingStep is { } step)
-                {
-                    taken.Add((step.X, step.Y));
-                }
-            }
+            _banzaiTeleportStates.Add(new FurnitureStateChange(trip.TargetId, BanzaiTeleportStill));
         }
 
-        List<RoomFloorItem> free;
-        lock (_furnitureLock)
-        {
-            free = _floorItems.Values
-                .Where(item => item.IsBanzaiTeleport && item.Id != trip.TeleportId && !taken.Contains((item.X, item.Y))
-                    && TopUnderBallsUnlocked(item.X, item.Y)?.Id == item.Id)
-                .ToList();
-        }
-
-        if (free.Count == 0)
+        RoomFloorItem? to = targetId is { } id ? GetFloorItem(id) : null;
+        if (to is null)
         {
             _banzaiTrips.Remove(actor.SessionId);
             return;
         }
 
-        RoomFloorItem to = free[Random.Shared.Next(free.Count)];
         actor.X = to.X;
         actor.Y = to.Y;
         actor.Z = SurfaceHeightAt(to.X, to.Y);
@@ -198,11 +230,9 @@ public sealed partial class Room
         }
 
         _banzaiTeleportStates.Add(new FurnitureStateChange(to.Id, BanzaiTeleportSpinOnce));
-        _banzaiTrips[actor.SessionId] = new BanzaiTrip(to.Id, Departing: false, Tick: _banzaiTeleportTick);
+        _banzaiTrips[actor.SessionId] = new BanzaiTrip(to.Id, Departing: false, Tick: _banzaiTeleportTick, TargetId: to.Id);
         _banzaiStillAfterSpin.Add((to.Id, _banzaiTeleportTick + 1));
     }
-
-    private readonly List<(int ItemId, int Tick)> _banzaiStillAfterSpin = [];
 
     private void SettleSpunTeleportsUnlocked()
     {
@@ -218,5 +248,5 @@ public sealed partial class Room
         });
     }
 
-    private sealed record BanzaiTrip(int TeleportId, bool Departing, int Tick);
+    private sealed record BanzaiTrip(int TeleportId, bool Departing, int Tick, int TargetId);
 }

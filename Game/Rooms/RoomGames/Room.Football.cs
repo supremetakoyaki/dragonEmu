@@ -327,6 +327,10 @@ public sealed partial class Room
             {
                 return null;
             }
+            else if (item.IsBanzaiGate && _banzaiInProgress)
+            {
+                return null;
+            }
             else
             {
                 z = Math.Max(z, item.SurfaceZ);

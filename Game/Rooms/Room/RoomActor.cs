@@ -99,7 +99,7 @@ public sealed class RoomActor
 
     public int EffectBeforeWater { get; set; }
 
-    public FootballTeam Team { get; set; }
+    public GameTeam Team { get; set; }
 
     public bool InLockerRoom { get; set; }
 
@@ -115,7 +115,9 @@ public sealed class RoomActor
         ? Z - PetSeatDrop
         : Z;
 
-    public bool IsHeldByFurniture => ActiveTeleport is not null || ActiveOneWayDoor is not null;
+    public bool IsHeldByFurniture => ActiveTeleport is not null || ActiveOneWayDoor is not null || BanzaiTeleportHeld;
+
+    public bool BanzaiTeleportHeld { get; set; }
 
     public int? KickTicksLeft { get; set; }
 

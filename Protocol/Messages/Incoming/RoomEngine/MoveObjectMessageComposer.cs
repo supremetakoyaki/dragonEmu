@@ -169,7 +169,7 @@ public sealed class MoveObjectMessageComposer : IMessageComposer
         room.ConfirmFloorItem(_itemId);
         _scheduler.MarkActive(room);
 
-        if (room.GetFloorItem(_itemId) is { IsFootball: true })
+        if (room.GetFloorItem(_itemId) is { IsBall: true })
         {
             await _userItemRepository.UpdateExtraDataAsync(_itemId, "0", cancellationToken);
         }
@@ -177,6 +177,11 @@ public sealed class MoveObjectMessageComposer : IMessageComposer
         UserItem? movedItem = await _userItemRepository.GetByIdAsync(_itemId, cancellationToken);
         if (movedItem is not null)
         {
+            if (room.GetFloorItem(_itemId) is { Lowered: true } lowered)
+            {
+                movedItem = movedItem with { Z = (decimal)lowered.Z };
+            }
+
             _roomBroadcaster.Broadcast(room, new ObjectUpdateMessageEvent(movedItem).Compose());
         }
 

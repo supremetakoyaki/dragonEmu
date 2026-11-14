@@ -39,6 +39,7 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
     private readonly IdolService _idol;
     private readonly PublicRoomTransfers _transfers;
     private readonly FootballService _football;
+    private readonly BanzaiService _banzai;
     private readonly FurnitureAutoStateService _autoStateService;
     private readonly ILogger<RoomMovementScheduler> _logger;
     private readonly PeriodicTimer _timer = new(SubTickInterval);
@@ -49,8 +50,9 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
         RoomBroadcaster broadcaster, IRoomManager roomManager, ClientSessionManager sessionManager,
         GameSettingsCache gameSettings, FurniturePositionWriter positionWriter, TotemService totems, PetService pets,
         PublicRoomTransfers transfers, IdolService idol, FootballService football,
-        FurnitureAutoStateService autoStateService, ILogger<RoomMovementScheduler> logger)
+        FurnitureAutoStateService autoStateService, BanzaiService banzai, ILogger<RoomMovementScheduler> logger)
     {
+        _banzai = banzai;
         _autoStateService = autoStateService;
         _football = football;
         _idol = idol;
@@ -108,6 +110,7 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
                     foreach ((int roomId, Room room) in _footballRooms)
                     {
                         TickFootball(room, nowMs, roomTick: false);
+                        TickPuckPaints(room, nowMs);
                         AnnounceStacking(room);
                         _broadcaster.FlushPending(room);
                         if (!room.BallRolling)
@@ -122,7 +125,9 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
                 foreach ((int roomId, Room room) in _activeRooms)
                 {
                     bool stillNeedsMovementTicks = room.AdvanceMovement(out List<RoomActor> changed);
-                    bool footballBusy = TickFootball(room, nowMs, roomTick: true);
+                    FootballTickResult football = TickFootball(room, nowMs, roomTick: true);
+                    bool footballBusy = football.NeedsFurtherTicks;
+                    bool banzaiBusy = TickBanzai(room, football.Finished, nowMs);
                     TeleporterTickResult teleporters = room.AdvanceTeleporters(changed);
                     List<OneWayDoorStatusChange> oneWayDoors = room.AdvanceOneWayDoors(changed, out bool oneWayDoorsBusy);
                     List<FurnitureStateChange> rolls = room.AdvanceRolls(out bool stillNeedsRollTicks);
@@ -134,6 +139,12 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
                     PetTickResult pets = AdvancePets(room, changed);
                     IdolTickResult idol = room.AdvanceIdol(DateTime.UtcNow, changed);
                     changed.AddRange(room.AdvanceHeads(out bool headsTurned).Except(changed));
+
+                    IReadOnlyList<FurnitureStateChange> banzaiTeleports = room.AdvanceBanzaiTeleports(changed, out bool banzaiTeleportsBusy);
+                    if (ObjectsDataUpdateMessageEvent.ForChanges(banzaiTeleports.Select(change => (change.ItemId, change.ExtraData)).ToList()) is { } spins)
+                    {
+                        _broadcaster.Broadcast(room, spins.Compose());
+                    }
 
                     IReadOnlyList<AutoStateChange> autoStates = room.AdvanceAutoStates(changed);
                     if (autoStates.Count > 0)
@@ -275,9 +286,9 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
                     _broadcaster.FlushPending(room);
 
                     if (!stillNeedsMovementTicks && !teleporters.NeedsFurtherTicks && !stillNeedsRollTicks && !rollers.NeedsFurtherTicks
-                        && !someoneHoldsAHandItem && !vending.NeedsFurtherTicks && !hockeyLightsLit && !footballBusy
+                        && !someoneHoldsAHandItem && !vending.NeedsFurtherTicks && !hockeyLightsLit && !footballBusy && !banzaiBusy
                         && !oneWayDoorsBusy && !kicksUnderWay && !room.BotsAwake && !room.PetsAwake && !room.IdolBusy && !headsTurned
-                        && !queue.NeedsFurtherTicks)
+                        && !queue.NeedsFurtherTicks && !banzaiTeleportsBusy)
                     {
                         _activeRooms.TryRemove(roomId, out _);
                     }
@@ -295,7 +306,8 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
                         AnnounceStacking(room!);
                         _broadcaster.FlushPending(room!);
 
-                        if (room!.RollersHaveWork() || room.BotsAwake || room.PetsAwake || room.HeadsTurned || room.FootballBusy || room.WaterRecheckPending || room.AutoStatesPending)
+                        if (room!.RollersHaveWork() || room.BotsAwake || room.PetsAwake || room.HeadsTurned || room.FootballBusy || room.WaterRecheckPending || room.AutoStatesPending || room.BanzaiBusy
+                            || room.BanzaiTeleportsBusy)
                         {
                             MarkActive(room);
                         }
@@ -431,7 +443,7 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
         }
     }
 
-    private bool TickFootball(Room room, long nowMs, bool roomTick)
+    private FootballTickResult TickFootball(Room room, long nowMs, bool roomTick)
     {
         try
         {
@@ -448,12 +460,47 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
                 _footballRooms.TryAdd(room.Id, room);
             }
 
-            return football.NeedsFurtherTicks;
+            return football;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "The football in room {RoomId} failed this tick.", room.Id);
+            return FootballTickResult.Idle;
+        }
+    }
+
+    private bool TickBanzai(Room room, IReadOnlyList<CountdownFinished> finishedClocks, long nowMs)
+    {
+        try
+        {
+            BanzaiTickResult banzai = room.AdvanceBanzai(finishedClocks, nowMs);
+            if (banzai.Changes.Count > 0)
+            {
+                _banzai.HandleTick(room, banzai);
+            }
+
+            return banzai.Busy;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Battle Banzai in room {RoomId} failed this tick.", room.Id);
             return false;
+        }
+    }
+
+    private void TickPuckPaints(Room room, long nowMs)
+    {
+        try
+        {
+            BanzaiTickResult paints = room.AdvancePuckPaints(nowMs);
+            if (paints.Changes.Count > 0)
+            {
+                _banzai.HandleTick(room, paints);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Battle Banzai's puck in room {RoomId} failed this sub-tick.", room.Id);
         }
     }
 

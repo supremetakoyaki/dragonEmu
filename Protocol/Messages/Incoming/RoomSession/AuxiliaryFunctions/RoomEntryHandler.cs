@@ -260,6 +260,10 @@ internal static class RoomEntryHandler
         if (!isPublic)
         {
             IReadOnlyList<UserItem> floorItems = await userItemRepository.GetFloorItemsInRoomAsync(roomId, cancellationToken);
+
+            floorItems = floorItems.Select(floor => room.GetFloorItem(floor.Id) is { Lowered: true } live
+                ? floor with { Z = (decimal)live.Z }
+                : floor).ToList();
             IReadOnlyList<UserItem> wallItems = await userItemRepository.GetWallItemsInRoomAsync(roomId, cancellationToken);
             session.Send(new ObjectsMessageEvent(floorItems).Compose());
             session.Send(new ItemsMessageEvent(wallItems).Compose());

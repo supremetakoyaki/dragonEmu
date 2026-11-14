@@ -7,7 +7,7 @@ public readonly record struct BallMove(RoomFloorItem Ball, int X, int Y, double 
 
 public readonly record struct BallRest(RoomFloorItem Ball, string State);
 
-public readonly record struct FootballGoalScored(RoomFloorItem Goal, FootballTeam Team, RoomActor? Kicker);
+public readonly record struct FootballGoalScored(RoomFloorItem Goal, GameTeam Team, RoomActor? Kicker);
 
 public readonly record struct CountdownFinished(int ItemId);
 
@@ -32,6 +32,7 @@ public sealed partial class Room
     private readonly object _footballLock = new();
     private readonly Dictionary<int, BallRoll> _ballRolls = new();
     private readonly Dictionary<int, int> _goalPulses = new();
+    private readonly Dictionary<int, long> _goalCooldowns = new();
     private readonly Dictionary<int, FootballClock> _clocks = new();
     private int _clockParity;
 
@@ -67,12 +68,13 @@ public sealed partial class Room
                 return false;
             }
 
-            _ballRolls[ball.Id] = new BallRoll(ball, direction, kicker?.SessionId, ball.X, ball.Y);
+            (GameTeam team, int? trail) = BallTrail(ball, kicker);
+            _ballRolls[ball.Id] = new BallRoll(ball, direction, kicker?.SessionId, ball.X, ball.Y, team, trail);
             return true;
         }
     }
 
-    public BallMove? TryNudgeBall(RoomFloorItem ball, int direction, HashSet<(int X, int Y)> occupied)
+    public BallMove? TryNudgeBall(RoomFloorItem ball, int direction, HashSet<(int X, int Y)> occupied, int? trail = null, GameTeam team = GameTeam.None)
     {
         lock (_footballLock)
         {
@@ -84,7 +86,8 @@ public sealed partial class Room
                     return null;
                 }
 
-                return MoveBallUnlocked(ball, to.X, to.Y, to.Z, direction, FootballRules.RollingSlowly);
+                QueuePuckPaint(ball, to.X, to.Y, team, Environment.TickCount64 + FootballRules.IntervalMs(FootballRules.RollingSlowly));
+                return MoveBallUnlocked(ball, to.X, to.Y, to.Z, direction, FootballRules.RollState(FootballRules.RollingSlowly, trail));
             }
         }
     }
@@ -93,7 +96,7 @@ public sealed partial class Room
     {
         lock (_furnitureLock)
         {
-            return ItemsAtUnlocked(x, y).LastOrDefault(item => item.IsFootball);
+            return ItemsAtUnlocked(x, y).LastOrDefault(item => item.IsBall);
         }
     }
 
@@ -120,7 +123,17 @@ public sealed partial class Room
     {
         lock (_footballLock)
         {
-            _clocks[itemId] = new FootballClock(seconds, running);
+            int preset = FootballRules.CountdownPresets.Contains(seconds) ? seconds
+                : _clocks.TryGetValue(itemId, out FootballClock? known) ? known.Preset : FootballRules.CountdownPresets[0];
+            _clocks[itemId] = new FootballClock(seconds, running, preset);
+        }
+    }
+
+    public int ClockPreset(int itemId)
+    {
+        lock (_footballLock)
+        {
+            return _clocks.TryGetValue(itemId, out FootballClock? clock) ? clock.Preset : FootballRules.CountdownPresets[0];
         }
     }
 
@@ -239,7 +252,7 @@ public sealed partial class Room
     {
         while (roll.Slot < FootballRules.KickStates.Count)
         {
-            string state = FootballRules.KickStates[roll.Slot];
+            string state = FootballRules.RollState(FootballRules.KickStates[roll.Slot], roll.Trail);
             roll.Slot++;
 
             if (BallDestinationUnlocked(ball, roll.Direction, occupied) is { } to)
@@ -253,9 +266,16 @@ public sealed partial class Room
                 roll.Timed = true;
                 roll.DueAtMs = scheduled + FootballRules.IntervalMs(state);
 
+                QueuePuckPaint(ball, to.X, to.Y, roll.Team, roll.DueAtMs);
+
                 if (to.Goal is { } goal)
                 {
-                    goals.Add(new FootballGoalScored(goal, FootballTeams.OfClassname(goal.Classname), roll.KickerSessionId is { } kicker && _actors.TryGetValue(kicker, out RoomActor? actor) ? actor : null));
+                    if (!_goalCooldowns.TryGetValue(goal.Id, out long until) || nowMs >= until)
+                    {
+                        _goalCooldowns[goal.Id] = nowMs + FootballRules.GoalCooldownMs;
+                        goals.Add(new FootballGoalScored(goal, GameTeams.OfClassname(goal.Classname), roll.KickerSessionId is { } kicker && _actors.TryGetValue(kicker, out RoomActor? actor) ? actor : null));
+                    }
+
                     roll.Direction = FootballRules.Opposite(roll.Direction);
                 }
 
@@ -268,6 +288,14 @@ public sealed partial class Room
 
     private (int X, int Y, double Z, RoomFloorItem? Goal)? BallDestinationUnlocked(RoomFloorItem ball, int direction, HashSet<(int X, int Y)> occupied)
     {
+        foreach (RoomFloorItem item in ItemsAtUnlocked(ball.X, ball.Y))
+        {
+            if (item.IsFootballGoal && !FootballRules.LeavesGoal(direction, item.Direction))
+            {
+                return null;
+            }
+        }
+
         (int x, int y) = FootballRules.Step(ball.X, ball.Y, direction);
         if (!Grid.IsWalkable(x, y) || Grid.IsDoor(x, y) || occupied.Contains((x, y)))
         {
@@ -278,7 +306,7 @@ public sealed partial class Room
         RoomFloorItem? goal = null;
         foreach (RoomFloorItem item in ItemsAtUnlocked(x, y))
         {
-            if (item.IsFootball)
+            if (item.IsBall)
             {
                 if (item.Id != ball.Id)
                 {
@@ -287,7 +315,7 @@ public sealed partial class Room
             }
             else if (item.IsFootballGoal)
             {
-                if (GoalMouth(item) != (x, y) || !FootballRules.EntersGoal(direction, item.Direction))
+                if (!FootballRules.EntersGoal(direction, item.Direction))
                 {
                     return null;
                 }
@@ -308,10 +336,26 @@ public sealed partial class Room
         return Math.Abs(z - ball.Z) > MaxClimbHeight ? null : (x, y, z, goal);
     }
 
-    public static (int X, int Y) GoalMouth(RoomFloorItem goal)
+    public bool TryReturnBallFromGoal(RoomFloorItem ball)
     {
-        List<(int X, int Y)> tiles = goal.OccupiedTiles().ToList();
-        return tiles[tiles.Count / 2];
+        lock (_movementLock)
+        {
+            HashSet<(int X, int Y)> occupied = BallObstacleTiles(excludeSessionId: -1);
+            lock (_footballLock)
+            lock (_furnitureLock)
+            {
+                if (!_floorItems.ContainsKey(ball.Id) || _ballRolls.ContainsKey(ball.Id)
+                    || ItemsAtUnlocked(ball.X, ball.Y).FirstOrDefault(item => item.IsFootballGoal) is not { } goal
+                    || BallDestinationUnlocked(ball, goal.Direction, occupied) is not { Goal: null } to)
+                {
+                    return false;
+                }
+
+                string state = FootballRules.RollState(FootballRules.RollingSlowly, BallTrail(ball, null).Trail);
+                _nudges.Add(MoveBallUnlocked(ball, to.X, to.Y, to.Z, goal.Direction, state));
+                return true;
+            }
+        }
     }
 
     private BallMove MoveBallUnlocked(RoomFloorItem ball, int x, int y, double z, int direction, string state)
@@ -344,7 +388,19 @@ public sealed partial class Room
 
         HashSet<(int X, int Y)> occupied = BallObstacleTiles(actor.SessionId);
         occupied.Add((nextX, nextY));
-        return TryNudgeBall(ball, direction, occupied);
+        (GameTeam team, int? trail) = BallTrail(ball, actor);
+        return TryNudgeBall(ball, direction, occupied, trail, team);
+    }
+
+    private static (GameTeam Team, int? Trail) BallTrail(RoomFloorItem ball, RoomActor? kicker)
+    {
+        if (!ball.IsBanzaiPuck)
+        {
+            return (GameTeam.None, null);
+        }
+
+        GameTeam team = kicker?.Team ?? GameTeam.None;
+        return (team, BanzaiRules.PuckTrail(team));
     }
 
     public IReadOnlyList<BallMove> TakeBallNudges()
@@ -364,8 +420,12 @@ public sealed partial class Room
 
     private readonly List<BallMove> _nudges = [];
 
-    private sealed class BallRoll(RoomFloorItem ball, int direction, long? kickerSessionId, int lastX, int lastY)
+    private sealed class BallRoll(RoomFloorItem ball, int direction, long? kickerSessionId, int lastX, int lastY, GameTeam team, int? trail)
     {
+        public GameTeam Team { get; } = team;
+
+        public int? Trail { get; } = trail;
+
         public RoomFloorItem Ball { get; } = ball;
 
         public int Direction { get; set; } = direction;
@@ -382,13 +442,15 @@ public sealed partial class Room
 
         public int LastY { get; set; } = lastY;
 
-        public string LastState { get; set; } = FootballRules.RollingSlowly;
+        public string LastState { get; set; } = FootballRules.RollState(FootballRules.RollingSlowly, trail);
     }
 
-    private sealed class FootballClock(int seconds, bool running)
+    private sealed class FootballClock(int seconds, bool running, int preset)
     {
         public int Seconds { get; set; } = seconds;
 
         public bool Running { get; set; } = running;
+
+        public int Preset { get; } = preset;
     }
 }

@@ -22,12 +22,12 @@ public sealed class FurnitureAutoStateService
 
     public void Apply(Room room, IReadOnlyList<AutoStateChange> changes)
     {
-        foreach (AutoStateChange plate in changes.Where(c => c.Item.InteractionLogic == FurnitureInteractionLogic.PressurePlate))
+        foreach (AutoStateChange inflatable in changes.Where(c => c.Item.InteractionLogic == FurnitureInteractionLogic.PoolInflatable))
         {
-            _broadcaster.Broadcast(room, new ObjectUpdateMessageEvent(plate.Item, State(plate.State)).Compose());
+            _broadcaster.Broadcast(room, new ObjectUpdateMessageEvent(inflatable.Item, State(inflatable.State)).Compose());
         }
 
-        var shown = changes.Where(c => c.Item.InteractionLogic != FurnitureInteractionLogic.PressurePlate).Select(c => (c.Item.Id, State(c.State))).ToList();
+        var shown = changes.Where(c => c.Item.InteractionLogic != FurnitureInteractionLogic.PoolInflatable).Select(c => (c.Item.Id, State(c.State))).ToList();
         if (ObjectsDataUpdateMessageEvent.ForChanges(shown) is { } update)
         {
             _broadcaster.Broadcast(room, update.Compose());

@@ -142,6 +142,7 @@ public sealed class PlaceObjectMessageComposer : IMessageComposer
             Heights = definition?.InteractionHeights,
             HeightIndex = RoomFloorItem.HeightIndexOf(definition?.States, item.ExtraData),
             GateOutfits = definition?.InteractionLogic == FurnitureInteractionLogic.ClothingGate ? item.ExtraData : null,
+            TileState = definition?.InteractionLogic == FurnitureInteractionLogic.BanzaiTile ? 0 : RoomFloorItem.ParseState(item.ExtraData),
         };
 
         HashSet<(int X, int Y)> footprint = placing.OccupiedTiles().ToHashSet();
@@ -194,7 +195,8 @@ public sealed class PlaceObjectMessageComposer : IMessageComposer
         }
 
         bool placedAtZero = definition?.InteractionLogic is FurnitureInteractionLogic.Vending or FurnitureInteractionLogic.Gate
-            or FurnitureInteractionLogic.HockeyLight || definition?.LogicClass == FurnitureLogicClass.OneWayDoor
+            or FurnitureInteractionLogic.HockeyLight or FurnitureInteractionLogic.BanzaiTile or FurnitureInteractionLogic.BanzaiTeleport
+            || definition?.LogicClass == FurnitureLogicClass.OneWayDoor
             || (definition is not null && Room.IsSoundFurni(definition.LogicClass));
         string? basalExtraData = definition?.LogicClass switch
         {

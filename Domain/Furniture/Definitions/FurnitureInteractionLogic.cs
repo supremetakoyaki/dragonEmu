@@ -35,4 +35,16 @@ public enum FurnitureInteractionLogic
     PoolInflatable,
 
     PressurePlate,
+
+    BanzaiTile,
+
+    BanzaiGate,
+
+    BanzaiScore,
+
+    BanzaiCountdown,
+
+    BanzaiPuck,
+
+    BanzaiTeleport,
 }

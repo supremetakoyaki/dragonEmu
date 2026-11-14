@@ -6,6 +6,8 @@ public static class FootballRules
 
     public const string RollingSlowly = "11";
 
+    public static string RollState(string state, int? trail) => trail is { } digit ? $"{state[0]}{digit}" : state;
+
     public static int IntervalMs(string state) => 500 / Math.Max(1, (state[0] - '0'));
 
     public const int MaxScore = 99;
@@ -56,6 +58,10 @@ public static class FootballRules
     };
 
     public static bool EntersGoal(int ballDirection, int goalDirection) => ballDirection == Opposite(goalDirection);
+
+    public static bool LeavesGoal(int ballDirection, int goalDirection) => ballDirection == goalDirection;
+
+    public const long GoalCooldownMs = 6 * 500;
 }
 
 public enum CounterButton

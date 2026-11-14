@@ -16,7 +16,15 @@ public sealed partial class Room
     private void NoteAutoItems()
     {
         _hasAutoItems = _floorItems.Values.Any(item => item.IsAutoState);
+        _hasBanzai = _floorItems.Values.Any(item => item.IsBanzaiTile || item.IsBanzaiGate || item.IsBanzaiPuck);
+        NoteBanzaiItems();
+        NoteBanzaiTeleports();
         _autoRecheck = true;
+
+        if (_autoStates.Count > 0 && !_hasAutoItems)
+        {
+            _autoStates.Clear();
+        }
     }
 
     private int InflatableState(RoomFloorItem inflatable)
@@ -28,7 +36,7 @@ public sealed partial class Room
             {
                 foreach (RoomFloorItem item in items)
                 {
-                    if (item.Id != inflatable.Id && item.SurfaceZ <= inflatable.Z + 0.001 && (under is null || item.SurfaceZ >= under.SurfaceZ))
+                    if (item.Id != inflatable.Id && item.SurfaceZ <= inflatable.BaseZ + 0.001 && (under is null || item.SurfaceZ >= under.SurfaceZ))
                     {
                         under = item;
                     }
@@ -67,6 +75,14 @@ public sealed partial class Room
         var movedTiles = new HashSet<(int X, int Y)>();
         lock (_furnitureLock)
         {
+            if (_autoStates.Count > 0)
+            {
+                foreach (int gone in _autoStates.Keys.Where(id => !_floorItems.ContainsKey(id)).ToList())
+                {
+                    _autoStates.Remove(gone);
+                }
+            }
+
             foreach (RoomFloorItem item in _floorItems.Values)
             {
                 int state = item.InteractionLogic switch
@@ -87,9 +103,9 @@ public sealed partial class Room
                     _autoStates[item.Id] = state;
                     changes.Add(new AutoStateChange(item, state, First: !known));
 
-                    if (item.InteractionLogic == FurnitureInteractionLogic.PressurePlate && item.Pressed != (state == 1))
+                    if (item.InteractionLogic == FurnitureInteractionLogic.PoolInflatable && item.Lowered != (state == 1))
                     {
-                        item.Pressed = state == 1;
+                        item.Lowered = state == 1;
                         movedTiles.UnionWith(item.OccupiedTiles());
                     }
                 }

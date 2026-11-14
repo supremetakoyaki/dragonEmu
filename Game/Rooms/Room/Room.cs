@@ -109,6 +109,7 @@ public sealed partial class Room
 
         actor!.TakeTrade()?.Cancel(actor.AccountId);
         EndEventHostedBy(sessionId);
+        LeaveBanzaiTeam(actor);
 
         if (actor.Type == ActorType.Player)
         {
@@ -704,6 +705,11 @@ public sealed partial class Room
             }
         }
 
+        if (_banzaiGatesShut)
+        {
+            blocked.UnionWith(BanzaiGateTiles());
+        }
+
         return blocked;
     }
 
@@ -982,6 +988,10 @@ public sealed partial class Room
 
                         TryUseClothingGate(actor);
                         UpdateWaterEffect(actor);
+
+                        PlayBanzai(actor, actor.X, actor.Y);
+
+                        TryStartBanzaiTeleport(actor);
 
                         if (!TryWarp(actor))
                         {
@@ -1371,7 +1381,8 @@ public sealed partial class Room
     {
         bool isGoal = actor.Goal is { } goal && goal == (x, y);
         bool steppable = Grid.IsWalkable(x, y) || (isGoal && Grid.IsWalkGoal(x, y));
-        if (!steppable || !IsFurniturePassable(x, y, actor.Z, isGoal) || IsKeptOutOfWater(actor, x, y) || IsDiagonalThroughGate(actor.X, actor.Y, x, y))
+        if (!steppable || !IsFurniturePassable(x, y, actor.Z, isGoal) || IsKeptOutOfWater(actor, x, y) || IsDiagonalThroughGate(actor.X, actor.Y, x, y)
+            || IsShutBanzaiGate(x, y))
         {
             return false;
         }

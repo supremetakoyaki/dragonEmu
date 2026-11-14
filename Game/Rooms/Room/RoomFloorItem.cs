@@ -14,13 +14,13 @@ public sealed class RoomFloorItem
 
     public int Y { get; private set; }
 
-    public double Z => Pressed ? PressedZ : BaseZ;
+    public double Z => Lowered ? LoweredZ : BaseZ;
 
     public double BaseZ { get; private set; }
 
-    public bool Pressed { get; set; }
+    public bool Lowered { get; set; }
 
-    public const double PressedZ = 0;
+    public const double LoweredZ = 0;
 
     public int Rotation { get; private set; }
 
@@ -95,6 +95,23 @@ public sealed class RoomFloorItem
     public bool IsFootball => InteractionLogic == FurnitureInteractionLogic.Football;
 
     public bool IsFootballGoal => InteractionLogic == FurnitureInteractionLogic.FootballGoal;
+
+    public bool IsBanzaiPuck => InteractionLogic == FurnitureInteractionLogic.BanzaiPuck;
+
+    public bool IsBall => IsFootball || IsBanzaiPuck;
+
+    public bool IsBanzaiTile => InteractionLogic == FurnitureInteractionLogic.BanzaiTile;
+
+    public bool IsBanzaiGate => InteractionLogic == FurnitureInteractionLogic.BanzaiGate;
+
+    public bool IsBanzaiScore => InteractionLogic == FurnitureInteractionLogic.BanzaiScore;
+
+    public bool IsBanzaiTeleport => InteractionLogic == FurnitureInteractionLogic.BanzaiTeleport;
+
+    public int TileState { get; set; }
+
+    public static int ParseState(string? extraData) =>
+        int.TryParse(extraData, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int state) ? state : 0;
 
     public int RefFurnidata { get; init; }
 

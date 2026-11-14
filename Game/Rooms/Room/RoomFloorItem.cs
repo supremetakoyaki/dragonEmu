@@ -96,6 +96,21 @@ public sealed class RoomFloorItem
 
     public bool IsFootballGoal => InteractionLogic == FurnitureInteractionLogic.FootballGoal;
 
+    public bool IsBanzaiPuck => InteractionLogic == FurnitureInteractionLogic.BanzaiPuck;
+
+    public bool IsBall => IsFootball || IsBanzaiPuck;
+
+    public bool IsBanzaiTile => InteractionLogic == FurnitureInteractionLogic.BanzaiTile;
+
+    public bool IsBanzaiGate => InteractionLogic == FurnitureInteractionLogic.BanzaiGate;
+
+    public bool IsBanzaiScore => InteractionLogic == FurnitureInteractionLogic.BanzaiScore;
+
+    public int TileState { get; set; }
+
+    public static int ParseState(string? extraData) =>
+        int.TryParse(extraData, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int state) ? state : 0;
+
     public int RefFurnidata { get; init; }
 
     public bool IsTotemPiece => InteractionLogic is FurnitureInteractionLogic.TotemLeg or FurnitureInteractionLogic.TotemHead or FurnitureInteractionLogic.TotemPlanet;

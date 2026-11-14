@@ -1,3 +1,5 @@
+using DragonEmu.Domain;
+
 namespace DragonEmu.Game.Rooms;
 
 public sealed partial class Room
@@ -37,7 +39,12 @@ public sealed partial class Room
 
         actor.WaterEffectId = water;
         actor.EffectId = water > 0 ? water : actor.EffectBeforeWater;
+        QueueEffectChange(actor);
+        return true;
+    }
 
+    private void QueueEffectChange(RoomActor actor)
+    {
         lock (_effectLock)
         {
             if (!_effectChanges.Contains(actor))
@@ -45,8 +52,6 @@ public sealed partial class Room
                 _effectChanges.Add(actor);
             }
         }
-
-        return true;
     }
 
     public bool TrySetEffect(RoomActor actor, int effectId, bool remember)
@@ -60,6 +65,11 @@ public sealed partial class Room
                     actor.EffectBeforeWater = effectId;
                 }
 
+                return false;
+            }
+
+            if (actor.Team != GameTeam.None)
+            {
                 return false;
             }
 

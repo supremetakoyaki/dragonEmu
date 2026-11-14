@@ -20,6 +20,7 @@ public sealed class UseFurnitureMessageComposer : IMessageComposer
     private readonly TraxEditorService _traxEditor;
     private readonly JukeboxService _jukebox;
     private readonly FootballService _football;
+    private readonly BanzaiService _banzai;
 
     private int _itemId;
     private int _param;
@@ -27,8 +28,9 @@ public sealed class UseFurnitureMessageComposer : IMessageComposer
     public UseFurnitureMessageComposer(
         IRoomManager roomManager, RoomTeleportService teleports, FurnitureStateService furnitureState, RoomRightsService roomRights,
         VendingService vending, TotemService totems, GateService gates, HockeyLightService hockeyLights, PetService pets, TraxService trax,
-        TraxEditorService traxEditor, JukeboxService jukebox, FootballService football)
+        TraxEditorService traxEditor, JukeboxService jukebox, FootballService football, BanzaiService banzai)
     {
+        _banzai = banzai;
         _football = football;
         _trax = trax;
         _traxEditor = traxEditor;
@@ -154,6 +156,14 @@ public sealed class UseFurnitureMessageComposer : IMessageComposer
                 if (await _roomRights.CanToggleFurnitureAsync(account, room.Data, cancellationToken))
                 {
                     await _football.UseClockAsync(room, item, _param, cancellationToken);
+                }
+
+                break;
+
+            case FurnitureInteractionLogic.BanzaiCountdown:
+                if (await _roomRights.CanToggleFurnitureAsync(account, room.Data, cancellationToken))
+                {
+                    await _banzai.UseClockAsync(room, item, _param, cancellationToken);
                 }
 
                 break;

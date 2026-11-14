@@ -16,7 +16,13 @@ public sealed partial class Room
     private void NoteAutoItems()
     {
         _hasAutoItems = _floorItems.Values.Any(item => item.IsAutoState);
+        _hasBanzai = _floorItems.Values.Any(item => item.IsBanzaiTile || item.IsBanzaiGate || item.IsBanzaiPuck);
         _autoRecheck = true;
+
+        if (_autoStates.Count > 0 && !_hasAutoItems)
+        {
+            _autoStates.Clear();
+        }
     }
 
     private int InflatableState(RoomFloorItem inflatable)
@@ -67,6 +73,14 @@ public sealed partial class Room
         var movedTiles = new HashSet<(int X, int Y)>();
         lock (_furnitureLock)
         {
+            if (_autoStates.Count > 0)
+            {
+                foreach (int gone in _autoStates.Keys.Where(id => !_floorItems.ContainsKey(id)).ToList())
+                {
+                    _autoStates.Remove(gone);
+                }
+            }
+
             foreach (RoomFloorItem item in _floorItems.Values)
             {
                 int state = item.InteractionLogic switch

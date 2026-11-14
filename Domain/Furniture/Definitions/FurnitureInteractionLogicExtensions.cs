@@ -28,6 +28,11 @@ public static class FurnitureInteractionLogicExtensions
         FurnitureInteractionLogic.ToggleMultiheight => "toggle_multiheight",
         FurnitureInteractionLogic.PoolInflatable => "pool_inflatable",
         FurnitureInteractionLogic.PressurePlate => "pressure_plate",
+        FurnitureInteractionLogic.BanzaiTile => "banzai_tile",
+        FurnitureInteractionLogic.BanzaiGate => "banzai_gate",
+        FurnitureInteractionLogic.BanzaiScore => "banzai_score",
+        FurnitureInteractionLogic.BanzaiCountdown => "banzai_countdown",
+        FurnitureInteractionLogic.BanzaiPuck => "banzai_puck",
         _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown furniture interaction logic."),
     };
 
@@ -57,6 +62,11 @@ public static class FurnitureInteractionLogicExtensions
         "toggle_multiheight" => FurnitureInteractionLogic.ToggleMultiheight,
         "pool_inflatable" => FurnitureInteractionLogic.PoolInflatable,
         "pressure_plate" => FurnitureInteractionLogic.PressurePlate,
+        "banzai_tile" => FurnitureInteractionLogic.BanzaiTile,
+        "banzai_gate" => FurnitureInteractionLogic.BanzaiGate,
+        "banzai_score" => FurnitureInteractionLogic.BanzaiScore,
+        "banzai_countdown" => FurnitureInteractionLogic.BanzaiCountdown,
+        "banzai_puck" => FurnitureInteractionLogic.BanzaiPuck,
         _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown furniture interaction_logic value from the database."),
     };
 }

@@ -109,6 +109,7 @@ public sealed partial class Room
 
         actor!.TakeTrade()?.Cancel(actor.AccountId);
         EndEventHostedBy(sessionId);
+        LeaveBanzaiTeam(actor);
 
         if (actor.Type == ActorType.Player)
         {
@@ -702,6 +703,11 @@ public sealed partial class Room
                     blocked.Add(tile);
                 }
             }
+        }
+
+        if (_banzaiInProgress)
+        {
+            blocked.UnionWith(BanzaiGateTiles());
         }
 
         return blocked;
@@ -1353,6 +1359,8 @@ public sealed partial class Room
             }
         }
 
+        PlayBanzai(actor, nextX, nextY);
+
         double nextZ = SurfaceHeightAt(nextX, nextY);
         actor.RotBody = RotationHelper.Calculate(actor.X, actor.Y, nextX, nextY);
         actor.RotHead = actor.RotBody;
@@ -1371,7 +1379,8 @@ public sealed partial class Room
     {
         bool isGoal = actor.Goal is { } goal && goal == (x, y);
         bool steppable = Grid.IsWalkable(x, y) || (isGoal && Grid.IsWalkGoal(x, y));
-        if (!steppable || !IsFurniturePassable(x, y, actor.Z, isGoal) || IsKeptOutOfWater(actor, x, y) || IsDiagonalThroughGate(actor.X, actor.Y, x, y))
+        if (!steppable || !IsFurniturePassable(x, y, actor.Z, isGoal) || IsKeptOutOfWater(actor, x, y) || IsDiagonalThroughGate(actor.X, actor.Y, x, y)
+            || IsShutBanzaiGate(x, y))
         {
             return false;
         }

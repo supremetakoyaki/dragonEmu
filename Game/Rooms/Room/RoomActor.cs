@@ -99,7 +99,7 @@ public sealed class RoomActor
 
     public int EffectBeforeWater { get; set; }
 
-    public FootballTeam Team { get; set; }
+    public GameTeam Team { get; set; }
 
     public bool InLockerRoom { get; set; }
 

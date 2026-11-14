@@ -96,7 +96,8 @@ public sealed class FootballService
             case ClockStartStop:
                 if (!running && seconds <= 0)
                 {
-                    return;
+                    seconds = room.ClockPreset(clock.Id);
+                    await ShowAndSaveAsync(room, clock.Id, seconds, cancellationToken);
                 }
 
                 room.SetClock(clock.Id, seconds, running: !running);
@@ -116,15 +117,15 @@ public sealed class FootballService
         }
     }
 
-    private async Task ScoreAsync(Room room, FootballTeam team)
+    private async Task ScoreAsync(Room room, GameTeam team)
     {
-        if (team == FootballTeam.None)
+        if (team == GameTeam.None)
         {
             return;
         }
 
         IReadOnlyList<RoomFloorItem> counters = room.FloorItemsWhere(item =>
-            item.InteractionLogic == FurnitureInteractionLogic.FootballScoreCounter && FootballTeams.OfClassname(item.Classname) == team);
+            item.InteractionLogic == FurnitureInteractionLogic.FootballScoreCounter && GameTeams.OfClassname(item.Classname) == team);
         if (counters.Count == 0)
         {
             return;

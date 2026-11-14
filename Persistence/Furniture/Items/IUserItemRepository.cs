@@ -56,6 +56,20 @@ public interface IUserItemRepository
 
     Task<bool> DeleteFromInventoryAsync(int itemId, int userId, CancellationToken cancellationToken = default);
 
+    async Task<IReadOnlyList<int>> DeleteInventoryAsync(int userId, Func<int, bool> keep, CancellationToken cancellationToken = default)
+    {
+        var deleted = new List<int>();
+        foreach (UserItem item in await GetInventoryAsync(userId, cancellationToken))
+        {
+            if (item.Type is FurnitureType.Floor or FurnitureType.Wall && !keep(item.Id) && await DeleteFromInventoryAsync(item.Id, userId, cancellationToken))
+            {
+                deleted.Add(item.Id);
+            }
+        }
+
+        return deleted;
+    }
+
     Task<bool> DeleteAsync(int itemId, int userId, CancellationToken cancellationToken = default);
 
     Task<bool> PickupFromFloorAsync(int itemId, int roomId, int pickerUserId, CancellationToken cancellationToken = default);

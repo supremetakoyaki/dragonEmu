@@ -60,6 +60,7 @@ public sealed class ChatCommandDispatcher : IChatCommandDispatcher
         new(ChatCommandSection.Room, ["end_vote"], "", Create<EndVoteChatCommand>),
         new(ChatCommandSection.User, ["motto"], "<new motto>", Create<MottoChatCommand>),
         new(ChatCommandSection.User, ["changename"], "", Create<ChangeNameChatCommand>),
+        new(ChatCommandSection.User, ["empty"], "", Create<EmptyInventoryChatCommand>),
         new(null, ["commands"], "", Create<CommandsChatCommand>),
     ];
 

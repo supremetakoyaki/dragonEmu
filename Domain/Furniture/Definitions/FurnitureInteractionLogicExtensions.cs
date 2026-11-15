@@ -34,6 +34,8 @@ public static class FurnitureInteractionLogicExtensions
         FurnitureInteractionLogic.BanzaiCountdown => "banzai_countdown",
         FurnitureInteractionLogic.BanzaiPuck => "banzai_puck",
         FurnitureInteractionLogic.BanzaiTeleport => "banzai_teleport",
+        FurnitureInteractionLogic.BanzaiApparatus => "banzai_apparatus",
+        FurnitureInteractionLogic.BanzaiPyramid => "banzai_pyramid",
         _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown furniture interaction logic."),
     };
 
@@ -69,6 +71,8 @@ public static class FurnitureInteractionLogicExtensions
         "banzai_countdown" => FurnitureInteractionLogic.BanzaiCountdown,
         "banzai_puck" => FurnitureInteractionLogic.BanzaiPuck,
         "banzai_teleport" => FurnitureInteractionLogic.BanzaiTeleport,
+        "banzai_apparatus" => FurnitureInteractionLogic.BanzaiApparatus,
+        "banzai_pyramid" => FurnitureInteractionLogic.BanzaiPyramid,
         _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown furniture interaction_logic value from the database."),
     };
 }

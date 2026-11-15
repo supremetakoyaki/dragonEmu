@@ -23,6 +23,8 @@ public sealed class AchievementService
     private readonly RoomBroadcaster _roomBroadcaster;
     private readonly ILogger<AchievementService> _logger;
 
+    private readonly SemaphoreSlim[] _userTurns = Enumerable.Range(0, 64).Select(_ => new SemaphoreSlim(1, 1)).ToArray();
+
     public AchievementService(
         AchievementDefinitionCache definitionCache,
         IUserAchievementRepository userAchievementRepository,
@@ -58,6 +60,20 @@ public sealed class AchievementService
         ApplyAsync(userId, codeBase, counter => counter >= from ? counter + delta : counter, cancellationToken);
 
     private async Task ApplyAsync(int userId, string codeBase, Func<int, int> computeNewCounter, CancellationToken cancellationToken)
+    {
+        SemaphoreSlim turn = _userTurns[(uint)userId % (uint)_userTurns.Length];
+        await turn.WaitAsync(cancellationToken);
+        try
+        {
+            await ApplyInTurnAsync(userId, codeBase, computeNewCounter, cancellationToken);
+        }
+        finally
+        {
+            turn.Release();
+        }
+    }
+
+    private async Task ApplyInTurnAsync(int userId, string codeBase, Func<int, int> computeNewCounter, CancellationToken cancellationToken)
     {
         AchievementDefinition? definition = _definitionCache.GetByCodeBase(codeBase);
         if (definition is null || !definition.Enabled || definition.Levels.Count == 0)

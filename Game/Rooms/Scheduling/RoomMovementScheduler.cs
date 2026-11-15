@@ -146,6 +146,12 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
                         _broadcaster.Broadcast(room, spins.Compose());
                     }
 
+                    IReadOnlyList<FurnitureStateChange> pyramids = room.AdvancePyramids(out bool pyramidsBusy);
+                    if (ObjectsDataUpdateMessageEvent.ForChanges(pyramids.Select(change => (change.ItemId, change.ExtraData)).ToList()) is { } pyramidMoves)
+                    {
+                        _broadcaster.Broadcast(room, pyramidMoves.Compose());
+                    }
+
                     IReadOnlyList<AutoStateChange> autoStates = room.AdvanceAutoStates(changed);
                     if (autoStates.Count > 0)
                     {
@@ -288,7 +294,7 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
                     if (!stillNeedsMovementTicks && !teleporters.NeedsFurtherTicks && !stillNeedsRollTicks && !rollers.NeedsFurtherTicks
                         && !someoneHoldsAHandItem && !vending.NeedsFurtherTicks && !hockeyLightsLit && !footballBusy && !banzaiBusy
                         && !oneWayDoorsBusy && !kicksUnderWay && !room.BotsAwake && !room.PetsAwake && !room.IdolBusy && !headsTurned
-                        && !queue.NeedsFurtherTicks && !banzaiTeleportsBusy)
+                        && !queue.NeedsFurtherTicks && !banzaiTeleportsBusy && !pyramidsBusy)
                     {
                         _activeRooms.TryRemove(roomId, out _);
                     }
@@ -474,7 +480,7 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
         try
         {
             BanzaiTickResult banzai = room.AdvanceBanzai(finishedClocks, nowMs);
-            if (banzai.Changes.Count > 0)
+            if (banzai.Changes.Count > 0 || banzai.Games is not null)
             {
                 _banzai.HandleTick(room, banzai);
             }
@@ -493,7 +499,7 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
         try
         {
             BanzaiTickResult paints = room.AdvancePuckPaints(nowMs);
-            if (paints.Changes.Count > 0)
+            if (paints.Changes.Count > 0 || paints.Games is not null)
             {
                 _banzai.HandleTick(room, paints);
             }

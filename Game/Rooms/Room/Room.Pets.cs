@@ -67,6 +67,7 @@ public sealed partial class Room
     private const int CommandDrink = 14;
     private const int CommandFollowLeft = 15;
     private const int CommandFollowRight = 16;
+    private const int CommandFootball = 17;
 
     private const string PostureSit = "sit";
     private const string PostureLay = "lay";
@@ -468,6 +469,14 @@ public sealed partial class Room
 
                 break;
 
+            case CommandFootball:
+                if (!TryGoKickBall(pet))
+                {
+                    SetGesture(pet, brain, GesturePuzzled, changed);
+                }
+
+                break;
+
             default:
                 BeFree(pet, brain, changed, result);
                 break;
@@ -860,6 +869,13 @@ public sealed partial class Room
             _petItemStates[item.Id] = state + 1;
             return (index, state + 1);
         }
+    }
+
+    private bool TryGoKickBall(RoomActor pet)
+    {
+        (int x, int y) = PositionOf(pet);
+        RoomFloorItem? ball = NearestItem(x, y, item => item.InteractionLogic == FurnitureInteractionLogic.Football);
+        return ball is not null && TryWalkPet(pet, ball.X, ball.Y);
     }
 
     private bool TryGoPlay(RoomActor pet, PetBrain brain)

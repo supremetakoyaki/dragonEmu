@@ -261,9 +261,12 @@ internal static class RoomEntryHandler
         {
             IReadOnlyList<UserItem> floorItems = await userItemRepository.GetFloorItemsInRoomAsync(roomId, cancellationToken);
 
-            floorItems = floorItems.Select(floor => room.GetFloorItem(floor.Id) is { Lowered: true } live
-                ? floor with { Z = (decimal)live.Z }
-                : floor).ToList();
+            floorItems = floorItems.Select(floor => room.GetFloorItem(floor.Id) switch
+            {
+                { Lowered: true } live => floor with { Z = (decimal)live.Z },
+                { IsBanzaiPyramid: true } pyramid => floor with { ExtraData = pyramid.TileState.ToString(System.Globalization.CultureInfo.InvariantCulture) },
+                _ => floor,
+            }).ToList();
             IReadOnlyList<UserItem> wallItems = await userItemRepository.GetWallItemsInRoomAsync(roomId, cancellationToken);
             session.Send(new ObjectsMessageEvent(floorItems).Compose());
             session.Send(new ItemsMessageEvent(wallItems).Compose());

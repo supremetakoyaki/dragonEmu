@@ -1,5 +1,6 @@
 using System.Globalization;
 using DragonEmu.Domain;
+using DragonEmu.Game.Achievements;
 using DragonEmu.Game.Rooms;
 using DragonEmu.Persistence;
 using DragonEmu.Protocol.Messages.Outgoing.RoomAction;
@@ -13,14 +14,19 @@ public sealed class FootballService
     private const int ClockStartStop = 1;
     private const int ClockNextPreset = 2;
 
+    public const string GoalScoredAchievement = "ACH_FootballGoalScored";
+    public const string GoalScoredInRoomAchievement = "ACH_FootballGoalScoredInRoom";
+
     private readonly RoomBroadcaster _broadcaster;
     private readonly IUserItemRepository _userItems;
+    private readonly AchievementService _achievements;
     private readonly ILogger<FootballService> _logger;
 
-    public FootballService(RoomBroadcaster broadcaster, IUserItemRepository userItems, ILogger<FootballService> logger)
+    public FootballService(RoomBroadcaster broadcaster, IUserItemRepository userItems, AchievementService achievements, ILogger<FootballService> logger)
     {
         _broadcaster = broadcaster;
         _userItems = userItems;
+        _achievements = achievements;
         _logger = logger;
     }
 
@@ -58,6 +64,7 @@ public sealed class FootballService
             }
 
             Save(ScoreAsync(room, goal.Team));
+            Save(AwardGoalAsync(goal.Kicker is { Type: ActorType.Player } scorer ? scorer.AccountId : null, room.Data.OwnerId));
         }
 
         foreach (BallRest rest in result.Rests)
@@ -166,6 +173,20 @@ public sealed class FootballService
         Task.WhenAll(
             _userItems.MoveOnFloorAsync(ball.Id, room.Id, ball.X, ball.Y, (decimal)ball.Z, ball.Rotation),
             _userItems.UpdateExtraDataAsync(ball.Id, state));
+
+    public async Task AwardGoalAsync(int? scorerAccountId, int? ownerAccountId)
+    {
+        if (scorerAccountId is { } scorer)
+        {
+            await _achievements.IncrementAsync(scorer, GoalScoredAchievement);
+            await _achievements.IncrementAsync(scorer, BanzaiService.GamePlayerExperienceAchievement);
+        }
+
+        if (ownerAccountId is { } owner)
+        {
+            await _achievements.IncrementAsync(owner, GoalScoredInRoomAchievement);
+        }
+    }
 
     private void Save(Task saving) =>
         _ = saving.ContinueWith(t => _logger.LogError(t.Exception, "Saving the football's state failed."), TaskContinuationOptions.OnlyOnFaulted);

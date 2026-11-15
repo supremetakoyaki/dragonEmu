@@ -142,7 +142,12 @@ public sealed class PlaceObjectMessageComposer : IMessageComposer
             Heights = definition?.InteractionHeights,
             HeightIndex = RoomFloorItem.HeightIndexOf(definition?.States, item.ExtraData),
             GateOutfits = definition?.InteractionLogic == FurnitureInteractionLogic.ClothingGate ? item.ExtraData : null,
-            TileState = definition?.InteractionLogic == FurnitureInteractionLogic.BanzaiTile ? 0 : RoomFloorItem.ParseState(item.ExtraData),
+            TileState = definition?.InteractionLogic switch
+            {
+                FurnitureInteractionLogic.BanzaiTile or FurnitureInteractionLogic.BanzaiApparatus => 0,
+                FurnitureInteractionLogic.BanzaiPyramid => Room.PyramidDown,
+                _ => RoomFloorItem.ParseState(item.ExtraData),
+            },
         };
 
         HashSet<(int X, int Y)> footprint = placing.OccupiedTiles().ToHashSet();
@@ -196,14 +201,17 @@ public sealed class PlaceObjectMessageComposer : IMessageComposer
 
         bool placedAtZero = definition?.InteractionLogic is FurnitureInteractionLogic.Vending or FurnitureInteractionLogic.Gate
             or FurnitureInteractionLogic.HockeyLight or FurnitureInteractionLogic.BanzaiTile or FurnitureInteractionLogic.BanzaiTeleport
+            or FurnitureInteractionLogic.BanzaiApparatus
             || definition?.LogicClass == FurnitureLogicClass.OneWayDoor
             || (definition is not null && Room.IsSoundFurni(definition.LogicClass));
         string? basalExtraData = definition?.LogicClass switch
         {
             FurnitureLogicClass.Hotspot => Room.HotspotOff,
             FurnitureLogicClass.VotingChair => Room.ChairUnlit,
+            _ when definition?.InteractionLogic == FurnitureInteractionLogic.BanzaiPyramid => "1",
             _ => placedAtZero ? "0" : _pets.BasalExtraData(definition) ?? FurnitureRolls.BasalExtraData(rollKind),
         };
+        placedAtZero |= definition?.InteractionLogic == FurnitureInteractionLogic.BanzaiPyramid;
         placedAtZero |= definition?.LogicClass is FurnitureLogicClass.Hotspot or FurnitureLogicClass.VotingChair;
         bool placed = await _userItemRepository.PlaceOnFloorAsync(itemId, account.Id, roomId, x, y, (decimal)z, rotation,
             basalExtraData, placedAtZero || FurnitureRolls.ResetsWhenPlaced(rollKind), cancellationToken);

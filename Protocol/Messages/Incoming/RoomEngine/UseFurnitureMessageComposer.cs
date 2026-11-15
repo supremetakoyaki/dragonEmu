@@ -170,6 +170,17 @@ public sealed class UseFurnitureMessageComposer : IMessageComposer
 
                 break;
 
+            case FurnitureInteractionLogic.BanzaiApparatus:
+                if (await _roomRights.CanToggleFurnitureAsync(account, room.Data, cancellationToken))
+                {
+                    await _banzai.UseApparatusAsync(room, item, cancellationToken);
+                }
+
+                break;
+
+            case FurnitureInteractionLogic.BanzaiPyramid:
+                break;
+
             case FurnitureInteractionLogic.BanzaiCountdown:
                 if (await _roomRights.CanToggleFurnitureAsync(account, room.Data, cancellationToken))
                 {

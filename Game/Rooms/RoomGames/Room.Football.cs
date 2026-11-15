@@ -75,7 +75,7 @@ public sealed partial class Room
         }
     }
 
-    public BallMove? TryNudgeBall(RoomFloorItem ball, int direction, HashSet<(int X, int Y)> occupied, int? trail = null, GameTeam team = GameTeam.None)
+    public BallMove? TryNudgeBall(RoomFloorItem ball, int direction, HashSet<(int X, int Y)> occupied, int? trail = null, GameTeam team = GameTeam.None, int? accountId = null)
     {
         lock (_footballLock)
         {
@@ -87,7 +87,7 @@ public sealed partial class Room
                     return null;
                 }
 
-                QueuePuckPaint(ball, to.X, to.Y, team, Environment.TickCount64 + FootballRules.IntervalMs(FootballRules.RollingSlowly));
+                QueuePuckPaint(ball, to.X, to.Y, team, Environment.TickCount64 + FootballRules.IntervalMs(FootballRules.RollingSlowly), accountId);
                 return MoveBallUnlocked(ball, to.X, to.Y, to.Z, direction, FootballRules.RollState(FootballRules.RollingSlowly, trail));
             }
         }
@@ -276,7 +276,7 @@ public sealed partial class Room
                 roll.Timed = true;
                 roll.DueAtMs = scheduled + FootballRules.IntervalMs(state);
 
-                QueuePuckPaint(ball, to.X, to.Y, roll.Team, roll.DueAtMs);
+                QueuePuckPaint(ball, to.X, to.Y, roll.Team, roll.DueAtMs, PlayerAccountOf(roll.KickerSessionId));
 
                 if (to.Goal is { } goal)
                 {
@@ -403,8 +403,11 @@ public sealed partial class Room
         HashSet<(int X, int Y)> occupied = BallObstacleTiles(actor.SessionId);
         occupied.Add((nextX, nextY));
         (GameTeam team, int? trail) = BallTrail(ball, actor);
-        return TryNudgeBall(ball, direction, occupied, trail, team);
+        return TryNudgeBall(ball, direction, occupied, trail, team, PlayerAccountOf(actor.SessionId));
     }
+
+    private int? PlayerAccountOf(long? sessionId) =>
+        sessionId is { } id && _actors.TryGetValue(id, out RoomActor? actor) && actor.Type == ActorType.Player ? actor.AccountId : null;
 
     private static (GameTeam Team, int? Trail) BallTrail(RoomFloorItem ball, RoomActor? kicker)
     {

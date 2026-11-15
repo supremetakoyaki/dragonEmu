@@ -1,5 +1,6 @@
 using System.Globalization;
 using DragonEmu.Domain;
+using DragonEmu.Game.Achievements;
 using DragonEmu.Game.Rooms;
 using DragonEmu.Persistence;
 using DragonEmu.Protocol.Messages.Outgoing.RoomEngine;
@@ -12,20 +13,32 @@ public sealed class BanzaiService
     private const int ClockStartStop = 1;
     private const int ClockNextPreset = 2;
 
+    public const string TilesLockedAchievement = "ACH_BattleBallTilesLocked";
+    public const string PlayerAchievement = "ACH_BattleBallPlayer";
+    public const string WinnerAchievement = "ACH_BattleBallWinner";
+    public const string GamePlayerExperienceAchievement = "ACH_GamePlayerExperience";
+
     private readonly RoomBroadcaster _broadcaster;
     private readonly IUserItemRepository _userItems;
+    private readonly AchievementService _achievements;
     private readonly ILogger<BanzaiService> _logger;
 
-    public BanzaiService(RoomBroadcaster broadcaster, IUserItemRepository userItems, ILogger<BanzaiService> logger)
+    public BanzaiService(RoomBroadcaster broadcaster, IUserItemRepository userItems, AchievementService achievements, ILogger<BanzaiService> logger)
     {
         _broadcaster = broadcaster;
         _userItems = userItems;
+        _achievements = achievements;
         _logger = logger;
     }
 
     public void HandleTick(Room room, BanzaiTickResult result)
     {
-        if (ObjectsDataUpdateMessageEvent.ForChanges(result.Changes.Select(change => (change.ItemId, change.Data)).ToList()) is { } update)
+        foreach (BanzaiChange alone in result.Changes.Where(change => change.Alone))
+        {
+            _broadcaster.Broadcast(room, new ObjectDataUpdateMessageEvent(alone.ItemId, alone.Data).Compose());
+        }
+
+        if (ObjectsDataUpdateMessageEvent.ForChanges(result.Changes.Where(change => !change.Alone).Select(change => (change.ItemId, change.Data)).ToList()) is { } update)
         {
             _broadcaster.Broadcast(room, update.Compose());
         }
@@ -37,6 +50,58 @@ public sealed class BanzaiService
                 Save(_userItems.UpdateExtraDataAsync(change.ItemId, change.Data));
             }
         }
+
+        foreach (BanzaiGameResult game in result.Games ?? [])
+        {
+            Award(AwardAsync(game));
+        }
+    }
+
+    public async Task AwardAsync(BanzaiGameResult game)
+    {
+        var points = new Dictionary<int, List<(string CodeBase, int Delta)>>();
+        void Add(int accountId, string codeBase, int delta)
+        {
+            if (delta > 0)
+            {
+                (points.TryGetValue(accountId, out var list) ? list : points[accountId] = []).Add((codeBase, delta));
+            }
+        }
+
+        foreach ((int accountId, int tiles) in game.TilesLocked)
+        {
+            Add(accountId, TilesLockedAchievement, tiles);
+        }
+
+        foreach (BanzaiPlayerResult player in game.Players)
+        {
+            Add(player.AccountId, PlayerAchievement, player.TeamScore);
+            if (player.Won)
+            {
+                Add(player.AccountId, WinnerAchievement, player.TeamScore);
+                Add(player.AccountId, GamePlayerExperienceAchievement, player.TeamScore);
+            }
+        }
+
+        foreach ((int accountId, List<(string CodeBase, int Delta)> earned) in points)
+        {
+            foreach ((string codeBase, int delta) in earned)
+            {
+                await _achievements.IncrementAsync(accountId, codeBase, delta);
+            }
+        }
+    }
+
+    public async Task UseApparatusAsync(Room room, RoomFloorItem apparatus, CancellationToken cancellationToken)
+    {
+        if (room.ToggleApparatus(apparatus.Id) is not { } state)
+        {
+            return;
+        }
+
+        string data = state.ToString(CultureInfo.InvariantCulture);
+        _broadcaster.Broadcast(room, new ObjectDataUpdateMessageEvent(apparatus.Id, data).Compose());
+        await _userItems.UpdateExtraDataAsync(apparatus.Id, data, cancellationToken);
     }
 
     public async Task UseClockAsync(Room room, RoomFloorItem clock, int param, CancellationToken cancellationToken)
@@ -97,4 +162,7 @@ public sealed class BanzaiService
 
     private void Save(Task saving) =>
         _ = saving.ContinueWith(t => _logger.LogError(t.Exception, "Saving Battle Banzai's state failed."), TaskContinuationOptions.OnlyOnFaulted);
+
+    private void Award(Task awarding) =>
+        _ = awarding.ContinueWith(t => _logger.LogError(t.Exception, "Battle Banzai's achievements failed."), TaskContinuationOptions.OnlyOnFaulted);
 }

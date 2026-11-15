@@ -2,12 +2,16 @@ using DragonEmu.Domain;
 
 namespace DragonEmu.Game.Rooms;
 
-public readonly record struct BanzaiChange(int ItemId, string Data, bool Save);
+public readonly record struct BanzaiChange(int ItemId, string Data, bool Save, bool Alone = false);
 
-public sealed record BanzaiTickResult(IReadOnlyList<BanzaiChange> Changes, bool Busy)
+public sealed record BanzaiTickResult(IReadOnlyList<BanzaiChange> Changes, bool Busy, IReadOnlyList<BanzaiGameResult>? Games = null)
 {
     public static BanzaiTickResult Idle { get; } = new([], false);
 }
+
+public sealed record BanzaiGameResult(IReadOnlyDictionary<int, int> TilesLocked, IReadOnlyList<BanzaiPlayerResult> Players);
+
+public readonly record struct BanzaiPlayerResult(int AccountId, GameTeam Team, int TeamScore, bool Won);
 
 public enum BanzaiPhase
 {
@@ -32,7 +36,10 @@ public sealed partial class Room
     private readonly List<BanzaiChange> _banzaiChanges = [];
     private readonly List<(int ItemId, int LockedState)> _banzaiBlink = [];
 
-    private readonly List<(int X, int Y, GameTeam Team, long DueAtMs)> _puckPaints = [];
+    private readonly Dictionary<int, int> _banzaiTilesLocked = [];
+    private readonly List<BanzaiGameResult> _banzaiGames = [];
+
+    private readonly List<(int X, int Y, GameTeam Team, int? AccountId, long DueAtMs)> _puckPaints = [];
 
     private BanzaiPhase _banzaiPhase;
     private int _banzaiClockId;
@@ -131,6 +138,11 @@ public sealed partial class Room
     {
         lock (_banzaiLock)
         {
+            if (_banzaiTilesLocked.Count > 0)
+            {
+                RecordGameUnlocked(winners: null);
+            }
+
             _banzaiPhase = BanzaiPhase.Running;
             _banzaiClockId = clockId;
             _banzaiBlink.Clear();
@@ -152,6 +164,8 @@ public sealed partial class Room
                         Queue(item.Id, 0, save: true);
                     }
                 }
+
+                ShowOnApparatusUnlocked(ApparatusPlaying, restart: true);
             }
 
             foreach (GameTeam team in BanzaiRules.Teams)
@@ -220,7 +234,7 @@ public sealed partial class Room
             {
                 if (_banzaiPhase == BanzaiPhase.Running)
                 {
-                    PaintUnlocked(x, y, actor.Team);
+                    PaintUnlocked(x, y, actor.Team, actor.AccountId);
                 }
             }
         }
@@ -312,7 +326,7 @@ public sealed partial class Room
         }
     }
 
-    private void PaintUnlocked(int x, int y, GameTeam team)
+    private void PaintUnlocked(int x, int y, GameTeam team, int? accountId = null)
     {
         lock (_furnitureLock)
         {
@@ -332,13 +346,17 @@ public sealed partial class Room
 
             if (BanzaiRules.IsLocked(state))
             {
-                FillEnclosedUnlocked(team);
+                int locked = 1 + FillEnclosedUnlocked(team);
                 RecountScoresUnlocked();
+                if (accountId is { } account)
+                {
+                    _banzaiTilesLocked[account] = _banzaiTilesLocked.GetValueOrDefault(account) + locked;
+                }
             }
         }
     }
 
-    private void FillEnclosedUnlocked(GameTeam team)
+    private int FillEnclosedUnlocked(GameTeam team)
     {
         var tiles = new Dictionary<(int X, int Y), RoomFloorItem>();
         var under = new List<RoomFloorItem>();
@@ -365,6 +383,7 @@ public sealed partial class Room
         }
 
         int lockedState = BanzaiRules.LockedState(team);
+        int filled = 0;
         var seen = new HashSet<(int X, int Y)>();
         foreach ((int X, int Y) start in tiles.Keys)
         {
@@ -400,6 +419,7 @@ public sealed partial class Room
                 continue;
             }
 
+            filled += region.Count;
             foreach ((int X, int Y) position in region)
             {
                 RoomFloorItem tile = tiles[position];
@@ -416,6 +436,8 @@ public sealed partial class Room
                 Queue(tile.Id, top.TileState, save: true);
             }
         }
+
+        return filled;
     }
 
     private RoomFloorItem? TopUnderBallsUnlocked(int x, int y)
@@ -423,7 +445,7 @@ public sealed partial class Room
         IReadOnlyList<RoomFloorItem> items = ItemsAtUnlocked(x, y);
         for (int i = items.Count - 1; i >= 0; i--)
         {
-            if (!items[i].IsBall)
+            if (!items[i].IsBall && !items[i].IsBanzaiPyramid)
             {
                 return items[i];
             }
@@ -484,6 +506,11 @@ public sealed partial class Room
                 Queue(board.Id, count, save: true);
             }
         }
+
+        if (_banzaiPhase == BanzaiPhase.Running)
+        {
+            ShowOnApparatusUnlocked(ApparatusLeaderState());
+        }
     }
 
     private void Queue(int itemId, int state, bool save) =>
@@ -498,7 +525,7 @@ public sealed partial class Room
             return BanzaiTickResult.Idle;
         }
 
-        List<(int X, int Y, GameTeam Team)> paints = TakeDuePuckPaints(nowMs);
+        List<(int X, int Y, GameTeam Team, int? AccountId)> paints = TakeDuePuckPaints(nowMs);
 
         lock (_banzaiLock)
         {
@@ -520,9 +547,9 @@ public sealed partial class Room
                     }
                     else
                     {
-                        foreach ((int x, int y, GameTeam team) in paints)
+                        foreach ((int x, int y, GameTeam team, int? accountId) in paints)
                         {
-                            PaintUnlocked(x, y, team);
+                            PaintUnlocked(x, y, team, accountId);
                         }
 
                         if (finishedClocks.Any(clock => clock.ItemId == _banzaiClockId))
@@ -535,6 +562,14 @@ public sealed partial class Room
                     break;
 
                 case BanzaiPhase.Ending:
+                    if (_banzaiTicksLeft == BanzaiRules.EndDelayTicks)
+                    {
+                        lock (_furnitureLock)
+                        {
+                            ShowOnApparatusUnlocked(ApparatusResultState());
+                        }
+                    }
+
                     if (--_banzaiTicksLeft <= 0)
                     {
                         EndBanzaiUnlocked(blink: true);
@@ -571,7 +606,7 @@ public sealed partial class Room
             return BanzaiTickResult.Idle;
         }
 
-        List<(int X, int Y, GameTeam Team)> paints = TakeDuePuckPaints(nowMs);
+        List<(int X, int Y, GameTeam Team, int? AccountId)> paints = TakeDuePuckPaints(nowMs);
         if (paints.Count == 0)
         {
             return BanzaiTickResult.Idle;
@@ -581,9 +616,9 @@ public sealed partial class Room
         {
             if (_banzaiPhase == BanzaiPhase.Running)
             {
-                foreach ((int x, int y, GameTeam team) in paints)
+                foreach ((int x, int y, GameTeam team, int? accountId) in paints)
                 {
-                    PaintUnlocked(x, y, team);
+                    PaintUnlocked(x, y, team, accountId);
                 }
             }
 
@@ -593,17 +628,49 @@ public sealed partial class Room
 
     private BanzaiTickResult HandOutUnlocked(bool busy)
     {
+        BanzaiGameResult[]? games = null;
+        if (_banzaiGames.Count > 0)
+        {
+            games = [.. _banzaiGames];
+            _banzaiGames.Clear();
+        }
+
         if (_banzaiChanges.Count == 0)
         {
-            return new BanzaiTickResult([], busy);
+            return games is null ? new BanzaiTickResult([], busy) : new BanzaiTickResult([], busy, games);
         }
 
         BanzaiChange[] changes = [.. _banzaiChanges];
         _banzaiChanges.Clear();
-        return new BanzaiTickResult(changes, busy);
+        return new BanzaiTickResult(changes, busy, games);
     }
 
-    private List<(int X, int Y, GameTeam Team)> TakeDuePuckPaints(long nowMs)
+    private void RecordGameUnlocked(HashSet<GameTeam>? winners)
+    {
+        var players = new List<BanzaiPlayerResult>();
+        if (winners is not null)
+        {
+            foreach (GameTeam team in BanzaiRules.Teams)
+            {
+                foreach (long sessionId in _banzaiTeams[team])
+                {
+                    if (_actors.TryGetValue(sessionId, out RoomActor? actor) && actor.Type == ActorType.Player)
+                    {
+                        players.Add(new BanzaiPlayerResult(actor.AccountId, team, _banzaiScores[team], winners.Contains(team)));
+                    }
+                }
+            }
+        }
+
+        if (players.Count > 0 || _banzaiTilesLocked.Count > 0)
+        {
+            _banzaiGames.Add(new BanzaiGameResult(new Dictionary<int, int>(_banzaiTilesLocked), players));
+        }
+
+        _banzaiTilesLocked.Clear();
+    }
+
+    private List<(int X, int Y, GameTeam Team, int? AccountId)> TakeDuePuckPaints(long nowMs)
     {
         lock (_footballLock)
         {
@@ -612,7 +679,7 @@ public sealed partial class Room
                 return [];
             }
 
-            var due = new List<(int X, int Y, GameTeam Team)>();
+            var due = new List<(int X, int Y, GameTeam Team, int? AccountId)>();
             _puckPaints.RemoveAll(paint =>
             {
                 if (paint.DueAtMs > nowMs)
@@ -620,7 +687,7 @@ public sealed partial class Room
                     return false;
                 }
 
-                due.Add((paint.X, paint.Y, paint.Team));
+                due.Add((paint.X, paint.Y, paint.Team, paint.AccountId));
                 return true;
             });
             return due;
@@ -635,11 +702,11 @@ public sealed partial class Room
         }
     }
 
-    private void QueuePuckPaint(RoomFloorItem ball, int x, int y, GameTeam team, long dueAtMs)
+    private void QueuePuckPaint(RoomFloorItem ball, int x, int y, GameTeam team, long dueAtMs, int? accountId)
     {
         if (ball.IsBanzaiPuck && team != GameTeam.None)
         {
-            _puckPaints.Add((x, y, team, dueAtMs));
+            _puckPaints.Add((x, y, team, accountId, dueAtMs));
         }
     }
 
@@ -654,6 +721,8 @@ public sealed partial class Room
             RecountScoresUnlocked();
             int best = _banzaiScores.Values.Max();
             var winners = new HashSet<GameTeam>(BanzaiRules.Teams.Where(team => best > 0 && _banzaiScores[team] == best));
+            RecordGameUnlocked(blink ? winners : null);
+            ShowOnApparatusUnlocked(blink ? ApparatusResultState() : ApparatusOn);
 
             foreach (RoomFloorItem item in _floorItems.Values)
             {

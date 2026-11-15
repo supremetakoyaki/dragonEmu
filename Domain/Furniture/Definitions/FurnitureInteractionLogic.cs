@@ -47,4 +47,8 @@ public enum FurnitureInteractionLogic
     BanzaiPuck,
 
     BanzaiTeleport,
+
+    BanzaiApparatus,
+
+    BanzaiPyramid,
 }

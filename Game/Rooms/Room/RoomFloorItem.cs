@@ -28,7 +28,7 @@ public sealed class RoomFloorItem
 
     public int Length { get; }
 
-    public bool IsWalkable => IsGate ? IsGateOpen : _isWalkable;
+    public bool IsWalkable => IsGate ? IsGateOpen : IsBanzaiPyramid ? TileState == Room.PyramidDown : _isWalkable;
 
     public bool IsSittable { get; }
 
@@ -107,6 +107,10 @@ public sealed class RoomFloorItem
     public bool IsBanzaiScore => InteractionLogic == FurnitureInteractionLogic.BanzaiScore;
 
     public bool IsBanzaiTeleport => InteractionLogic == FurnitureInteractionLogic.BanzaiTeleport;
+
+    public bool IsBanzaiApparatus => InteractionLogic == FurnitureInteractionLogic.BanzaiApparatus;
+
+    public bool IsBanzaiPyramid => InteractionLogic == FurnitureInteractionLogic.BanzaiPyramid;
 
     public int TileState { get; set; }
 

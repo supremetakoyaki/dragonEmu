@@ -228,13 +228,13 @@ public sealed partial class Room
         {
             UseBanzaiGate(actor, GameTeams.OfClassname(top.Classname));
         }
-        else if (top.IsBanzaiTile && actor.Team != GameTeam.None)
+        else if (actor.Team != GameTeam.None)
         {
             lock (_banzaiLock)
             {
                 if (_banzaiPhase == BanzaiPhase.Running)
                 {
-                    PaintUnlocked(x, y, actor.Team, actor.AccountId);
+                    PaintUnlocked(x, y, actor.Team, actor.AccountId, actor.Z);
                 }
             }
         }
@@ -326,11 +326,11 @@ public sealed partial class Room
         }
     }
 
-    private void PaintUnlocked(int x, int y, GameTeam team, int? accountId = null)
+    private void PaintUnlocked(int x, int y, GameTeam team, int? accountId = null, double? standingZ = null)
     {
         lock (_furnitureLock)
         {
-            if (TopUnderBallsUnlocked(x, y) is not { IsBanzaiTile: true } tile)
+            if (PaintableTileUnlocked(x, y, standingZ) is not { } tile)
             {
                 return;
             }
@@ -438,6 +438,28 @@ public sealed partial class Room
         }
 
         return filled;
+    }
+
+    public const double PaintReach = 0.1;
+
+    private RoomFloorItem? PaintableTileUnlocked(int x, int y, double? standingZ)
+    {
+        IReadOnlyList<RoomFloorItem> items = ItemsAtUnlocked(x, y);
+        for (int i = items.Count - 1; i >= 0; i--)
+        {
+            RoomFloorItem item = items[i];
+            if (item.IsBanzaiTile)
+            {
+                return standingZ is not { } z || Math.Round(z - item.SurfaceZ, 4) <= PaintReach ? item : null;
+            }
+
+            if (!item.IsBall && !item.IsWalkable)
+            {
+                return null;
+            }
+        }
+
+        return null;
     }
 
     private RoomFloorItem? TopUnderBallsUnlocked(int x, int y)

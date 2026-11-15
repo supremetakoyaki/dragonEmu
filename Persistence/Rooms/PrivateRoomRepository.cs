@@ -226,7 +226,7 @@ public sealed class PrivateRoomRepository : IPrivateRoomRepository
             upsertSettings.Parameters.AddWithValue("@allowPets", allowPets);
             upsertSettings.Parameters.AddWithValue("@allowPetsEat", allowPetsEat);
             upsertSettings.Parameters.AddWithValue("@allowWalkthrough", allowWalkthrough);
-            upsertSettings.Parameters.AddWithValue("@hideWalls", hideWalls ? 1 : 0);
+            upsertSettings.Parameters.AddWithValue("@hideWalls", hideWalls ? "1" : "0");
             await upsertSettings.ExecuteNonQueryAsync(cancellationToken);
         }
 

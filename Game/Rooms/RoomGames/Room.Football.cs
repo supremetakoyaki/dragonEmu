@@ -33,6 +33,7 @@ public sealed partial class Room
     private readonly Dictionary<int, BallRoll> _ballRolls = new();
     private readonly Dictionary<int, int> _goalPulses = new();
     private readonly Dictionary<int, long> _goalCooldowns = new();
+    private readonly List<(FootballGoalScored Goal, long DueMs)> _pendingGoals = new();
     private readonly Dictionary<int, FootballClock> _clocks = new();
     private int _clockParity;
 
@@ -42,7 +43,7 @@ public sealed partial class Room
         {
             lock (_footballLock)
             {
-                return _ballRolls.Count > 0 || _goalPulses.Count > 0 || _clocks.Values.Any(clock => clock.Running);
+                return _ballRolls.Count > 0 || _goalPulses.Count > 0 || _pendingGoals.Count > 0 || _clocks.Values.Any(clock => clock.Running);
             }
         }
     }
@@ -150,7 +151,7 @@ public sealed partial class Room
         HashSet<(int X, int Y)>? occupied = null;
         lock (_footballLock)
         {
-            if (_ballRolls.Count == 0 && _goalPulses.Count == 0 && _clocks.Count == 0)
+            if (_ballRolls.Count == 0 && _goalPulses.Count == 0 && _pendingGoals.Count == 0 && _clocks.Count == 0)
             {
                 return FootballTickResult.Idle;
             }
@@ -183,7 +184,7 @@ public sealed partial class Room
                             continue;
                         }
 
-                        AdvanceRoll(roll, ball, nowMs, occupied, moves, goals);
+                        AdvanceRoll(roll, ball, nowMs, occupied, moves);
                         if (roll.Slot >= FootballRules.KickStates.Count)
                         {
                             _ballRolls.Remove(ballId);
@@ -237,18 +238,27 @@ public sealed partial class Room
                     }
                 }
 
+                for (int i = _pendingGoals.Count - 1; i >= 0; i--)
+                {
+                    if (nowMs >= _pendingGoals[i].DueMs)
+                    {
+                        goals.Insert(0, _pendingGoals[i].Goal);
+                        _pendingGoals.RemoveAt(i);
+                    }
+                }
+
                 foreach (FootballGoalScored goal in goals)
                 {
                     _goalPulses[goal.Goal.Id] = 0;
                 }
 
-                bool busy = _ballRolls.Count > 0 || _goalPulses.Count > 0 || _clocks.Values.Any(clock => clock.Running);
+                bool busy = _ballRolls.Count > 0 || _goalPulses.Count > 0 || _pendingGoals.Count > 0 || _clocks.Values.Any(clock => clock.Running);
                 return new FootballTickResult(moves, rests, goals, stateChanges, finished, busy);
             }
         }
     }
 
-    private void AdvanceRoll(BallRoll roll, RoomFloorItem ball, long nowMs, HashSet<(int X, int Y)> occupied, List<BallMove> moves, List<FootballGoalScored> goals)
+    private void AdvanceRoll(BallRoll roll, RoomFloorItem ball, long nowMs, HashSet<(int X, int Y)> occupied, List<BallMove> moves)
     {
         while (roll.Slot < FootballRules.KickStates.Count)
         {
@@ -273,7 +283,7 @@ public sealed partial class Room
                     if (!_goalCooldowns.TryGetValue(goal.Id, out long until) || nowMs >= until)
                     {
                         _goalCooldowns[goal.Id] = nowMs + FootballRules.GoalCooldownMs;
-                        goals.Add(new FootballGoalScored(goal, GameTeams.OfClassname(goal.Classname), roll.KickerSessionId is { } kicker && _actors.TryGetValue(kicker, out RoomActor? actor) ? actor : null));
+                        _pendingGoals.Add((new FootballGoalScored(goal, GameTeams.OfClassname(goal.Classname), roll.KickerSessionId is { } kicker && _actors.TryGetValue(kicker, out RoomActor? actor) ? actor : null), roll.DueAtMs));
                     }
 
                     roll.Direction = FootballRules.Opposite(roll.Direction);

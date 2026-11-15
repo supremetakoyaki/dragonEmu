@@ -8,7 +8,6 @@ public sealed partial class Room
 
     public const string BanzaiTeleportStill = "0";
     public const string BanzaiTeleportSpinning = "1";
-    public const string BanzaiTeleportSpinOnce = "100";
 
     private readonly object _banzaiTeleportLock = new();
     private readonly Dictionary<long, BanzaiTrip> _banzaiTrips = [];
@@ -229,7 +228,6 @@ public sealed partial class Room
             changed.Add(actor);
         }
 
-        _banzaiTeleportStates.Add(new FurnitureStateChange(to.Id, BanzaiTeleportSpinOnce));
         _banzaiTrips[actor.SessionId] = new BanzaiTrip(to.Id, Departing: false, Tick: _banzaiTeleportTick, TargetId: to.Id);
         _banzaiStillAfterSpin.Add((to.Id, _banzaiTeleportTick + 1));
     }

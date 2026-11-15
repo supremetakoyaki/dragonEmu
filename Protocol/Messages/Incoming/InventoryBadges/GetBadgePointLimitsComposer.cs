@@ -24,10 +24,16 @@ public sealed class GetBadgePointLimitsComposer : IMessageComposer
             return ValueTask.CompletedTask;
         }
 
-        List<(string BadgeCode, int Limit)> limits = _definitions.Definitions
-            .Where(definition => definition.Enabled)
-            .SelectMany(definition => definition.Levels)
-            .Select(level => (level.BadgeCode, level.Threshold))
+        const string Prefix = "ACH_";
+        List<(string Name, IReadOnlyList<(int Level, int Limit)> Levels)> limits = _definitions.Definitions
+            .Where(definition => definition.Enabled && definition.CodeBase.StartsWith(Prefix, StringComparison.Ordinal))
+            .Select(definition => (
+                Name: definition.CodeBase[Prefix.Length..],
+                Levels: (IReadOnlyList<(int Level, int Limit)>)definition.Levels
+                    .Where(level => level.BadgeCode == definition.CodeBase + level.Level)
+                    .Select(level => (level.Level, level.Threshold))
+                    .ToList()))
+            .Where(achievement => achievement.Levels.Count > 0)
             .ToList();
 
         session.Send(new BadgePointLimitsEvent(limits).Compose());

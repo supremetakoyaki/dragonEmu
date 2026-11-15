@@ -20,7 +20,7 @@ public sealed class RoomFloorItem
 
     public bool Lowered { get; set; }
 
-    public const double LoweredZ = 0;
+    public const double LoweredZ = -0.25;
 
     public int Rotation { get; private set; }
 

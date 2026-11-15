@@ -941,12 +941,12 @@ public sealed partial class Room
         var rollers = new List<RoomFloorItem>();
         foreach (((int X, int Y) tile, List<RoomFloorItem> items) in itemsByTile)
         {
-            items.Sort(static (a, b) => a.Z.CompareTo(b.Z));
+            items.Sort(static (a, b) => a.BaseZ.CompareTo(b.BaseZ));
 
             RoomFloorItem top = items[0];
             foreach (RoomFloorItem item in items)
             {
-                if (item.SurfaceZ >= top.SurfaceZ)
+                if (item.BaseZ + item.StackHeight >= top.BaseZ + top.StackHeight)
                 {
                     top = item;
                 }

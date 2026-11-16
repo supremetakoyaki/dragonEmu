@@ -25,9 +25,9 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
 
     private static readonly TimeSpan TeleportArrivalWindow = TimeSpan.FromSeconds(30);
 
-    private readonly ConcurrentDictionary<int, Room> _activeRooms = new();
+    private readonly TickedRooms _activeRooms = new();
 
-    private readonly ConcurrentDictionary<int, Room> _footballRooms = new();
+    private readonly TickedRooms _footballRooms = new();
     private int _subTick;
     private readonly RoomBroadcaster _broadcaster;
     private readonly IRoomManager _roomManager;
@@ -67,9 +67,11 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
         _logger = logger;
 
         _roomManager.RoomUnloaded += _broadcaster.Forget;
+        _roomManager.RoomRemoved += _activeRooms.Forget;
+        _roomManager.RoomRemoved += _footballRooms.Forget;
     }
 
-    public void MarkActive(Room room) => _activeRooms.TryAdd(room.Id, room);
+    public void MarkActive(Room room) => _activeRooms.Mark(room);
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
@@ -107,7 +109,7 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
 
                 if (!roomTick)
                 {
-                    foreach ((int roomId, Room room) in _footballRooms)
+                    foreach (Room room in _footballRooms.Live(_roomManager))
                     {
                         TickFootball(room, nowMs, roomTick: false);
                         TickPuckPaints(room, nowMs);
@@ -115,14 +117,14 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
                         _broadcaster.FlushPending(room);
                         if (!room.BallRolling)
                         {
-                            _footballRooms.TryRemove(roomId, out _);
+                            _footballRooms.Remove(room);
                         }
                     }
 
                     continue;
                 }
 
-                foreach ((int roomId, Room room) in _activeRooms)
+                foreach (Room room in _activeRooms.Live(_roomManager))
                 {
                     bool stillNeedsMovementTicks = room.AdvanceMovement(out List<RoomActor> changed);
                     FootballTickResult football = TickFootball(room, nowMs, roomTick: true);
@@ -296,13 +298,13 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
                         && !oneWayDoorsBusy && !kicksUnderWay && !room.BotsAwake && !room.PetsAwake && !room.IdolBusy && !headsTurned
                         && !queue.NeedsFurtherTicks && !banzaiTeleportsBusy && !pyramidsBusy)
                     {
-                        _activeRooms.TryRemove(roomId, out _);
+                        _activeRooms.Remove(room);
                     }
                 }
 
                 foreach (int roomId in _broadcaster.PendingRoomIds)
                 {
-                    if (_activeRooms.ContainsKey(roomId))
+                    if (_activeRooms.Contains(roomId))
                     {
                         continue;
                     }
@@ -463,7 +465,7 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
 
             if (room.BallRolling)
             {
-                _footballRooms.TryAdd(room.Id, room);
+                _footballRooms.Mark(room);
             }
 
             return football;

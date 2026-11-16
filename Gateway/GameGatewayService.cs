@@ -51,15 +51,28 @@ public sealed class GameGatewayService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        Socket game = Listen(_options.Port);
-        _logger.LogInformation("Game gateway listening on {Endpoint}", game.LocalEndPoint);
-        var loops = new List<Task> { AcceptLoopAsync(game, HandleGameSocketAsync, stoppingToken) };
+        var loops = new List<Task>();
+        if (_options.Port > 0)
+        {
+            Socket game = Listen(_options.Port);
+            _logger.LogInformation("Game gateway listening on {Endpoint}", game.LocalEndPoint);
+            loops.Add(AcceptLoopAsync(game, HandleGameSocketAsync, stoppingToken));
+        }
+        else
+        {
+            _logger.LogInformation("Game gateway (TCP, the Flash Player) is off: GameServer Port is 0.");
+        }
 
         if (_options.WebSocketPort > 0)
         {
             Socket webSocket = Listen(_options.WebSocketPort);
             _logger.LogInformation("WebSocket gateway (Ruffle) listening on {Endpoint}", webSocket.LocalEndPoint);
             loops.Add(AcceptLoopAsync(webSocket, HandleWebSocketAsync, stoppingToken));
+        }
+
+        if (loops.Count == 0)
+        {
+            _logger.LogWarning("GameServer Port and WebSocketPort are both 0: nobody can connect to the hotel.");
         }
 
         await Task.WhenAll(loops);

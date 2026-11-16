@@ -158,6 +158,7 @@ public sealed class UseFurnitureMessageComposer : IMessageComposer
                 if (await _roomRights.CanToggleFurnitureAsync(account, room.Data, cancellationToken))
                 {
                     await _football.UseClockAsync(room, item, _param, cancellationToken);
+                    _scheduler.MarkActive(room);
                 }
 
                 break;
@@ -185,6 +186,7 @@ public sealed class UseFurnitureMessageComposer : IMessageComposer
                 if (await _roomRights.CanToggleFurnitureAsync(account, room.Data, cancellationToken))
                 {
                     await _banzai.UseClockAsync(room, item, _param, cancellationToken);
+                    _scheduler.MarkActive(room);
                 }
 
                 break;

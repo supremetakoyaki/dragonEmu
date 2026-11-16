@@ -22,7 +22,7 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
 
     private static readonly TimeSpan TeleportArrivalWindow = TimeSpan.FromSeconds(30);
 
-    private readonly ConcurrentDictionary<int, Room> _activeRooms = new();
+    private readonly TickedRooms _activeRooms = new();
     private readonly RoomBroadcaster _broadcaster;
     private readonly IRoomManager _roomManager;
     private readonly ClientSessionManager _sessionManager;
@@ -54,9 +54,10 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
         _logger = logger;
 
         _roomManager.RoomUnloaded += _broadcaster.Forget;
+        _roomManager.RoomRemoved += _activeRooms.Forget;
     }
 
-    public void MarkActive(Room room) => _activeRooms.TryAdd(room.Id, room);
+    public void MarkActive(Room room) => _activeRooms.Mark(room);
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
@@ -87,7 +88,7 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
         {
             while (await _timer.WaitForNextTickAsync(cancellationToken))
             {
-                foreach ((int roomId, Room room) in _activeRooms)
+                foreach (Room room in _activeRooms.Live(_roomManager))
                 {
                     bool stillNeedsMovementTicks = room.AdvanceMovement(out List<RoomActor> changed);
                     TeleporterTickResult teleporters = room.AdvanceTeleporters(changed);
@@ -218,13 +219,13 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
                         && !oneWayDoorsBusy && !kicksUnderWay && !room.BotsAwake && !room.PetsAwake && !room.IdolBusy && !headsTurned
                         && !queue.NeedsFurtherTicks)
                     {
-                        _activeRooms.TryRemove(roomId, out _);
+                        _activeRooms.Remove(room);
                     }
                 }
 
                 foreach (int roomId in _broadcaster.PendingRoomIds)
                 {
-                    if (_activeRooms.ContainsKey(roomId))
+                    if (_activeRooms.Contains(roomId))
                     {
                         continue;
                     }

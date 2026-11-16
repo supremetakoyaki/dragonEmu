@@ -129,21 +129,24 @@ public sealed class RoomManager : IRoomManager, IHostedService, IDisposable
 
         IReadOnlyList<UserItem> items = await _userItemRepository.GetFloorItemsInRoomAsync(roomId, cancellationToken);
 
+        bool anyReset = false;
         foreach (UserItem item in items)
         {
             string? reset = item.LogicClass switch
             {
                 FurnitureLogicClass.Hotspot => Room.HotspotOff,
                 FurnitureLogicClass.VotingChair => Room.ChairUnlit,
+                _ when _furnitureDefinitions.GetById(item.FurniDefId)?.InteractionLogic == FurnitureInteractionLogic.BanzaiGate => Room.BanzaiGateEmpty,
                 _ => null,
             };
             if (reset is not null && item.ExtraData != reset)
             {
                 await _userItemRepository.UpdateExtraDataAsync(item.Id, reset, cancellationToken);
+                anyReset = true;
             }
         }
 
-        if (items.Any(item => item.LogicClass is FurnitureLogicClass.Hotspot or FurnitureLogicClass.VotingChair))
+        if (anyReset)
         {
             items = await _userItemRepository.GetFloorItemsInRoomAsync(roomId, cancellationToken);
         }

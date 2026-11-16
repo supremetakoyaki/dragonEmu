@@ -311,6 +311,8 @@ public sealed partial class Room
         QueueEffectChange(actor);
     }
 
+    public const string BanzaiGateEmpty = "0";
+
     private void QueueGates(GameTeam team)
     {
         int count = _banzaiTeams[team].Count;
@@ -320,6 +322,7 @@ public sealed partial class Room
             {
                 if (gate.IsBanzaiGate && GameTeams.OfClassname(gate.Classname) == team)
                 {
+                    gate.TileState = count;
                     Queue(gate.Id, count, save: true);
                 }
             }

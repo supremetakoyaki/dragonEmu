@@ -69,6 +69,14 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
         _roomManager.RoomUnloaded += _broadcaster.Forget;
         _roomManager.RoomRemoved += _activeRooms.Forget;
         _roomManager.RoomRemoved += _footballRooms.Forget;
+
+        _roomManager.RoomLoaded += room => room.UserLeft += (left, _) =>
+        {
+            if (left.BanzaiBusy)
+            {
+                MarkActive(left);
+            }
+        };
     }
 
     public void MarkActive(Room room) => _activeRooms.Mark(room);

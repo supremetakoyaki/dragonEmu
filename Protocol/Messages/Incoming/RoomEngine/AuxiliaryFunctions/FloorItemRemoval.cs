@@ -9,7 +9,7 @@ internal static class FloorItemRemoval
     public static void RemoveFromRoom(Room room, int itemId, RoomBroadcaster broadcaster)
     {
         RoomFloorItem? floorItem = room.GetFloorItem(itemId);
-        IReadOnlyList<long> resting = floorItem is not null ? room.RestingActorsOn(floorItem) : [];
+        HashSet<(int X, int Y)> footprint = floorItem is not null ? floorItem.OccupiedTiles().ToHashSet() : [];
 
         room.RemoveFloorItem(itemId);
         broadcaster.Broadcast(room, new ObjectRemoveMessageEvent(itemId).Compose());
@@ -18,21 +18,7 @@ internal static class FloorItemRemoval
             broadcaster.Broadcast(room, new SoundMachineClosedMessageEvent(itemId).Compose());
         }
 
-        var resettled = new List<RoomActor>();
-        foreach (long sessionId in resting)
-        {
-            if (room.TryGetActor(sessionId, out RoomActor? actor))
-            {
-                lock (actor!.Lock)
-                {
-                    if (room.ApplyTilePosture(actor))
-                    {
-                        resettled.Add(actor);
-                    }
-                }
-            }
-        }
-
+        List<RoomActor> resettled = room.SettleOn(footprint);
         if (resettled.Count > 0)
         {
             broadcaster.Broadcast(room, new UserUpdateMessageEvent(resettled).Compose());

@@ -362,6 +362,35 @@ public sealed partial class Room
         return standing;
     }
 
+    public List<RoomActor> SettleOn(IReadOnlySet<(int X, int Y)> tiles)
+    {
+        var settled = new List<RoomActor>();
+        foreach (RoomActor actor in _actors.Values)
+        {
+            lock (actor.Lock)
+            {
+                if (actor.IsWalking || !tiles.Contains((actor.X, actor.Y)))
+                {
+                    continue;
+                }
+
+                (ActorPosture Posture, double Z, int Body, int Head) before = (actor.Posture, actor.Z, actor.RotBody, actor.RotHead);
+                ApplyTilePosture(actor);
+                if (actor.Posture == ActorPosture.Stand)
+                {
+                    actor.Z = TopSurfaceAt(actor.X, actor.Y);
+                }
+
+                if (actor.Posture != before.Posture || Math.Abs(actor.Z - before.Z) > 0.001 || actor.RotBody != before.Body || actor.RotHead != before.Head)
+                {
+                    settled.Add(actor);
+                }
+            }
+        }
+
+        return settled;
+    }
+
     public void LoadFloorItems(IEnumerable<RoomFloorItem> items)
     {
         lock (_furnitureLock)

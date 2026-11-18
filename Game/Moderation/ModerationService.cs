@@ -89,7 +89,7 @@ public sealed class ModerationService
     public static void ShowBanAndDisconnect(IGameSession session, string reason)
     {
         session.Send(new UserBannedMessageEvent(reason).Compose());
-        _ = DisconnectLaterAsync(session);
+        _ = DisconnectLaterAsync(session, "banned");
     }
 
     public async Task LoadMuteAsync(IGameSession session, int userId, CancellationToken cancellationToken) =>
@@ -173,10 +173,10 @@ public sealed class ModerationService
                 : _texts.Format(MessageKeys.RankRefusalLowerOnly, ("verb", _texts.Get(verb)), ("username", target.Username)))
             : _texts.Format(MessageKeys.UserNotFound, ("username", username));
 
-    public static async Task DisconnectLaterAsync(IGameSession session)
+    public static async Task DisconnectLaterAsync(IGameSession session, string reason)
     {
         await Task.Delay(DisconnectDelay);
-        session.Close();
+        session.Close(reason);
     }
 
     private string Duration(int hours) =>

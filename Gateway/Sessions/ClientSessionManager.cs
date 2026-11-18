@@ -119,9 +119,11 @@ public sealed class ClientSessionManager
             queuedRoom!.LeaveQueue(session.Id);
         }
 
+        TimeSpan online = DateTime.UtcNow - session.ConnectedAt;
         _logger.LogInformation(
-            "Session {SessionId} disconnected ({Count}/{Max})",
-            session.Id, _sessions.Count, _options.MaxConnections);
+            "Session {SessionId} ({Username}, {RemoteAddress}) disconnected after {Online}: {Reason} ({Count}/{Max})",
+            session.Id, session.AuthenticatedUser?.Username ?? "not logged in", session.RemoteAddress,
+            online.ToString(online.TotalHours >= 1 ? @"h\:mm\:ss" : @"m\:ss"), session.EndReason, _sessions.Count, _options.MaxConnections);
         return true;
     }
 }

@@ -16,6 +16,8 @@ public sealed class WebSocketConnection : IClientConnection
 
     public string RemoteAddress { get; }
 
+    public string? ClosedWith { get; private set; }
+
     public async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancellationToken)
     {
         while (true)
@@ -23,6 +25,9 @@ public sealed class WebSocketConnection : IClientConnection
             ValueWebSocketReceiveResult result = await _webSocket.ReceiveAsync(buffer, cancellationToken);
             if (result.MessageType == WebSocketMessageType.Close)
             {
+                ClosedWith = _webSocket.CloseStatus is { } status
+                    ? $"WebSocket close {(int)status}{(string.IsNullOrEmpty(_webSocket.CloseStatusDescription) ? "" : $" \"{_webSocket.CloseStatusDescription}\"")}"
+                    : "WebSocket close, no code";
                 return 0;
             }
 

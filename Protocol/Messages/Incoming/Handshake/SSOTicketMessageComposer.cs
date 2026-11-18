@@ -92,7 +92,7 @@ public sealed class SSOTicketMessageComposer : IMessageComposer
             (int hour, int minute) = _hotel.ReopensAt;
             _logger.LogInformation("Session {SessionId} tried to log in while the hotel was shutting down.", session.Id);
             session.Send(new LoginFailedHotelClosedMessageEvent(hour, minute).Compose());
-            _ = ModerationService.DisconnectLaterAsync(session);
+            _ = ModerationService.DisconnectLaterAsync(session, "tried to log in while the hotel was shutting down");
             return;
         }
 
@@ -173,6 +173,6 @@ public sealed class SSOTicketMessageComposer : IMessageComposer
         }
 
         older.EnqueueSend(new ModMessageEvent(_texts.Get(MessageKeys.LoggedInElsewhere)).Compose());
-        _ = ModerationService.DisconnectLaterAsync(older);
+        _ = ModerationService.DisconnectLaterAsync(older, "logged in again in another session");
     }
 }

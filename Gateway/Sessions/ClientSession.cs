@@ -66,6 +66,14 @@ public sealed class ClientSession : IAsyncDisposable, IGameSession
 
     public bool UserObjectSent { get; set; }
 
+    public DateTime ConnectedAt { get; } = DateTime.UtcNow;
+
+    private string? _endReason;
+
+    public string EndReason => Volatile.Read(ref _endReason) ?? "the connection ended";
+
+    private void NoteEnd(string reason) => Interlocked.CompareExchange(ref _endReason, reason, null);
+
     public DateTime? LoggedInAt { get; private set; }
 
     private long _lastActiveTicks;
@@ -135,12 +143,15 @@ public sealed class ClientSession : IAsyncDisposable, IGameSession
         }
 
         _logger.LogWarning("Session {SessionId} outgoing queue is full. Disconnecting...", Id);
-        Close();
+        Close("its outgoing queue filled up - the client stopped reading");
         return false;
     }
 
-    public void Close()
+    public void Close() => Close("closed by the server");
+
+    public void Close(string reason)
     {
+        NoteEnd(reason);
         try
         {
             _cts.Cancel();
@@ -189,13 +200,19 @@ public sealed class ClientSession : IAsyncDisposable, IGameSession
         }
         catch (OperationCanceledException)
         {
+            if (hostCancellationToken.IsCancellationRequested)
+            {
+                NoteEnd("the server is stopping");
+            }
         }
         catch (Exception ex)
         {
+            NoteEnd($"connection error: {Describe(ex)}");
             _logger.LogDebug(ex, "Session {SessionId} receive loop ended abnormally.", Id);
         }
         finally
         {
+            NoteEnd("the connection ended");
             _cts.Cancel();
             _outgoing.Writer.TryComplete();
             await sendLoop;
@@ -215,12 +232,14 @@ public sealed class ClientSession : IAsyncDisposable, IGameSession
             }
             catch (TimeoutException)
             {
+                NoteEnd($"nothing from the client for {_idleTimeout.TotalSeconds:0} seconds (GameServer IdleTimeoutSeconds)");
                 _logger.LogInformation("Session {SessionId} timed out after {Timeout}.", Id, _idleTimeout);
                 return;
             }
 
             if (received == 0)
             {
+                NoteEnd(_connection.ClosedWith is { } closedWith ? $"the client closed the connection ({closedWith})" : "the client closed the connection");
                 return;
             }
 
@@ -252,8 +271,20 @@ public sealed class ClientSession : IAsyncDisposable, IGameSession
         }
         catch (Exception ex)
         {
+            NoteEnd($"sending failed: {Describe(ex)}");
             _logger.LogDebug(ex, "Session {SessionId} send loop ended abnormally.", Id);
         }
+    }
+
+    internal static string Describe(Exception ex)
+    {
+        var parts = new List<string>();
+        for (Exception? e = ex; e is not null && parts.Count < 3; e = e.InnerException)
+        {
+            parts.Add($"{e.GetType().Name}: {e.Message}");
+        }
+
+        return string.Join(" <- ", parts);
     }
 
     public async ValueTask DisposeAsync()

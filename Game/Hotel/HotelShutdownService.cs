@@ -75,7 +75,7 @@ public sealed class HotelShutdownService
             await Task.Delay(FlushDelay);
             foreach (ClientSession session in _sessions.GetAuthenticatedSessions())
             {
-                session.Close();
+                session.Close("the hotel closed");
             }
 
             await Task.Delay(FlushDelay);

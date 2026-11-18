@@ -36,7 +36,7 @@ public sealed class HotelViewIdleService : IHostedService, IDisposable
             if (IsDue(session, minutes, now))
             {
                 _logger.LogInformation("Session {SessionId} idle in the hotel view for {Minutes} minutes. Disconnecting...", session.Id, minutes);
-                session.Close();
+                session.Close($"idle in the hotel view for {minutes} minutes");
             }
         }
     }

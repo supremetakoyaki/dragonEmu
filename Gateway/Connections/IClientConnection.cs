@@ -7,4 +7,6 @@ public interface IClientConnection : IAsyncDisposable
     ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancellationToken);
 
     ValueTask SendAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken);
+
+    string? ClosedWith => null;
 }

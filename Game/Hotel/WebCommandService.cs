@@ -74,7 +74,7 @@ public sealed class WebCommandService : IHostedService, IDisposable
                 if (_sessions.TryGetByUserId(command.UserId, out ClientSession? session) && session is not null)
                 {
                     _logger.LogInformation("Session {SessionId} logged out everywhere from the website. Disconnecting...", session.Id);
-                    session.Close();
+                    session.Close("logged out everywhere from the website");
                 }
 
                 break;

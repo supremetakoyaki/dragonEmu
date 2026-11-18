@@ -54,6 +54,8 @@ public interface IGameSession
 
     void Close();
 
+    void Close(string reason) => Close();
+
     DateTime? MutedUntil { get; set; }
 
     bool IsModerator { get; set; }

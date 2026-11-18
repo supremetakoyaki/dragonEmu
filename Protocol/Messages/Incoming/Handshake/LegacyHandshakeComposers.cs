@@ -8,7 +8,7 @@ public sealed class DisconnectMessageComposer : IMessageComposer
 
     public ValueTask HandleAsync(IGameSession session, CancellationToken cancellationToken)
     {
-        session.Close();
+        session.Close("the client said goodbye");
         return ValueTask.CompletedTask;
     }
 }
@@ -21,7 +21,7 @@ public sealed class TryLoginMessageComposer : IMessageComposer
 
     public ValueTask HandleAsync(IGameSession session, CancellationToken cancellationToken)
     {
-        session.Close();
+        session.Close("it sent the old password login");
         return ValueTask.CompletedTask;
     }
 }

@@ -92,3 +92,20 @@ public sealed class GivePixelsChatCommand : GiveCurrencyChatCommand
     protected override ServerPacket BalanceUpdate(long balance, int amount) =>
         new HabboActivityPointNotificationMessageEvent(balance, amount).Compose();
 }
+
+public sealed class GiveSnowflakesChatCommand : GiveCurrencyChatCommand
+{
+    public GiveSnowflakesChatCommand(IUserRepository userRepository, ICurrencyRepository currencyRepository, ClientSessionManager sessionManager, MessageTexts texts)
+        : base(userRepository, currencyRepository, sessionManager, texts)
+    {
+    }
+
+    public override string Name => "givesnowflakes";
+
+    protected override int Currency => CurrencyType.Snowflakes;
+
+    protected override string CurrencyName => MessageKeys.CurrencySnowflakes;
+
+    protected override ServerPacket BalanceUpdate(long balance, int amount) =>
+        new HabboActivityPointNotificationMessageEvent(balance, amount, ActivityPointType.Snowflakes).Compose();
+}

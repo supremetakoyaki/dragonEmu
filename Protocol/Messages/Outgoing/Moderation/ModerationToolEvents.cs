@@ -138,23 +138,30 @@ public sealed class IssueDeletedMessageEvent : IMessageEvent
 
 public sealed class IssuePickFailedMessageEvent : IMessageEvent
 {
-    private readonly int _issueId;
-    private readonly int _pickerId;
-    private readonly string _pickerName;
+    private readonly IReadOnlyList<(int IssueId, int PickerId, string PickerName)> _issues;
+    private readonly bool _retryEnabled;
+    private readonly int _retryCount;
 
-    public IssuePickFailedMessageEvent(int issueId, int pickerId, string pickerName)
+    public IssuePickFailedMessageEvent(IReadOnlyList<(int IssueId, int PickerId, string PickerName)> issues, bool retryEnabled, int retryCount)
     {
-        _issueId = issueId;
-        _pickerId = pickerId;
-        _pickerName = pickerName;
+        _issues = issues;
+        _retryEnabled = retryEnabled;
+        _retryCount = retryCount;
     }
 
     public ServerPacket Compose()
     {
         var packet = new ServerPacket(OutgoingOpcodes.Moderation.IssuePickFailedMessageEvent);
-        packet.AppendInt32(_issueId);
-        packet.AppendInt32(_pickerId);
-        packet.AppendString(_pickerName);
+        packet.AppendInt32(_issues.Count);
+        foreach ((int issueId, int pickerId, string pickerName) in _issues)
+        {
+            packet.AppendInt32(issueId);
+            packet.AppendInt32(pickerId);
+            packet.AppendString(pickerName);
+        }
+
+        packet.AppendBoolean(_retryEnabled);
+        packet.AppendInt32(_retryCount);
         return packet;
     }
 }

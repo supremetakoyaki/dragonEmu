@@ -55,6 +55,7 @@ public sealed class UsersMessageEvent : IMessageEvent
             packet.AppendInt32(actor.FavouriteGroup?.GroupId ?? -1);
             packet.AppendInt32(-1);
             packet.AppendString(actor.Swimsuit ?? string.Empty);
+            packet.AppendInt32(actor.AchievementScore);
         }
 
         return packet;

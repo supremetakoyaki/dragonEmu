@@ -35,6 +35,8 @@ public sealed class RoomActor
 
     public string Motto { get; set; }
 
+    public int AchievementScore { get; set; }
+
     public string Figure { get; set; }
 
     public char Gender { get; set; }
@@ -100,6 +102,12 @@ public sealed class RoomActor
     public int EffectBeforeWater { get; set; }
 
     public GameTeam Team { get; set; }
+
+    public bool OnIce { get; set; }
+
+    public long IceSinceMs { get; set; }
+
+    public long IceCarryMs { get; set; }
 
     public bool InLockerRoom { get; set; }
 

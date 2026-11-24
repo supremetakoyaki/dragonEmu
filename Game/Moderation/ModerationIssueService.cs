@@ -126,8 +126,10 @@ public sealed class ModerationIssueService : IHostedService
             : new CallForHelpPendingCallsDeletedMessageEvent().Compose());
     }
 
-    public async Task PickAsync(IGameSession session, UserAccount moderator, IReadOnlyList<int> issueIds, CancellationToken cancellationToken)
+    public async Task PickAsync(IGameSession session, UserAccount moderator, IReadOnlyList<int> issueIds, bool retryEnabled, int retryCount,
+        CancellationToken cancellationToken)
     {
+        var failed = new List<(int IssueId, int PickerId, string PickerName)>();
         foreach (int issueId in issueIds.Distinct())
         {
             if (_issues.TryGetValue(issueId, out ModerationIssue? issue) && await _repository.TryPickAsync(issueId, moderator.Id, cancellationToken))
@@ -137,8 +139,13 @@ public sealed class ModerationIssueService : IHostedService
             else
             {
                 ModerationIssue? current = Get(issueId);
-                session.Send(new IssuePickFailedMessageEvent(issueId, current?.PickerId ?? 0, current?.PickerName ?? string.Empty).Compose());
+                failed.Add((issueId, current?.PickerId ?? 0, current?.PickerName ?? string.Empty));
             }
+        }
+
+        if (failed.Count > 0)
+        {
+            session.Send(new IssuePickFailedMessageEvent(failed, retryEnabled, retryCount).Compose());
         }
     }
 

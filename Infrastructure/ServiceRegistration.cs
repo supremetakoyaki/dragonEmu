@@ -102,6 +102,7 @@ public static class ServiceRegistration
         services.AddSingleton<UsernameRules>();
         services.AddSingleton<UsernameChangeService>();
         services.AddSingleton<WardrobeService>();
+        services.AddSingleton<DragonEmu.Game.Quests.QuestService>();
         services.AddSingleton<UserTagService>();
         services.AddSingleton<RespectService>();
         services.AddSingleton<MessengerService>();
@@ -126,8 +127,10 @@ public static class ServiceRegistration
         services.AddSingleton<TotemService>();
         services.AddSingleton<GateService>();
         services.AddSingleton<VendingService>();
+        services.AddSingleton<FireworkService>();
         services.AddSingleton<HockeyLightService>();
         services.AddSingleton<FootballService>();
+        services.AddSingleton<IceTagService>();
         services.AddSingleton<BanzaiService>();
         services.AddSingleton<FurnitureAutoStateService>();
         services.AddSingleton<TraxService>();

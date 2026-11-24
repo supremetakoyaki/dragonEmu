@@ -48,6 +48,8 @@ public interface IGameSession
 
     int AvatarEffectId { get; set; }
 
+    int AchievementScore { get; set; }
+
     bool UserObjectSent { get; set; }
 
     void Send(ServerPacket packet);

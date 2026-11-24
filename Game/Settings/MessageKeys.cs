@@ -102,6 +102,7 @@ public static class MessageKeys
 
     public const string CurrencyCredits = "currency_credits";
     public const string CurrencyPixels = "currency_pixels";
+    public const string CurrencySnowflakes = "currency_snowflakes";
 
     public const string InfobusClosed = "infobus_closed";
 

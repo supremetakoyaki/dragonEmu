@@ -5,6 +5,7 @@ using DragonEmu.Domain;
 using DragonEmu.Game.Furniture;
 using DragonEmu.Game.Pets;
 using DragonEmu.Gateway;
+using DragonEmu.Persistence;
 using DragonEmu.Protocol.Messages.Outgoing.RoomAction;
 using DragonEmu.Protocol.Messages.Outgoing.RoomChat;
 using DragonEmu.Protocol.Messages.Outgoing.RoomEngine;
@@ -40,7 +41,9 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
     private readonly PublicRoomTransfers _transfers;
     private readonly FootballService _football;
     private readonly BanzaiService _banzai;
+    private readonly IceTagService _iceTag;
     private readonly FurnitureAutoStateService _autoStateService;
+    private readonly IUserRepository _users;
     private readonly ILogger<RoomMovementScheduler> _logger;
     private readonly PeriodicTimer _timer = new(SubTickInterval);
     private CancellationTokenSource? _stoppingCts;
@@ -50,8 +53,11 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
         RoomBroadcaster broadcaster, IRoomManager roomManager, ClientSessionManager sessionManager,
         GameSettingsCache gameSettings, FurniturePositionWriter positionWriter, TotemService totems, PetService pets,
         PublicRoomTransfers transfers, IdolService idol, FootballService football,
-        FurnitureAutoStateService autoStateService, BanzaiService banzai, ILogger<RoomMovementScheduler> logger)
+        FurnitureAutoStateService autoStateService, BanzaiService banzai, IUserRepository users, IceTagService iceTag,
+        ILogger<RoomMovementScheduler> logger)
     {
+        _iceTag = iceTag;
+        _users = users;
         _banzai = banzai;
         _autoStateService = autoStateService;
         _football = football;
@@ -72,7 +78,7 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
 
         _roomManager.RoomLoaded += room => room.UserLeft += (left, _) =>
         {
-            if (left.BanzaiBusy)
+            if (left.BanzaiBusy || left.IceTagBusy)
             {
                 MarkActive(left);
             }
@@ -168,6 +174,8 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
                         _autoStateService.Apply(room, autoStates);
                     }
 
+                    TickIceTag(room, nowMs);
+
                     foreach (RoomActor wet in room.AdvanceWaterAreas())
                     {
                         int effect;
@@ -181,13 +189,25 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
 
                     foreach (RoomActor dressed in room.TakeFigureChanges())
                     {
-                        (string figure, char gender, string motto) = (string.Empty, 'M', string.Empty);
+                        (string figure, char gender, string motto, int score) = (string.Empty, 'M', string.Empty, 0);
                         lock (dressed.Lock)
                         {
-                            (figure, gender, motto) = (dressed.Figure, dressed.Gender, dressed.Motto);
+                            (figure, gender, motto, score) = (dressed.Figure, dressed.Gender, dressed.Motto, dressed.AchievementScore);
                         }
 
-                        _broadcaster.Broadcast(room, new UserChangeMessageEvent(dressed.VirtualId, figure, gender, motto).Compose());
+                        _broadcaster.Broadcast(room, new UserChangeMessageEvent(dressed.VirtualId, figure, gender, motto, score).Compose());
+                    }
+
+                    foreach (long sessionId in teleporters.SantaHats)
+                    {
+                        if (_sessionManager.TryGet(sessionId, out ClientSession? hatted) && hatted!.AuthenticatedUser is { } account)
+                        {
+                            UserAccount updated = account with { Figure = TeleporterSequence.WithSantaHat(account.Figure) };
+                            hatted.Authenticate(updated);
+                            hatted.EnqueueSend(new UserChangeMessageEvent(-1, updated.Figure, updated.Gender, updated.Motto).Compose());
+                            _ = _users.UpdateFigureAsync(account.Id, updated.Figure, updated.Gender).ContinueWith(
+                                t => _logger.LogError(t.Exception, "Saving user {UserId}'s Santa hat failed.", account.Id), TaskContinuationOptions.OnlyOnFaulted);
+                        }
                     }
 
                     foreach (FurnitureStateChange change in vending.StateChanges)
@@ -304,7 +324,7 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
                     if (!stillNeedsMovementTicks && !teleporters.NeedsFurtherTicks && !stillNeedsRollTicks && !rollers.NeedsFurtherTicks
                         && !someoneHoldsAHandItem && !vending.NeedsFurtherTicks && !hockeyLightsLit && !footballBusy && !banzaiBusy
                         && !oneWayDoorsBusy && !kicksUnderWay && !room.BotsAwake && !room.PetsAwake && !room.IdolBusy && !headsTurned
-                        && !queue.NeedsFurtherTicks && !banzaiTeleportsBusy && !pyramidsBusy)
+                        && !queue.NeedsFurtherTicks && !banzaiTeleportsBusy && !pyramidsBusy && !room.IceTagBusy)
                     {
                         _activeRooms.Remove(room);
                     }
@@ -323,7 +343,7 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
                         _broadcaster.FlushPending(room!);
 
                         if (room!.RollersHaveWork() || room.BotsAwake || room.PetsAwake || room.HeadsTurned || room.FootballBusy || room.WaterRecheckPending || room.AutoStatesPending || room.BanzaiBusy
-                            || room.BanzaiTeleportsBusy)
+                            || room.BanzaiTeleportsBusy || room.IceTagBusy)
                         {
                             MarkActive(room);
                         }
@@ -501,6 +521,22 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
         {
             _logger.LogError(ex, "Battle Banzai in room {RoomId} failed this tick.", room.Id);
             return false;
+        }
+    }
+
+    private void TickIceTag(Room room, long nowMs)
+    {
+        try
+        {
+            IceTagTickResult iceTag = room.AdvanceIceTag(nowMs);
+            if (!iceTag.IsEmpty)
+            {
+                _iceTag.HandleTick(iceTag);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ice Tag in room {RoomId} failed this tick.", room.Id);
         }
     }
 

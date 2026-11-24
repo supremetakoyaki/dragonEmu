@@ -120,6 +120,8 @@ public static class IncomingOpcodes
         public const int RoomTextSearchMessageComposer = 437;
         public const int RoomTagSearchMessageComposer = 438;
         public const int LatestEventsSearchMessageComposer = 439;
+
+        public const int ToggleStaffPickMessageComposer = 483;
     }
 
     public static class RoomSettings
@@ -148,6 +150,8 @@ public static class IncomingOpcodes
         public const int RemovePetFromFlatMessageComposer = 3003;
         public const int GetPetCommandsMessageComposer = 3004;
         public const int SetClothingChangeDataMessageComposer = 480;
+
+        public const int ViralTeaserFoundMessageComposer = 3103;
     }
 
     public static class RoomSession
@@ -174,6 +178,8 @@ public static class IncomingOpcodes
         public const int DanceMessageComposer = 93;
         public const int WaveMessageComposer = 94;
         public const int SignMessageComposer = 104;
+
+        public const int ChangeMottoMessageComposer = 484;
     }
 
     public static class Users
@@ -188,6 +194,10 @@ public static class IncomingOpcodes
         public const int GetIgnoredUsersMessageComposer = 321;
         public const int UnignoreUserMessageComposer = 322;
         public const int RespectUserMessageComposer = 371;
+
+        public const int GetAchievementShareIdComposer = 481;
+
+        public const int GetMOTDMessageComposer = 3110;
     }
 
     public static class RoomFurniture
@@ -202,6 +212,10 @@ public static class IncomingOpcodes
         public const int RoomDimmerGetPresetsMessageComposer = 341;
         public const int RoomDimmerSavePresetMessageComposer = 342;
         public const int RoomDimmerChangeStateMessageComposer = 343;
+
+        public const int QuestVendingWallItemMessageComposer = 3100;
+
+        public const int ViralFurniStatusMessageComposer = 3104;
     }
 
     public static class RoomPets
@@ -287,6 +301,8 @@ public static class IncomingOpcodes
         public const int LatencyPingReportMessageComposer = 316;
         public const int PerformanceLogMessageComposer = 421;
         public const int LagWarningReportMessageComposer = 422;
+
+        public const int ConversionPointMessageComposer = 482;
     }
 
     public static class Poll
@@ -364,14 +380,17 @@ public static class IncomingOpcodes
 
     public static class UserDefinedRoomEvents
     {
-        public const int AddEventMessageComposer = 3050;
-        public const int AddTriggerMessageComposer = 3051;
-        public const int AddActionMessageComposer = 3052;
-        public const int RemoveEventMessageComposer = 3053;
-        public const int RemoveTriggerMessageComposer = 3054;
-        public const int RemoveActionMessageComposer = 3055;
-        public const int GetEventsMessageComposer = 3056;
-        public const int ReloadEventsMessageComposer = 3057;
+        public const int UpdateTriggerMessageComposer = 3050;
+        public const int UpdateActionMessageComposer = 3051;
+        public const int UpdateConditionMessageComposer = 3052;
+        public const int OpenMessageComposer = 3053;
+        public const int ApplySnapshotMessageComposer = 3054;
+    }
+
+    public static class Quest
+    {
+        public const int ActivateQuestMessageComposer = 3101;
+        public const int OpenQuestListMessageComposer = 3102;
     }
 }
 
@@ -450,6 +469,8 @@ public static class OutgoingOpcodes
     public static class InventoryAchievements
     {
         public const int AchievementsEvent = 436;
+
+        public const int AchievementsScoreEvent = 443;
     }
 
     public static class InventoryTrading
@@ -531,6 +552,10 @@ public static class OutgoingOpcodes
         public const int YouAreSpectatorMessageEvent = 254;
         public const int RoomQueueStatusMessageEvent = 259;
         public const int RoomForwardMessageEvent = 286;
+
+        public const int YouArePlayingGameMessageEvent = 700;
+
+        public const int GamePlayerValueMessageEvent = 701;
     }
 
     public static class RoomChat
@@ -539,6 +564,8 @@ public static class OutgoingOpcodes
         public const int WhisperMessageEvent = 25;
         public const int ShoutMessageEvent = 26;
         public const int UserTypingMessageEvent = 361;
+
+        public const int FloodControlMessageEvent = 27;
     }
 
     public static class RoomEngine
@@ -568,6 +595,8 @@ public static class OutgoingOpcodes
         public const int PlaceObjectErrorMessageEvent = 516;
         public const int RoomVisualizationSettingsEvent = 472;
         public const int ObjectsDataUpdateMessageEvent = 473;
+
+        public const int ViralTeaserActiveMessageEvent = 805;
     }
 
     public static class RoomPets
@@ -588,6 +617,10 @@ public static class OutgoingOpcodes
         public const int PresentOpenedMessageEvent = 129;
         public const int OneWayDoorStatusMessageEvent = 312;
         public const int RoomDimmerPresetsMessageEvent = 365;
+
+        public const int ViralFurniGiftReceivedEvent = 806;
+
+        public const int ViralFurniStatusEvent = 807;
     }
 
     public static class Users
@@ -668,6 +701,14 @@ public static class OutgoingOpcodes
         public const int HabboActivityPointNotificationMessageEvent = 438;
         public const int InfoFeedEnableMessageEvent = 517;
         public const int PetLevelNotificationEvent = 602;
+
+        public const int HabboAchievementShareIdMessageEvent = 444;
+
+        public const int HabboAchievementBonusMessageEvent = 445;
+
+        public const int ActivityPointsMessageEvent = 628;
+
+        public const int MOTDNotificationEvent = 810;
     }
 
     public static class Catalog
@@ -687,6 +728,8 @@ public static class OutgoingOpcodes
         public const int ClubGiftInfoEvent = 623;
         public const int ClubGiftSelectedEvent = 624;
         public const int HabboClubOffersMessageEvent = 625;
+
+        public const int ChargeInfoMessageEvent = 629;
     }
 
     public static class Recycler
@@ -778,8 +821,17 @@ public static class OutgoingOpcodes
 
     public static class UserDefinedRoomEvents
     {
-        public const int UserDefinedRoomEventsEvent = 650;
-        public const int OpenUserDefinedRoomEventsEvent = 651;
+        public const int WiredFurniTriggerEvent = 650;
+        public const int WiredFurniActionEvent = 651;
+        public const int WiredFurniConditionEvent = 652;
+        public const int OpenEvent = 653;
+    }
+
+    public static class Quest
+    {
+        public const int QuestListMessageEvent = 800;
+        public const int QuestAcceptedMessageEvent = 801;
+        public const int QuestCompletedMessageEvent = 802;
     }
 }
 

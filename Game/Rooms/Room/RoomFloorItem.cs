@@ -112,6 +112,10 @@ public sealed class RoomFloorItem
 
     public bool IsBanzaiPyramid => InteractionLogic == FurnitureInteractionLogic.BanzaiPyramid;
 
+    public bool IsIcePatch => InteractionLogic == FurnitureInteractionLogic.IceTagSkatingPatch;
+
+    public bool IsIceTagPole => InteractionLogic == FurnitureInteractionLogic.IceTagPole;
+
     public int TileState { get; set; }
 
     public static int ParseState(string? extraData) =>

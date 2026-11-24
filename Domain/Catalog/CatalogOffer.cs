@@ -11,8 +11,11 @@ public sealed record CatalogOffer(
     bool ClubOnly,
     bool Giftable,
     IReadOnlyList<CatalogOfferProduct> Products,
-    PrebuiltSong? PrebuiltSong = null)
+    PrebuiltSong? PrebuiltSong = null,
+    int ActivityPointType = Domain.ActivityPointType.Pixels)
 {
+    public int ActivityPointCurrency => CurrencyType.OfActivityPoints(ActivityPointType);
+
     public bool IsActuallyGiftable =>
         Giftable
         && Products.Count == 1

@@ -27,7 +27,7 @@ public sealed class GetAchievementsComposer : IMessageComposer
             return;
         }
 
-        var entries = new List<(int Type, int Level, string Code, int ScoreLimit, int LevelRewardPoints, int CurrentPoints)>();
+        var entries = new List<(int Type, int Level, string Code, int ScoreLimit, int LevelRewardPoints, int LevelRewardPointType, int CurrentPoints)>();
         foreach (AchievementDefinition definition in _definitionCache.Definitions)
         {
             if (!definition.Enabled || definition.Levels.Count == 0)
@@ -48,9 +48,12 @@ public sealed class GetAchievementsComposer : IMessageComposer
                 continue;
             }
 
-            entries.Add((definition.Id, nextLevel, level.BadgeCode, level.Threshold, level.RewardActivityPoints, progress.Counter));
+            entries.Add((definition.ClientType, nextLevel, level.BadgeCode, level.Threshold, level.RewardActivityPoints, level.RewardActivityPointType, progress.Counter));
         }
 
         session.Send(new AchievementsEvent(entries).Compose());
+
+        session.AchievementScore = await _userAchievementRepository.GetScoreAsync(account.Id, cancellationToken);
+        session.Send(new AchievementsScoreEvent(session.AchievementScore).Compose());
     }
 }

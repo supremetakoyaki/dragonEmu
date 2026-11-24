@@ -51,4 +51,12 @@ public enum FurnitureInteractionLogic
     BanzaiApparatus,
 
     BanzaiPyramid,
+
+    Firework,
+
+    IceTagPole,
+
+    IceTagSkatingPatch,
+
+    LeverSwitch,
 }

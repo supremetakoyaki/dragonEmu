@@ -9,6 +9,8 @@ public sealed class PickIssuesMessageComposer : IMessageComposer
     private readonly ModerationIssueService _issues;
 
     private readonly List<int> _issueIds = [];
+    private bool _retryEnabled;
+    private int _retryCount;
 
     public PickIssuesMessageComposer(ModerationIssueService issues)
     {
@@ -22,13 +24,16 @@ public sealed class PickIssuesMessageComposer : IMessageComposer
         {
             _issueIds.Add(packet.PopInt32());
         }
+
+        _retryEnabled = packet.PopBoolean();
+        _retryCount = packet.PopInt32();
     }
 
     public async ValueTask HandleAsync(IGameSession session, CancellationToken cancellationToken)
     {
         if (session.IsModerator && session.AuthenticatedUser is { } account)
         {
-            await _issues.PickAsync(session, account, _issueIds, cancellationToken);
+            await _issues.PickAsync(session, account, _issueIds, _retryEnabled, _retryCount, cancellationToken);
         }
     }
 }

@@ -34,6 +34,7 @@ public sealed class ClubGiftInfoEvent : IMessageEvent
             packet.AppendString(gift.OfferCode);
             packet.AppendInt32(0);
             packet.AppendInt32(0);
+            packet.AppendInt32(ActivityPointType.Pixels);
 
             packet.AppendInt32(1);
             packet.AppendString(gift.Product.ProductType.ToWireChar());

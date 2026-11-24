@@ -7,6 +7,8 @@ public sealed class OfficialRoomsEvent : IMessageEvent
 {
     private const int EntryTypeFixedPublicRoom = 3;
     private const int EntryTypeCategory = 4;
+
+    private const bool FolderOpen = true;
     private const int RootParentId = 0;
 
     private readonly IReadOnlyList<NavigatorPublicRoom> _rooms;
@@ -70,6 +72,7 @@ public sealed class OfficialRoomsEvent : IMessageEvent
                 packet.AppendInt32(parentId);
                 packet.AppendInt32(0);
                 packet.AppendInt32(EntryTypeCategory);
+                packet.AppendBoolean(FolderOpen);
                 continue;
             }
 

@@ -255,10 +255,10 @@ public sealed class PurchaseFromCatalogComposer : IMessageComposer
         }
 
         long credits = await _currencyRepository.GetBalanceAsync(account.Id, CurrencyType.Credits, cancellationToken);
-        long activityPoints = await _currencyRepository.GetBalanceAsync(account.Id, CurrencyType.ActivityPoints, cancellationToken);
+        long activityPoints = await _currencyRepository.GetBalanceAsync(account.Id, offer.ActivityPointCurrency, cancellationToken);
         if (credits < offer.PriceCredits || activityPoints < offer.PriceActivityPoints)
         {
-            session.Send(new NotEnoughBalanceMessageEvent(credits < offer.PriceCredits, activityPoints < offer.PriceActivityPoints).Compose());
+            session.Send(new NotEnoughBalanceMessageEvent(credits < offer.PriceCredits, activityPoints < offer.PriceActivityPoints, offer.ActivityPointType).Compose());
             return;
         }
 
@@ -269,7 +269,7 @@ public sealed class PurchaseFromCatalogComposer : IMessageComposer
 
         if (offer.PriceActivityPoints > 0)
         {
-            await _currencyRepository.SetBalanceAsync(account.Id, CurrencyType.ActivityPoints, activityPoints - offer.PriceActivityPoints, cancellationToken);
+            await _currencyRepository.SetBalanceAsync(account.Id, offer.ActivityPointCurrency, activityPoints - offer.PriceActivityPoints, cancellationToken);
         }
 
         SubscriptionGrantResult? lastGrant = null;
@@ -333,7 +333,7 @@ public sealed class PurchaseFromCatalogComposer : IMessageComposer
 
         if (offer.PriceActivityPoints > 0)
         {
-            session.Send(new HabboActivityPointNotificationMessageEvent(activityPoints - offer.PriceActivityPoints).Compose());
+            session.Send(new HabboActivityPointNotificationMessageEvent(activityPoints - offer.PriceActivityPoints, type: offer.ActivityPointType).Compose());
         }
 
         if (filmNow is { } filmLeft)

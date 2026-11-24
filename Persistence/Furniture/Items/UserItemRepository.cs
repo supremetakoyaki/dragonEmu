@@ -94,6 +94,16 @@ public sealed class UserItemRepository : IUserItemRepository
         return await command.ExecuteNonQueryAsync(cancellationToken) > 0;
     }
 
+    public async Task<bool> UpdateExtrasAsync(int itemId, int? extras, CancellationToken cancellationToken = default)
+    {
+        await using MySqlConnection connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+        await using var command = new MySqlCommand("UPDATE users_items SET extras = @extras WHERE id = @itemId;", connection);
+        command.Parameters.AddWithValue("@itemId", itemId);
+        command.Parameters.AddWithValue("@extras", (object?)extras ?? DBNull.Value);
+
+        return await command.ExecuteNonQueryAsync(cancellationToken) > 0;
+    }
+
     public async Task<IReadOnlyDictionary<int, string?>> GetExtraDataInRoomAsync(
         int roomId, IReadOnlyCollection<int> itemIds, CancellationToken cancellationToken = default)
     {

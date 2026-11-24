@@ -110,6 +110,7 @@ public sealed partial class Room
         actor!.TakeTrade()?.Cancel(actor.AccountId);
         EndEventHostedBy(sessionId);
         LeaveBanzaiTeam(actor);
+        LeaveIce(actor);
 
         if (actor.Type == ActorType.Player)
         {
@@ -1019,6 +1020,8 @@ public sealed partial class Room
                         UpdateWaterEffect(actor);
 
                         PlayBanzai(actor, actor.X, actor.Y);
+
+                        UpdateIce(actor, Environment.TickCount64);
 
                         TryStartBanzaiTeleport(actor);
 

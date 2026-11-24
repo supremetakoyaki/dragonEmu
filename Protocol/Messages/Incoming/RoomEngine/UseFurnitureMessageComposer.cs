@@ -1,6 +1,7 @@
 using DragonEmu.Domain;
 using DragonEmu.Game.Furniture;
 using DragonEmu.Game.Pets;
+using DragonEmu.Game.Quests;
 using DragonEmu.Game.Rooms;
 
 namespace DragonEmu.Protocol.Messages.Incoming.RoomEngine;
@@ -22,6 +23,8 @@ public sealed class UseFurnitureMessageComposer : IMessageComposer
     private readonly FootballService _football;
     private readonly BanzaiService _banzai;
     private readonly RoomMovementScheduler _scheduler;
+    private readonly QuestService _questService;
+    private readonly FireworkService _fireworks;
 
     private int _itemId;
     private int _param;
@@ -29,8 +32,11 @@ public sealed class UseFurnitureMessageComposer : IMessageComposer
     public UseFurnitureMessageComposer(
         IRoomManager roomManager, RoomTeleportService teleports, FurnitureStateService furnitureState, RoomRightsService roomRights,
         VendingService vending, TotemService totems, GateService gates, HockeyLightService hockeyLights, PetService pets, TraxService trax,
-        TraxEditorService traxEditor, JukeboxService jukebox, FootballService football, BanzaiService banzai, RoomMovementScheduler scheduler)
+        TraxEditorService traxEditor, JukeboxService jukebox, FootballService football, BanzaiService banzai, RoomMovementScheduler scheduler,
+        QuestService questService, FireworkService fireworks)
     {
+        _fireworks = fireworks;
+        _questService = questService;
         _scheduler = scheduler;
         _banzai = banzai;
         _football = football;
@@ -72,6 +78,8 @@ public sealed class UseFurnitureMessageComposer : IMessageComposer
             return;
         }
 
+        await _questService.CompleteIfActiveAsync(session, account.Id, item.Classname, cancellationToken);
+
         switch (item.InteractionLogic)
         {
             case FurnitureInteractionLogic.Teleport:
@@ -80,6 +88,10 @@ public sealed class UseFurnitureMessageComposer : IMessageComposer
 
             case FurnitureInteractionLogic.Vending:
                 _vending.Use(room, actor!, item);
+                break;
+
+            case FurnitureInteractionLogic.Firework:
+                await _fireworks.UseAsync(session, account.Id, room, item, _param, cancellationToken);
                 break;
 
             case FurnitureInteractionLogic.Toggle when Room.IsSoundFurni(item.LogicClass):
@@ -100,6 +112,20 @@ public sealed class UseFurnitureMessageComposer : IMessageComposer
 
             case FurnitureInteractionLogic.Toggle when item.LogicClass == FurnitureLogicClass.Multistate:
                 if (await _roomRights.CanToggleFurnitureAsync(account, room.Data, cancellationToken))
+                {
+                    await _furnitureState.ToggleNextStateAsync(room, item, cancellationToken);
+                }
+
+                break;
+
+            case FurnitureInteractionLogic.LeverSwitch:
+                bool nextToLever;
+                lock (actor!.Lock)
+                {
+                    nextToLever = item.IsNextTo(actor.X, actor.Y);
+                }
+
+                if (nextToLever)
                 {
                     await _furnitureState.ToggleNextStateAsync(room, item, cancellationToken);
                 }

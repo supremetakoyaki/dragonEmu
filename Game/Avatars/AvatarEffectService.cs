@@ -88,6 +88,12 @@ public sealed class AvatarEffectService : IHostedService
 
     public async Task ActivateAsync(IGameSession session, int userId, int effectId, CancellationToken cancellationToken)
     {
+        if (session.CurrentRoomId is { } roomId && _roomManager.TryGetLoadedRoom(roomId, out Room? room)
+            && room!.TryGetActor(session.Id, out RoomActor? actor) && room.InEffectGame(actor!))
+        {
+            return;
+        }
+
         AvatarEffect? effect = await _repository.TryActivateAsync(userId, effectId, UtcNow(), cancellationToken);
         if (effect?.ExpiresAt is not { } expiresAt)
         {

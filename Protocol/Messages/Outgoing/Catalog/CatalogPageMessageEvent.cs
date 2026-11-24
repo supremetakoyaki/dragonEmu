@@ -45,6 +45,7 @@ public sealed class CatalogPageMessageEvent : IMessageEvent
             packet.AppendString(offer.OfferCode);
             packet.AppendInt32(offer.PriceCredits);
             packet.AppendInt32(offer.PriceActivityPoints);
+            packet.AppendInt32(offer.ActivityPointType);
 
             packet.AppendInt32(offer.Products.Count);
             foreach (CatalogOfferProduct product in offer.Products)

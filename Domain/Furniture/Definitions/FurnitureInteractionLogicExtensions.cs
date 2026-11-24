@@ -36,6 +36,10 @@ public static class FurnitureInteractionLogicExtensions
         FurnitureInteractionLogic.BanzaiTeleport => "banzai_teleport",
         FurnitureInteractionLogic.BanzaiApparatus => "banzai_apparatus",
         FurnitureInteractionLogic.BanzaiPyramid => "banzai_pyramid",
+        FurnitureInteractionLogic.Firework => "firework",
+        FurnitureInteractionLogic.IceTagPole => "icetag_tag_pole",
+        FurnitureInteractionLogic.IceTagSkatingPatch => "icetag_skating_patch",
+        FurnitureInteractionLogic.LeverSwitch => "lever_switch",
         _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown furniture interaction logic."),
     };
 
@@ -73,6 +77,10 @@ public static class FurnitureInteractionLogicExtensions
         "banzai_teleport" => FurnitureInteractionLogic.BanzaiTeleport,
         "banzai_apparatus" => FurnitureInteractionLogic.BanzaiApparatus,
         "banzai_pyramid" => FurnitureInteractionLogic.BanzaiPyramid,
+        "firework" => FurnitureInteractionLogic.Firework,
+        "icetag_tag_pole" => FurnitureInteractionLogic.IceTagPole,
+        "icetag_skating_patch" => FurnitureInteractionLogic.IceTagSkatingPatch,
+        "lever_switch" => FurnitureInteractionLogic.LeverSwitch,
         _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown furniture interaction_logic value from the database."),
     };
 }

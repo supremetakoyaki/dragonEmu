@@ -66,4 +66,26 @@ public sealed class UserAchievementRepository : IUserAchievementRepository
 
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
+
+    public async Task<int> GetScoreAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        await using MySqlConnection connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+        await using var command = new MySqlCommand("SELECT achievement_score FROM users WHERE id = @userId;", connection);
+        command.Parameters.AddWithValue("@userId", userId);
+        return Convert.ToInt32(await command.ExecuteScalarAsync(cancellationToken) ?? 0);
+    }
+
+    public async Task<int> AddScoreAsync(int userId, int delta, CancellationToken cancellationToken = default)
+    {
+        await using MySqlConnection connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+        await using var command = new MySqlCommand(
+            """
+            UPDATE users SET achievement_score = achievement_score + @delta WHERE id = @userId;
+            SELECT achievement_score FROM users WHERE id = @userId;
+            """,
+            connection);
+        command.Parameters.AddWithValue("@userId", userId);
+        command.Parameters.AddWithValue("@delta", delta);
+        return Convert.ToInt32(await command.ExecuteScalarAsync(cancellationToken) ?? 0);
+    }
 }

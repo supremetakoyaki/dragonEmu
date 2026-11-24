@@ -36,6 +36,7 @@ public sealed class ChatMessageComposer : IMessageComposer
     public void Parse(ClientPacket packet)
     {
         _message = packet.PopString();
+        packet.PopInt32();
     }
 
     public ValueTask HandleAsync(IGameSession session, CancellationToken cancellationToken) =>

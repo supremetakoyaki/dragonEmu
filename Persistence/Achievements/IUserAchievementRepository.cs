@@ -9,4 +9,8 @@ public interface IUserAchievementRepository
     Task<IReadOnlyList<(int AchievementId, AchievementProgress Progress)>> GetAllAsync(int userId, CancellationToken cancellationToken = default);
 
     Task SetProgressAsync(int userId, int achievementId, int counter, int currentLevel, CancellationToken cancellationToken = default);
+
+    Task<int> GetScoreAsync(int userId, CancellationToken cancellationToken = default);
+
+    Task<int> AddScoreAsync(int userId, int delta, CancellationToken cancellationToken = default);
 }

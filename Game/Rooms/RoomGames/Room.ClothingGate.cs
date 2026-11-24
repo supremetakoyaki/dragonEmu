@@ -94,6 +94,12 @@ public sealed partial class Room
             return false;
         }
 
+        MarkFigureChanged(actor);
+        return true;
+    }
+
+    public void MarkFigureChanged(RoomActor actor)
+    {
         lock (_outfitLock)
         {
             if (!_figureChanges.Contains(actor))
@@ -101,8 +107,6 @@ public sealed partial class Room
                 _figureChanges.Add(actor);
             }
         }
-
-        return true;
     }
 
     public IReadOnlyList<RoomActor> TakeFigureChanges()

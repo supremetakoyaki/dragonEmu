@@ -1,6 +1,7 @@
 using DragonEmu.Domain;
 using DragonEmu.Game.Camera;
 using DragonEmu.Game.Furniture;
+using DragonEmu.Game.Quests;
 using DragonEmu.Game.Rooms;
 using DragonEmu.Persistence;
 
@@ -13,13 +14,15 @@ public sealed class UseWallItemMessageComposer : IMessageComposer
     private readonly FurnitureStateService _furnitureState;
     private readonly RoomRightsService _roomRights;
     private readonly CameraService _camera;
+    private readonly QuestService _questService;
 
     private int _itemId;
 
     public UseWallItemMessageComposer(
         IRoomManager roomManager, FurnitureDefinitionCache furnitureDefinitions, FurnitureStateService furnitureState,
-        RoomRightsService roomRights, CameraService camera)
+        RoomRightsService roomRights, CameraService camera, QuestService questService)
     {
+        _questService = questService;
         _roomManager = roomManager;
         _furnitureDefinitions = furnitureDefinitions;
         _furnitureState = furnitureState;
@@ -42,6 +45,8 @@ public sealed class UseWallItemMessageComposer : IMessageComposer
         {
             return;
         }
+
+        await _questService.CompleteIfActiveAsync(session, account.Id, item.Classname, cancellationToken);
 
         FurnitureDefinition? definition = _furnitureDefinitions.GetById(item.FurniDefId);
         if (definition?.LogicClass == FurnitureLogicClass.Photo)

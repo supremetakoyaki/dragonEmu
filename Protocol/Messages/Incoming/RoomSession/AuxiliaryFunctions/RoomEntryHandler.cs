@@ -178,6 +178,7 @@ internal static class RoomEntryHandler
                 RotBody = spawnDir,
                 RotHead = spawnDir,
                 EffectId = session.AvatarEffectId,
+                AchievementScore = session.AchievementScore,
                 FavouriteGroup = account.FavouriteGroup,
 
                 Swimsuit = room.IsPool ? session.Swimsuit : null,

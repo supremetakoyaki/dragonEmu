@@ -26,9 +26,14 @@ public sealed class GetCreditsInfoComposer : IMessageComposer
         }
 
         long credits = await _currencyRepository.GetBalanceAsync(account.Id, CurrencyType.Credits, cancellationToken);
-        long activityPoints = await _currencyRepository.GetBalanceAsync(account.Id, CurrencyType.ActivityPoints, cancellationToken);
+        var balances = new List<(int Type, long Amount)>();
+        foreach (int type in ActivityPointType.All)
+        {
+            balances.Add((type, await _currencyRepository.GetBalanceAsync(account.Id, CurrencyType.OfActivityPoints(type), cancellationToken)));
+        }
 
         session.Send(new CreditBalanceEvent(credits).Compose());
-        session.Send(new HabboActivityPointNotificationMessageEvent(activityPoints).Compose());
+        session.Send(new ActivityPointsMessageEvent(balances).Compose());
+        session.Send(new HabboActivityPointNotificationMessageEvent(balances[0].Amount).Compose());
     }
 }

@@ -68,7 +68,7 @@ public sealed partial class Room
                 return false;
             }
 
-            if (actor.Team != GameTeam.None)
+            if (actor.Team != GameTeam.None || actor.OnIce)
             {
                 return false;
             }

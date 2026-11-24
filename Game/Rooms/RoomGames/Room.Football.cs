@@ -70,7 +70,10 @@ public sealed partial class Room
             }
 
             (GameTeam team, int? trail) = BallTrail(ball, kicker);
-            _ballRolls[ball.Id] = new BallRoll(ball, direction, kicker?.SessionId, ball.X, ball.Y, team, trail);
+            _ballRolls[ball.Id] = new BallRoll(ball, direction, kicker?.SessionId, ball.X, ball.Y, team, trail)
+            {
+                IcePuck = ball.Classname == FootballRules.IcePuckClassname,
+            };
             return true;
         }
     }
@@ -185,7 +188,7 @@ public sealed partial class Room
                         }
 
                         AdvanceRoll(roll, ball, nowMs, occupied, moves);
-                        if (roll.Slot >= FootballRules.KickStates.Count)
+                        if (roll.Slot >= roll.States.Count)
                         {
                             _ballRolls.Remove(ballId);
                             rests.Add(new BallRest(ball, roll.LastState));
@@ -260,25 +263,39 @@ public sealed partial class Room
 
     private void AdvanceRoll(BallRoll roll, RoomFloorItem ball, long nowMs, HashSet<(int X, int Y)> occupied, List<BallMove> moves)
     {
-        while (roll.Slot < FootballRules.KickStates.Count)
+        while (roll.Slot < roll.States.Count)
         {
-            string state = FootballRules.RollState(FootballRules.KickStates[roll.Slot], roll.Trail);
+            string state = FootballRules.RollState(roll.States[roll.Slot], roll.Trail);
             roll.Slot++;
 
-            if (BallDestinationUnlocked(ball, roll.Direction, occupied) is { } to)
+            var to = BallDestinationUnlocked(ball, roll.Direction, occupied);
+            if (to is null && roll.IcePuck)
             {
-                moves.Add(MoveBallUnlocked(ball, to.X, to.Y, to.Z, roll.Direction, state));
-                roll.LastX = to.X;
-                roll.LastY = to.Y;
+                (int dx, int dy) = FootballRules.Delta(roll.Direction);
+                int bounced = FootballRules.Bounce(roll.Direction,
+                    xBlocked: dx != 0 && BallDestinationUnlocked(ball, FootballRules.DirectionOf(dx, 0), occupied) is null,
+                    yBlocked: dy != 0 && BallDestinationUnlocked(ball, FootballRules.DirectionOf(0, dy), occupied) is null);
+                if (BallDestinationUnlocked(ball, bounced, occupied) is { } off)
+                {
+                    roll.Direction = bounced;
+                    to = off;
+                }
+            }
+
+            if (to is { } destination)
+            {
+                moves.Add(MoveBallUnlocked(ball, destination.X, destination.Y, destination.Z, roll.Direction, state));
+                roll.LastX = destination.X;
+                roll.LastY = destination.Y;
                 roll.LastState = state;
 
                 long scheduled = roll.Timed && nowMs - roll.DueAtMs <= MaxLateMs ? roll.DueAtMs : nowMs;
                 roll.Timed = true;
                 roll.DueAtMs = scheduled + FootballRules.IntervalMs(state);
 
-                QueuePuckPaint(ball, to.X, to.Y, roll.Team, roll.DueAtMs, PlayerAccountOf(roll.KickerSessionId));
+                QueuePuckPaint(ball, destination.X, destination.Y, roll.Team, roll.DueAtMs, PlayerAccountOf(roll.KickerSessionId));
 
-                if (to.Goal is { } goal)
+                if (destination.Goal is { } goal)
                 {
                     if (!_goalCooldowns.TryGetValue(goal.Id, out long until) || nowMs >= until)
                     {
@@ -448,6 +465,10 @@ public sealed partial class Room
         public int Direction { get; set; } = direction;
 
         public long? KickerSessionId { get; } = kickerSessionId;
+
+        public bool IcePuck { get; init; }
+
+        public IReadOnlyList<string> States => IcePuck ? FootballRules.IcePuckKickStates : FootballRules.KickStates;
 
         public int Slot { get; set; }
 

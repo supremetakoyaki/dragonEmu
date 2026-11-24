@@ -19,6 +19,7 @@ public sealed partial class Room
         _hasBanzai = _floorItems.Values.Any(item => item.IsBanzaiTile || item.IsBanzaiGate || item.IsBanzaiPuck);
         NoteBanzaiItems();
         NoteBanzaiTeleports();
+        NoteIceItems();
         _autoRecheck = true;
 
         if (_autoStates.Count > 0 && !_hasAutoItems)

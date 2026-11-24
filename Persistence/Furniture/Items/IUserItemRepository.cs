@@ -22,6 +22,8 @@ public interface IUserItemRepository
 
     Task<bool> UpdateExtraDataAsync(int itemId, string? extraData, CancellationToken cancellationToken = default);
 
+    Task<bool> UpdateExtrasAsync(int itemId, int? extras, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyDictionary<int, string?>> GetExtraDataInRoomAsync(int roomId, IReadOnlyCollection<int> itemIds, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<UserItem>> GetInventoryAsync(int userId, CancellationToken cancellationToken = default);

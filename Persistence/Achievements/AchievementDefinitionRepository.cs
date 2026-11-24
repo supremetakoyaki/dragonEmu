@@ -17,7 +17,7 @@ public sealed class AchievementDefinitionRepository : IAchievementDefinitionRepo
         await using MySqlConnection connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
         await using var command = new MySqlCommand(
             """
-            SELECT a.id, a.code_base, a.max_level, a.enabled, l.level, l.threshold, l.badge_code, l.reward_activity_points
+            SELECT a.id, a.code_base, a.max_level, a.enabled, l.level, l.threshold, l.badge_code, l.reward_activity_points, l.reward_achievement_score, l.reward_activity_point_type, a.client_type
             FROM definition_achievements a
             LEFT JOIN definition_achievement_levels l ON l.achievement_ref = a.id
             ORDER BY a.id, l.level;
@@ -36,12 +36,13 @@ public sealed class AchievementDefinitionRepository : IAchievementDefinitionRepo
             {
                 currentId = id;
                 currentLevels = [];
-                definitions.Add(new AchievementDefinition(id, reader.GetString(1), reader.GetInt32(2), reader.GetBoolean(3), currentLevels));
+                definitions.Add(new AchievementDefinition(id, reader.GetString(1), reader.GetInt32(2), reader.GetBoolean(3), currentLevels,
+                    (int)reader.GetUInt32(10)));
             }
 
             if (!reader.IsDBNull(4))
             {
-                currentLevels.Add(new AchievementLevel(reader.GetInt32(4), reader.GetInt32(5), reader.GetString(6), reader.GetInt32(7)));
+                currentLevels.Add(new AchievementLevel(reader.GetInt32(4), reader.GetInt32(5), reader.GetString(6), reader.GetInt32(7), reader.GetInt32(8), reader.GetByte(9)));
             }
         }
 

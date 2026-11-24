@@ -64,6 +64,8 @@ public sealed class ClientSession : IAsyncDisposable, IGameSession
 
     public int AvatarEffectId { get; set; }
 
+    public int AchievementScore { get; set; }
+
     public bool UserObjectSent { get; set; }
 
     public DateTime ConnectedAt { get; } = DateTime.UtcNow;

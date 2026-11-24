@@ -33,6 +33,8 @@ using DragonEmu.Protocol.Messages.Incoming.Camera;
 using DragonEmu.Protocol.Messages.Incoming.Idol;
 using DragonEmu.Protocol.Messages.Incoming.Trax;
 using DragonEmu.Protocol.Messages.Incoming.Users;
+using DragonEmu.Protocol.Messages.Incoming.Quest;
+using DragonEmu.Protocol.Messages.Incoming.Tracking;
 using Microsoft.Extensions.DependencyInjection;
 using DragonEmu.Domain;
 using DragonEmu.Game.Settings;
@@ -258,6 +260,17 @@ public sealed class GameMessageDispatcher : IPacketDispatcher
         [IncomingOpcodes.RoomPublicRoom.TryBusMessageComposer] = sp => ActivatorUtilities.CreateInstance<TryBusMessageComposer>(sp),
         [IncomingOpcodes.RoomPublicRoom.ChangeRoomMessageComposer] = sp => ActivatorUtilities.CreateInstance<ChangeRoomMessageComposer>(sp),
         [IncomingOpcodes.Register.UpdateFigureDataMessageComposer] = sp => ActivatorUtilities.CreateInstance<UpdateFigureDataMessageComposer>(sp),
+
+        [IncomingOpcodes.RoomAvatar.ChangeMottoMessageComposer] = sp => ActivatorUtilities.CreateInstance<ChangeMottoMessageComposer>(sp),
+        [IncomingOpcodes.Users.GetAchievementShareIdComposer] = _ => new GetAchievementShareIdComposer(),
+        [IncomingOpcodes.Users.GetMOTDMessageComposer] = _ => new GetMOTDMessageComposer(),
+        [IncomingOpcodes.Tracking.ConversionPointMessageComposer] = _ => new ConversionPointMessageComposer(),
+        [IncomingOpcodes.Navigator.ToggleStaffPickMessageComposer] = _ => new ToggleStaffPickMessageComposer(),
+        [IncomingOpcodes.RoomFurniture.QuestVendingWallItemMessageComposer] = sp => ActivatorUtilities.CreateInstance<QuestVendingWallItemMessageComposer>(sp),
+        [IncomingOpcodes.RoomFurniture.ViralFurniStatusMessageComposer] = _ => new ViralFurniStatusMessageComposer(),
+        [IncomingOpcodes.RoomEngine.ViralTeaserFoundMessageComposer] = _ => new ViralTeaserFoundMessageComposer(),
+        [IncomingOpcodes.Quest.ActivateQuestMessageComposer] = sp => ActivatorUtilities.CreateInstance<ActivateQuestMessageComposer>(sp),
+        [IncomingOpcodes.Quest.OpenQuestListMessageComposer] = sp => ActivatorUtilities.CreateInstance<OpenQuestListMessageComposer>(sp),
     };
 
     private static readonly HashSet<int> BeforeLogin =
@@ -293,6 +306,7 @@ public sealed class GameMessageDispatcher : IPacketDispatcher
         IncomingOpcodes.Tracking.LatencyPingRequestMessageComposer,
         IncomingOpcodes.Tracking.LatencyPingReportMessageComposer,
         IncomingOpcodes.FriendList.FriendListUpdateMessageComposer,
+        IncomingOpcodes.Tracking.ConversionPointMessageComposer,
     ];
 
     public static bool IsUserActivity(int packetId) => !Unattended.Contains(packetId);

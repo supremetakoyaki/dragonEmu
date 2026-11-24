@@ -28,6 +28,8 @@ public sealed class TeleporterTickResult
 
     public List<TeleporterDeparture> Departures { get; } = [];
 
+    public List<long> SantaHats { get; } = [];
+
     public bool NeedsFurtherTicks { get; set; }
 }
 
@@ -257,6 +259,17 @@ public sealed class TeleporterSequence
                     break;
                 }
 
+                if (teleporter.Classname == "xmas10_fireplace")
+                {
+                    lock (actor.Lock)
+                    {
+                        actor.Figure = WithSantaHat(actor.Figure);
+                    }
+
+                    room.MarkFigureChanged(actor);
+                    result.SantaHats.Add(SessionId);
+                }
+
                 if (StepOut(room, teleporter, actor, changed, result))
                 {
                     SetState(teleporter, 1, result);
@@ -293,6 +306,10 @@ public sealed class TeleporterSequence
         result.NeedsFurtherTicks = true;
         return true;
     }
+
+    internal static string WithSantaHat(string figure) =>
+        string.Join('.', figure.Split('.', StringSplitOptions.RemoveEmptyEntries).Where(part => !part.StartsWith("ha-", StringComparison.Ordinal))
+            .Append("ha-1006"));
 
     private static bool IsStandingOn(RoomActor actor, (int X, int Y) tile)
     {

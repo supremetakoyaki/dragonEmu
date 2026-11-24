@@ -29,6 +29,7 @@ public sealed class PlaceObjectMessageComposer : IMessageComposer
     private readonly PetService _pets;
     private readonly MessageTexts _texts;
     private readonly TraxEditorService _traxEditor;
+    private readonly IceTagService _iceTag;
 
     private string _body = string.Empty;
 
@@ -43,8 +44,9 @@ public sealed class PlaceObjectMessageComposer : IMessageComposer
         RoomMovementScheduler scheduler,
         TotemService totems,
         TradingService trading,
-        PetService pets, MessageTexts texts, TraxEditorService traxEditor)
+        PetService pets, MessageTexts texts, TraxEditorService traxEditor, IceTagService iceTag)
     {
+        _iceTag = iceTag;
         _traxEditor = traxEditor;
         _texts = texts;
         _pets = pets;
@@ -234,6 +236,11 @@ public sealed class PlaceObjectMessageComposer : IMessageComposer
 
             _pets.TrackItem(room, placing, placedItem.ExtraData);
             await _traxEditor.InventoryChangedAsync(session, placedItem.FurniDefId, cancellationToken);
+        }
+
+        if (placing.IsIcePatch)
+        {
+            await _iceTag.PatchPlacedAsync(account.Id, itemId, cancellationToken);
         }
 
         if (placing.IsTotemPiece)

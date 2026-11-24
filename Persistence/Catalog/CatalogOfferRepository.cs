@@ -20,7 +20,7 @@ public sealed class CatalogOfferRepository : ICatalogOfferRepository
             SELECT o.id, o.ref_page, o.offer_code, o.price_credits, o.price_activity_points, o.club_only,
                    o.giftable, p.id, p.product_type, p.product_extra_data, p.product_count,
                    p.product_rental_duration, fd.ref_furnidata, p.ref_furni_def,
-                   song.song_name, song.song_author, song.song_data
+                   song.song_name, song.song_author, song.song_data, o.activity_point_type
             FROM definition_catalog_page_offers o
             LEFT JOIN definition_catalog_page_offers_products p ON p.ref_offer_id = o.id
             LEFT JOIN definition_furniture fd ON fd.id = p.ref_furni_def
@@ -52,7 +52,8 @@ public sealed class CatalogOfferRepository : ICatalogOfferRepository
                     reader.GetBoolean(5),
                     reader.GetBoolean(6),
                     currentProducts,
-                    reader.IsDBNull(14) ? null : new PrebuiltSong(reader.GetString(14), reader.GetString(15), reader.GetString(16))));
+                    reader.IsDBNull(14) ? null : new PrebuiltSong(reader.GetString(14), reader.GetString(15), reader.GetString(16)),
+                    reader.GetInt32(17)));
             }
 
             if (!reader.IsDBNull(7))

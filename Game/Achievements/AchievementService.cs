@@ -4,8 +4,11 @@ using DragonEmu.Game.Rooms;
 using DragonEmu.Gateway;
 using DragonEmu.Persistence;
 using DragonEmu.Protocol;
+using DragonEmu.Protocol.Messages;
+using DragonEmu.Protocol.Messages.Outgoing.InventoryAchievements;
 using DragonEmu.Protocol.Messages.Outgoing.InventoryBadges;
 using DragonEmu.Protocol.Messages.Outgoing.Notifications;
+using DragonEmu.Protocol.Messages.Outgoing.RoomEngine;
 using DragonEmu.Protocol.Messages.Outgoing.Users;
 using Microsoft.Extensions.Logging;
 
@@ -106,14 +109,26 @@ public sealed class AchievementService
 
         _sessionManager.TryGetByUserId(userId, out ClientSession? session);
 
+        int scoreGained = 0;
         for (int level = progress.CurrentLevel + 1; level <= newLevel; level++)
         {
             AchievementLevel awarded = definition.Levels.First(l => l.Level == level);
+            scoreGained += awarded.RewardAchievementScore;
             if (awarded.RewardActivityPoints > 0)
             {
                 long newBalance = await _currencyRepository.AddBalanceAsync(
-                    userId, CurrencyType.ActivityPoints, awarded.RewardActivityPoints, cancellationToken);
-                session?.EnqueueSend(new HabboActivityPointNotificationMessageEvent(newBalance, awarded.RewardActivityPoints).Compose());
+                    userId, awarded.RewardCurrency, awarded.RewardActivityPoints, cancellationToken);
+                session?.EnqueueSend(new HabboActivityPointNotificationMessageEvent(
+                    newBalance, awarded.RewardActivityPoints, awarded.RewardActivityPointType).Compose());
+            }
+        }
+
+        if (scoreGained > 0)
+        {
+            int score = await _userAchievementRepository.AddScoreAsync(userId, scoreGained, cancellationToken);
+            if (session is not null)
+            {
+                ShowScore(session, score);
             }
         }
 
@@ -135,7 +150,8 @@ public sealed class AchievementService
         _logger.LogDebug("User {UserId} reached {CodeBase} level {Level}.", userId, codeBase, newLevel);
 
         session?.EnqueueSend(new HabboAchievementNotificationMessageEvent(
-            definition.Id, newLevel, topLevel.BadgeCode, previousBadgeCode ?? string.Empty).Compose());
+            definition.ClientType, newLevel, topLevel.BadgeCode, previousBadgeCode ?? string.Empty,
+            topLevel.RewardAchievementScore, topLevel.RewardActivityPoints, topLevel.RewardActivityPointType).Compose());
 
         if (wornSlot is not null && session is not null)
         {
@@ -146,6 +162,29 @@ public sealed class AchievementService
         {
             await _fuses.SendHeldAsync(session, account, cancellationToken);
         }
+    }
+
+    public async Task LoadScoreAsync(IGameSession session, int userId, CancellationToken cancellationToken = default) =>
+        session.AchievementScore = await _userAchievementRepository.GetScoreAsync(userId, cancellationToken);
+
+    private void ShowScore(ClientSession session, int score)
+    {
+        session.AchievementScore = score;
+        session.EnqueueSend(new AchievementsScoreEvent(score).Compose());
+        if (session.CurrentRoomId is not { } roomId || !_roomManager.TryGetLoadedRoom(roomId, out Room? room)
+            || !room!.TryGetActor(session.Id, out RoomActor? actor))
+        {
+            return;
+        }
+
+        (int virtualId, string figure, char gender, string motto) = (0, string.Empty, 'M', string.Empty);
+        lock (actor!.Lock)
+        {
+            actor.AchievementScore = score;
+            (virtualId, figure, gender, motto) = (actor.VirtualId, actor.Figure, actor.Gender, actor.Motto);
+        }
+
+        _roomBroadcaster.Broadcast(room, new UserChangeMessageEvent(virtualId, figure, gender, motto, score).Compose());
     }
 
     private async Task ShowWornBadgesAsync(ClientSession session, int userId, CancellationToken cancellationToken)

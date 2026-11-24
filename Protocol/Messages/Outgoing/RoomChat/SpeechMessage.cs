@@ -2,6 +2,8 @@ namespace DragonEmu.Protocol.Messages.Outgoing.RoomChat;
 
 internal static class SpeechMessage
 {
+    public const int NoTrackingId = -1;
+
     public static ServerPacket Compose(int opcode, int virtualId, string message)
     {
         var packet = new ServerPacket(opcode);
@@ -9,6 +11,7 @@ internal static class SpeechMessage
         packet.AppendString(message);
         packet.AppendInt32(DetectEmotion(message));
         packet.AppendInt32(0);
+        packet.AppendInt32(NoTrackingId);
         return packet;
     }
 

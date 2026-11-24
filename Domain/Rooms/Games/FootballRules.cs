@@ -4,6 +4,39 @@ public static class FootballRules
 {
     public static readonly IReadOnlyList<string> KickStates = ["55", "44", "33", "22", "11", "11"];
 
+    public const string IcePuckClassname = "es_puck";
+
+    public static readonly IReadOnlyList<string> IcePuckKickStates = ["88", "77", "66", "55", "44", "33", "22", "11", "11"];
+
+    public static int Bounce(int direction, bool xBlocked, bool yBlocked)
+    {
+        (int dx, int dy) = Delta(direction);
+        if (dx == 0 || dy == 0 || xBlocked == yBlocked)
+        {
+            return Opposite(direction);
+        }
+
+        return xBlocked ? DirectionOf(-dx, dy) : DirectionOf(dx, -dy);
+    }
+
+    public static (int Dx, int Dy) Delta(int direction)
+    {
+        (int x, int y) = Step(0, 0, direction);
+        return (x, y);
+    }
+
+    public static int DirectionOf(int dx, int dy) => (dx, dy) switch
+    {
+        (0, -1) => 0,
+        (1, -1) => 1,
+        (1, 0) => 2,
+        (1, 1) => 3,
+        (0, 1) => 4,
+        (-1, 1) => 5,
+        (-1, 0) => 6,
+        _ => 7,
+    };
+
     public const string RollingSlowly = "11";
 
     public static string RollState(string state, int? trail) => trail is { } digit ? $"{state[0]}{digit}" : state;

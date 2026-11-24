@@ -44,6 +44,7 @@ public sealed class ChatCommandDispatcher : IChatCommandDispatcher
         new(ChatCommandSection.Moderation, ["roomunmute"], "", Create<RoomUnmuteChatCommand>),
         new(ChatCommandSection.Rewards, ["credits", "givecredits"], "[user] [amount]", Create<GiveCreditsChatCommand>),
         new(ChatCommandSection.Rewards, ["pixels", "givepixels"], "[user] [amount]", Create<GivePixelsChatCommand>),
+        new(ChatCommandSection.Rewards, ["snowflakes", "givesnowflakes"], "[user] [amount]", Create<GiveSnowflakesChatCommand>),
         new(ChatCommandSection.Rewards, ["givebadge"], "[user] [code]", Create<GiveBadgeChatCommand>),
         new(ChatCommandSection.Room, ["pos", "position"], "", Create<PositionChatCommand>),
         new(ChatCommandSection.Room, ["sit"], "", Create<SitChatCommand>),

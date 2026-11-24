@@ -19,6 +19,7 @@ public sealed class PurchaseOKMessageEvent : IMessageEvent
         packet.AppendString(_offer.OfferCode);
         packet.AppendInt32(_offer.PriceCredits);
         packet.AppendInt32(_offer.PriceActivityPoints);
+        packet.AppendInt32(_offer.ActivityPointType);
 
         packet.AppendInt32(_offer.Products.Count);
         foreach (CatalogOfferProduct product in _offer.Products)

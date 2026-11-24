@@ -113,7 +113,7 @@ public sealed class UpdateFigureDataMessageComposer : IMessageComposer
             actor.Gender = updated.Gender;
         }
 
-        _broadcaster.Broadcast(room, new UserChangeMessageEvent(actor.VirtualId, updated.Figure, updated.Gender, updated.Motto).Compose());
+        _broadcaster.Broadcast(room, new UserChangeMessageEvent(actor.VirtualId, updated.Figure, updated.Gender, updated.Motto, actor.AchievementScore).Compose());
 
         if (actor.HasSwimwear)
         {

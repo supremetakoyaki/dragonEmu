@@ -218,10 +218,10 @@ public sealed class PurchaseFromCatalogAsGiftComposer : IMessageComposer
         int totalPriceCredits = offer.PriceCredits + giftWrapConfig.WrapPriceCredits;
 
         long credits = await _currencyRepository.GetBalanceAsync(account.Id, CurrencyType.Credits, cancellationToken);
-        long activityPoints = await _currencyRepository.GetBalanceAsync(account.Id, CurrencyType.ActivityPoints, cancellationToken);
+        long activityPoints = await _currencyRepository.GetBalanceAsync(account.Id, offer.ActivityPointCurrency, cancellationToken);
         if (credits < totalPriceCredits || activityPoints < offer.PriceActivityPoints)
         {
-            session.Send(new NotEnoughBalanceMessageEvent(credits < totalPriceCredits, activityPoints < offer.PriceActivityPoints).Compose());
+            session.Send(new NotEnoughBalanceMessageEvent(credits < totalPriceCredits, activityPoints < offer.PriceActivityPoints, offer.ActivityPointType).Compose());
             return;
         }
 
@@ -261,7 +261,7 @@ public sealed class PurchaseFromCatalogAsGiftComposer : IMessageComposer
 
         if (offer.PriceActivityPoints > 0)
         {
-            await _currencyRepository.SetBalanceAsync(account.Id, CurrencyType.ActivityPoints, activityPoints - offer.PriceActivityPoints, cancellationToken);
+            await _currencyRepository.SetBalanceAsync(account.Id, offer.ActivityPointCurrency, activityPoints - offer.PriceActivityPoints, cancellationToken);
         }
 
         string wrapperExtraData = string.IsNullOrEmpty(_giftMessage) ? string.Empty : "!" + _giftMessage;
@@ -285,7 +285,7 @@ public sealed class PurchaseFromCatalogAsGiftComposer : IMessageComposer
 
         if (offer.PriceActivityPoints > 0)
         {
-            session.Send(new HabboActivityPointNotificationMessageEvent(activityPoints - offer.PriceActivityPoints).Compose());
+            session.Send(new HabboActivityPointNotificationMessageEvent(activityPoints - offer.PriceActivityPoints, type: offer.ActivityPointType).Compose());
         }
 
         if (_sessionManager.TryGetByUserId(receiver.Id, out ClientSession? receiverSession))

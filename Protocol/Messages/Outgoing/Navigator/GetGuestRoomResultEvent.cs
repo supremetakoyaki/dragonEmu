@@ -23,6 +23,7 @@ public sealed class GetGuestRoomResultEvent : IMessageEvent
         packet.AppendBoolean(_enterRoom);
         GuestRoomDataWireFormat.Append(packet, _room, _usersNow);
         packet.AppendBoolean(_roomForward);
+        packet.AppendBoolean(false);
         return packet;
     }
 }

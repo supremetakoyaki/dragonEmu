@@ -116,6 +116,7 @@ public sealed class SSOTicketMessageComposer : IMessageComposer
         }
 
         session.Authenticate(account);
+        await _achievementService.LoadScoreAsync(session, account.Id, cancellationToken);
         await _ignores.LoadAsync(session, account.Id, cancellationToken);
         await _moderation.LoadMuteAsync(session, account.Id, cancellationToken);
         foreach (ClientSession older in _sessionManager.SetLoggedIn(session.Id))

@@ -266,6 +266,7 @@ internal static class RoomEntryHandler
             {
                 { Lowered: true } live => floor with { Z = (decimal)live.Z },
                 { IsBanzaiPyramid: true } pyramid => floor with { ExtraData = pyramid.TileState.ToString(System.Globalization.CultureInfo.InvariantCulture) },
+                RoomFloorItem freeze when freeze.IsFreezeTile || freeze.IsFreezeBlock || freeze.IsFreezeExit => floor with { ExtraData = Room.FreezeShownState(freeze) },
                 _ => floor,
             }).ToList();
             IReadOnlyList<UserItem> wallItems = await userItemRepository.GetWallItemsInRoomAsync(roomId, cancellationToken);

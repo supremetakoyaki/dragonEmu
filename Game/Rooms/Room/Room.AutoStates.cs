@@ -20,6 +20,7 @@ public sealed partial class Room
         NoteBanzaiItems();
         NoteBanzaiTeleports();
         NoteIceItems();
+        NoteFreezeItems();
         _autoRecheck = true;
 
         if (_autoStates.Count > 0 && !_hasAutoItems)

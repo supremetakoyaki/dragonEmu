@@ -22,6 +22,7 @@ public sealed class UseFurnitureMessageComposer : IMessageComposer
     private readonly JukeboxService _jukebox;
     private readonly FootballService _football;
     private readonly BanzaiService _banzai;
+    private readonly FreezeService _freeze;
     private readonly RoomMovementScheduler _scheduler;
     private readonly QuestService _questService;
     private readonly FireworkService _fireworks;
@@ -33,8 +34,9 @@ public sealed class UseFurnitureMessageComposer : IMessageComposer
         IRoomManager roomManager, RoomTeleportService teleports, FurnitureStateService furnitureState, RoomRightsService roomRights,
         VendingService vending, TotemService totems, GateService gates, HockeyLightService hockeyLights, PetService pets, TraxService trax,
         TraxEditorService traxEditor, JukeboxService jukebox, FootballService football, BanzaiService banzai, RoomMovementScheduler scheduler,
-        QuestService questService, FireworkService fireworks)
+        QuestService questService, FireworkService fireworks, FreezeService freeze)
     {
+        _freeze = freeze;
         _fireworks = fireworks;
         _questService = questService;
         _scheduler = scheduler;
@@ -212,6 +214,23 @@ public sealed class UseFurnitureMessageComposer : IMessageComposer
                 if (await _roomRights.CanToggleFurnitureAsync(account, room.Data, cancellationToken))
                 {
                     await _banzai.UseClockAsync(room, item, _param, cancellationToken);
+                    _scheduler.MarkActive(room);
+                }
+
+                break;
+
+            case FurnitureInteractionLogic.FreezeCounter:
+                if (await _roomRights.CanToggleFurnitureAsync(account, room.Data, cancellationToken))
+                {
+                    await _freeze.UseClockAsync(room, item, _param, cancellationToken);
+                    _scheduler.MarkActive(room);
+                }
+
+                break;
+
+            case FurnitureInteractionLogic.FreezeTile or FurnitureInteractionLogic.FreezeBlock:
+                if (_freeze.Throw(room, actor!, item))
+                {
                     _scheduler.MarkActive(room);
                 }
 

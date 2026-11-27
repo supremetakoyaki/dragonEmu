@@ -28,7 +28,10 @@ public sealed class RoomFloorItem
 
     public int Length { get; }
 
-    public bool IsWalkable => IsGate ? IsGateOpen : IsBanzaiPyramid ? TileState == Room.PyramidDown : _isWalkable;
+    public bool IsWalkable => IsGate ? IsGateOpen
+        : IsBanzaiPyramid ? TileState == Room.PyramidDown
+        : IsFreezeBlock ? !FreezeRules.IsWhole(TileState)
+        : _isWalkable;
 
     public bool IsSittable { get; }
 
@@ -115,6 +118,16 @@ public sealed class RoomFloorItem
     public bool IsIcePatch => InteractionLogic == FurnitureInteractionLogic.IceTagSkatingPatch;
 
     public bool IsIceTagPole => InteractionLogic == FurnitureInteractionLogic.IceTagPole;
+
+    public bool IsFreezeTile => InteractionLogic == FurnitureInteractionLogic.FreezeTile;
+
+    public bool IsFreezeBlock => InteractionLogic == FurnitureInteractionLogic.FreezeBlock;
+
+    public bool IsFreezeGate => InteractionLogic == FurnitureInteractionLogic.FreezeGate;
+
+    public bool IsFreezeExit => InteractionLogic == FurnitureInteractionLogic.FreezeExit;
+
+    public bool IsFreezeScore => InteractionLogic == FurnitureInteractionLogic.FreezeScore;
 
     public int TileState { get; set; }
 

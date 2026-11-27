@@ -147,6 +147,8 @@ public sealed class PlaceObjectMessageComposer : IMessageComposer
             TileState = definition?.InteractionLogic switch
             {
                 FurnitureInteractionLogic.BanzaiTile or FurnitureInteractionLogic.BanzaiApparatus => 0,
+                FurnitureInteractionLogic.FreezeTile or FurnitureInteractionLogic.FreezeBlock or FurnitureInteractionLogic.FreezeExit
+                    or FurnitureInteractionLogic.FreezeGate => 0,
                 FurnitureInteractionLogic.BanzaiPyramid => Room.PyramidDown,
                 _ => RoomFloorItem.ParseState(item.ExtraData),
             },
@@ -203,7 +205,8 @@ public sealed class PlaceObjectMessageComposer : IMessageComposer
 
         bool placedAtZero = definition?.InteractionLogic is FurnitureInteractionLogic.Vending or FurnitureInteractionLogic.Gate
             or FurnitureInteractionLogic.HockeyLight or FurnitureInteractionLogic.BanzaiTile or FurnitureInteractionLogic.BanzaiTeleport
-            or FurnitureInteractionLogic.BanzaiApparatus
+            or FurnitureInteractionLogic.BanzaiApparatus or FurnitureInteractionLogic.FreezeTile or FurnitureInteractionLogic.FreezeBlock
+            or FurnitureInteractionLogic.FreezeExit or FurnitureInteractionLogic.FreezeGate
             || definition?.LogicClass == FurnitureLogicClass.OneWayDoor
             || (definition is not null && Room.IsSoundFurni(definition.LogicClass));
         string? basalExtraData = definition?.LogicClass switch

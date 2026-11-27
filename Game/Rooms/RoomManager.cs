@@ -136,7 +136,8 @@ public sealed class RoomManager : IRoomManager, IHostedService, IDisposable
             {
                 FurnitureLogicClass.Hotspot => Room.HotspotOff,
                 FurnitureLogicClass.VotingChair => Room.ChairUnlit,
-                _ when _furnitureDefinitions.GetById(item.FurniDefId)?.InteractionLogic == FurnitureInteractionLogic.BanzaiGate => Room.BanzaiGateEmpty,
+                _ when _furnitureDefinitions.GetById(item.FurniDefId)?.InteractionLogic is FurnitureInteractionLogic.BanzaiGate
+                    or FurnitureInteractionLogic.FreezeGate => Room.BanzaiGateEmpty,
                 _ => null,
             };
             if (reset is not null && item.ExtraData != reset)

@@ -59,4 +59,16 @@ public enum FurnitureInteractionLogic
     IceTagSkatingPatch,
 
     LeverSwitch,
+
+    FreezeTile,
+
+    FreezeBlock,
+
+    FreezeGate,
+
+    FreezeCounter,
+
+    FreezeExit,
+
+    FreezeScore,
 }

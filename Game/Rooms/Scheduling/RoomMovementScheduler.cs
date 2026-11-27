@@ -42,6 +42,7 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
     private readonly FootballService _football;
     private readonly BanzaiService _banzai;
     private readonly IceTagService _iceTag;
+    private readonly FreezeService _freeze;
     private readonly FurnitureAutoStateService _autoStateService;
     private readonly IUserRepository _users;
     private readonly ILogger<RoomMovementScheduler> _logger;
@@ -53,9 +54,10 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
         RoomBroadcaster broadcaster, IRoomManager roomManager, ClientSessionManager sessionManager,
         GameSettingsCache gameSettings, FurniturePositionWriter positionWriter, TotemService totems, PetService pets,
         PublicRoomTransfers transfers, IdolService idol, FootballService football,
-        FurnitureAutoStateService autoStateService, BanzaiService banzai, IUserRepository users, IceTagService iceTag,
+        FurnitureAutoStateService autoStateService, BanzaiService banzai, IUserRepository users, IceTagService iceTag, FreezeService freeze,
         ILogger<RoomMovementScheduler> logger)
     {
+        _freeze = freeze;
         _iceTag = iceTag;
         _users = users;
         _banzai = banzai;
@@ -78,7 +80,7 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
 
         _roomManager.RoomLoaded += room => room.UserLeft += (left, _) =>
         {
-            if (left.BanzaiBusy || left.IceTagBusy)
+            if (left.BanzaiBusy || left.IceTagBusy || left.FreezeBusy)
             {
                 MarkActive(left);
             }
@@ -144,6 +146,7 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
                     FootballTickResult football = TickFootball(room, nowMs, roomTick: true);
                     bool footballBusy = football.NeedsFurtherTicks;
                     bool banzaiBusy = TickBanzai(room, football.Finished, nowMs);
+                    bool freezeBusy = TickFreeze(room, football.Finished, changed);
                     TeleporterTickResult teleporters = room.AdvanceTeleporters(changed);
                     List<OneWayDoorStatusChange> oneWayDoors = room.AdvanceOneWayDoors(changed, out bool oneWayDoorsBusy);
                     List<FurnitureStateChange> rolls = room.AdvanceRolls(out bool stillNeedsRollTicks);
@@ -179,12 +182,15 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
                     foreach (RoomActor wet in room.AdvanceWaterAreas())
                     {
                         int effect;
+                        int delay;
                         lock (wet.Lock)
                         {
                             effect = wet.EffectId;
+                            delay = wet.EffectDelayMs;
+                            wet.EffectDelayMs = 0;
                         }
 
-                        _broadcaster.Broadcast(room, new AvatarEffectMessageEvent(wet.VirtualId, effect).Compose());
+                        _broadcaster.Broadcast(room, new AvatarEffectMessageEvent(wet.VirtualId, effect, delay).Compose());
                     }
 
                     foreach (RoomActor dressed in room.TakeFigureChanges())
@@ -324,7 +330,7 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
                     if (!stillNeedsMovementTicks && !teleporters.NeedsFurtherTicks && !stillNeedsRollTicks && !rollers.NeedsFurtherTicks
                         && !someoneHoldsAHandItem && !vending.NeedsFurtherTicks && !hockeyLightsLit && !footballBusy && !banzaiBusy
                         && !oneWayDoorsBusy && !kicksUnderWay && !room.BotsAwake && !room.PetsAwake && !room.IdolBusy && !headsTurned
-                        && !queue.NeedsFurtherTicks && !banzaiTeleportsBusy && !pyramidsBusy && !room.IceTagBusy)
+                        && !queue.NeedsFurtherTicks && !banzaiTeleportsBusy && !pyramidsBusy && !room.IceTagBusy && !freezeBusy && !room.FreezeBusy)
                     {
                         _activeRooms.Remove(room);
                     }
@@ -343,7 +349,7 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
                         _broadcaster.FlushPending(room!);
 
                         if (room!.RollersHaveWork() || room.BotsAwake || room.PetsAwake || room.HeadsTurned || room.FootballBusy || room.WaterRecheckPending || room.AutoStatesPending || room.BanzaiBusy
-                            || room.BanzaiTeleportsBusy || room.IceTagBusy)
+                            || room.BanzaiTeleportsBusy || room.IceTagBusy || room.FreezeBusy)
                         {
                             MarkActive(room);
                         }
@@ -520,6 +526,25 @@ public sealed class RoomMovementScheduler : IHostedService, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "Battle Banzai in room {RoomId} failed this tick.", room.Id);
+            return false;
+        }
+    }
+
+    private bool TickFreeze(Room room, IReadOnlyList<CountdownFinished> finishedClocks, List<RoomActor> changed)
+    {
+        try
+        {
+            FreezeTickResult freeze = room.AdvanceFreeze(finishedClocks, changed);
+            if (!freeze.IsEmpty)
+            {
+                _freeze.HandleTick(room, freeze);
+            }
+
+            return freeze.Busy;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Freeze in room {RoomId} failed this tick.", room.Id);
             return false;
         }
     }

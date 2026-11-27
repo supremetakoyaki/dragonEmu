@@ -247,6 +247,12 @@ public sealed partial class Room
             return;
         }
 
+        if (actor.InFreeze)
+        {
+            LeaveFreeze(actor);
+            SetGameEffect(actor, 0);
+        }
+
         lock (_banzaiLock)
         {
             if (actor.Team == team)
@@ -281,6 +287,11 @@ public sealed partial class Room
         GameTeam team;
         lock (actor.Lock)
         {
+            if (actor.InFreeze)
+            {
+                return;
+            }
+
             team = actor.Team;
             actor.Team = GameTeam.None;
         }

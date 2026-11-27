@@ -132,6 +132,7 @@ public static class ServiceRegistration
         services.AddSingleton<FootballService>();
         services.AddSingleton<IceTagService>();
         services.AddSingleton<BanzaiService>();
+        services.AddSingleton<FreezeService>();
         services.AddSingleton<FurnitureAutoStateService>();
         services.AddSingleton<TraxService>();
         services.AddSingleton<TraxEditorService>();

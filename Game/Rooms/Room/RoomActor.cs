@@ -103,6 +103,12 @@ public sealed class RoomActor
 
     public GameTeam Team { get; set; }
 
+    public bool InFreeze { get; set; }
+
+    public bool FrozenInGame { get; set; }
+
+    public int EffectDelayMs { get; set; }
+
     public bool OnIce { get; set; }
 
     public long IceSinceMs { get; set; }
@@ -123,7 +129,7 @@ public sealed class RoomActor
         ? Z - PetSeatDrop
         : Z;
 
-    public bool IsHeldByFurniture => ActiveTeleport is not null || ActiveOneWayDoor is not null || BanzaiTeleportHeld;
+    public bool IsHeldByFurniture => ActiveTeleport is not null || ActiveOneWayDoor is not null || BanzaiTeleportHeld || FrozenInGame;
 
     public bool BanzaiTeleportHeld { get; set; }
 

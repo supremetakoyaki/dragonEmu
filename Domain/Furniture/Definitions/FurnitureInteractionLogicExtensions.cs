@@ -40,6 +40,12 @@ public static class FurnitureInteractionLogicExtensions
         FurnitureInteractionLogic.IceTagPole => "icetag_tag_pole",
         FurnitureInteractionLogic.IceTagSkatingPatch => "icetag_skating_patch",
         FurnitureInteractionLogic.LeverSwitch => "lever_switch",
+        FurnitureInteractionLogic.FreezeTile => "freeze_tile",
+        FurnitureInteractionLogic.FreezeBlock => "freeze_block",
+        FurnitureInteractionLogic.FreezeGate => "freeze_gate",
+        FurnitureInteractionLogic.FreezeCounter => "freeze_counter",
+        FurnitureInteractionLogic.FreezeExit => "freeze_exit",
+        FurnitureInteractionLogic.FreezeScore => "freeze_score",
         _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown furniture interaction logic."),
     };
 
@@ -81,6 +87,12 @@ public static class FurnitureInteractionLogicExtensions
         "icetag_tag_pole" => FurnitureInteractionLogic.IceTagPole,
         "icetag_skating_patch" => FurnitureInteractionLogic.IceTagSkatingPatch,
         "lever_switch" => FurnitureInteractionLogic.LeverSwitch,
+        "freeze_tile" => FurnitureInteractionLogic.FreezeTile,
+        "freeze_block" => FurnitureInteractionLogic.FreezeBlock,
+        "freeze_gate" => FurnitureInteractionLogic.FreezeGate,
+        "freeze_counter" => FurnitureInteractionLogic.FreezeCounter,
+        "freeze_exit" => FurnitureInteractionLogic.FreezeExit,
+        "freeze_score" => FurnitureInteractionLogic.FreezeScore,
         _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown furniture interaction_logic value from the database."),
     };
 }
